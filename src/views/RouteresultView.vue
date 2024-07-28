@@ -30,6 +30,9 @@
       <button @click="clcSearch">重新选择</button>
         <button @click="onSearch">查询路径</button>
     </div>
+    <div v-if="isLoading" class="loader-overlay">
+      <div class="loader"></div>
+    </div>
     </div>
     <!-- 地图容器 -->
     <div id="mapViewDiv" style="height: 560px;"></div>
@@ -53,7 +56,8 @@ export default {
       searchResults: [],
       searchResultsEnd: [],
       searchQueryStart: '',
-      searchQueryEnd: ''
+      searchQueryEnd: '',
+      isLoading: false
     }
   },
   mounted () {
@@ -174,6 +178,8 @@ export default {
     onSearch () {
       // 检查是否两个结果都已选择
       if (this.selectedResultStart && this.selectedResultEnd) {
+        // 显示加载动画
+        this.isLoading = true
         // 构造包含location属性的起点和终点对象
         const startWithLocation = {
           ...this.selectedResultStart,
@@ -189,6 +195,10 @@ export default {
             // 后端返回的路径规划结果ID
             const routePlanId = response.data.id
             console.log('路径规划结果ID:', routePlanId)
+
+            // 隐藏加载动画
+            this.isLoading = false
+
             // 使用Vue Router跳转到结果页面，并传递路径规划结果ID
             this.$router.push({
               path: '/lu-jing-gui-hua/route',
@@ -201,6 +211,8 @@ export default {
           })
           .catch(error => {
             console.error(error)
+            // 隐藏加载动画
+            this.isLoading = false
             // 错误处理，例如显示提示信息
             alert('路径规划失败，请稍后再试。')
           })
@@ -520,6 +532,56 @@ export default {
 /* 第一个按钮（重新选择）不需要顶部间距 */
 .search-action button:first-child {
   margin-top: 0;
+}
+
+/* 加载动画样式 */
+.loader-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 30%;
+  height: 30%;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  transform: translate(-50%, -50%);
+}
+
+/* 加载动画样式 */
+.loader {
+  width: 50px;
+  aspect-ratio: 1;
+  display: grid;
+  border-radius: 50%;
+  background:
+    linear-gradient(0deg ,rgb(0 0 0/50%) 30%,#0000 0 70%,rgb(0 0 0/100%) 0) 50%/8% 100%,
+    linear-gradient(90deg,rgb(0 0 0/25%) 30%,#0000 0 70%,rgb(0 0 0/75% ) 0) 50%/100% 8%;
+  background-repeat: no-repeat;
+  animation: l23 1s infinite steps(12);
+}
+
+/* 加载动画样式 */
+.loader::before,
+.loader::after {
+  content: "";
+  grid-area: 1/1;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.915;
+  transform: rotate(30deg);
+}
+
+/* 加载动画样式 */
+.loader::after {
+  opacity: 0.83;
+  transform: rotate(60deg);
+}
+
+/* 加载动画样式 */
+@keyframes l23 {
+  100% {transform: rotate(1turn)}
 }
 
 /* 将CSS链接转换为@import语句 */
