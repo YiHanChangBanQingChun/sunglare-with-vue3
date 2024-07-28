@@ -36,7 +36,7 @@
       </div>
     </div>
   </div>
-  <div id="viewDiv"></div>
+  <div id="viewDiv" style="height: 560px;"></div>
   <!-- 分别显示起点和终点选中结果的代码 -->
    <!-- 这个是初始调试用的，这个界面不跳转时是可以用的，目前已经荒废
   <div v-if="selectedResultStart" class="selected-result-start">

@@ -16,6 +16,7 @@ from shapely.geometry import mapping
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user
 import hmac
+import shutil
 
 # step 1: create a Flask app
 app = Flask(__name__)
@@ -308,11 +309,29 @@ def login():
     except ValueError as e:
         print(f"检查密码哈希时出错: {e}")
         return jsonify({'message': '内部服务器错误'}), 500
+    
+# 清空 temp 文件夹的函数
+def clear_temp_folder():
+    temp_dir = r"E:\webgislocation\sun-glare-project\func\tmp"
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
+    os.makedirs(temp_dir)
+
+# 标志变量，确保 clear_temp_folder 只执行一次
+temp_folder_cleared = False
+
+@app.before_request
+def initialize():
+    global temp_folder_cleared
+    if not temp_folder_cleared:
+        clear_temp_folder()
+        temp_folder_cleared = True
+
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     app.run(debug=True)
-
 # test codes are as follows, in order to test the database connection and data situation
 '''
 def get_location_info_by_id(id):
