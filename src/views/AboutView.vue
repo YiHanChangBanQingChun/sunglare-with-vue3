@@ -1,7 +1,7 @@
 <template>
   <div class="guan-yu">
     <div class="text">
-    <h1>This is an about page</h1>
+    <h1>关于网页</h1>
     </div>
   </div>
   <body>

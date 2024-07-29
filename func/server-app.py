@@ -268,6 +268,11 @@ def register():
     data = request.json
     print("注册请求数据:", data)
 
+     # 检查用户名是否已经存在
+    existing_user = User.query.filter_by(username=data['username']).first()
+    if existing_user:
+        return jsonify({'message': 'Username already exists'}), 400
+
     hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
     print(f"生成的哈希密码: {hashed_password}")
 
