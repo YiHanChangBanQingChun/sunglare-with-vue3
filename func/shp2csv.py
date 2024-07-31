@@ -61,3 +61,44 @@ def process_csv(input_csv_path, output_csv_path):
 # process_csv(input_csv_path, output_csv_path)
 
 
+import os
+import shutil
+import pandas as pd
+
+def copy_files_based_on_pid(csv_path, source_folders, target_folder):
+    # 读取CSV文件
+    df = pd.read_csv(csv_path, encoding='utf-8')
+    
+    # 获取所有pid
+    pids = df['pid'].astype(str).tolist()
+    
+    # 确保目标文件夹存在
+    if not os.path.exists(target_folder):
+        os.makedirs(target_folder)
+    
+    # 遍历每个源文件夹
+    for folder in source_folders:
+        for root, _, files in os.walk(folder):
+            for file in files:
+                # 提取文件名中的pid部分
+                file_pid = file.split('_')[0]
+                if file_pid in pids:
+                    # 构建源文件路径和目标文件路径
+                    source_file = os.path.join(root, file)
+                    target_file = os.path.join(target_folder, file)
+                    # 复制文件
+                    shutil.copy2(source_file, target_file)
+                    print(f"复制文件: {source_file} 到 {target_file}")
+
+# 使用示例
+csv_path = r"E:\webgislocation\sun-glare-project\data\test-vector\pano_dot\pano_nr10inrd50_2_jishu.csv"
+source_folders = [
+    r"E:\webgislocation\sun-glare-project\data\part1",
+    r"E:\webgislocation\sun-glare-project\data\part2_车头朝中间",
+    r"E:\webgislocation\sun-glare-project\data\part3_车头朝中间",
+    r"E:\webgislocation\sun-glare-project\data\part4_车头朝中间",
+    r"E:\webgislocation\sun-glare-project\data\part5_车头朝中间"
+]
+target_folder = r"E:\webgislocation\sun-glare-project\data\processed_files"
+
+copy_files_based_on_pid(csv_path, source_folders, target_folder)
