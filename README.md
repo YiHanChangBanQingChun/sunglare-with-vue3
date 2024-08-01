@@ -77,14 +77,14 @@
 3. 将数据传入后端以让数据库调用
    + 前置条件，激活postgis
    + 在postgres的安装目录下找bin\postgisgui，里面有个shp2pgsql-gui.exe，用这个传入点shp数据
-     + 用wuhanpoi84.shp文件，在sun-glare-project\data\test-vector下
+     + 用wuhanpoi84.shp文件，在sun-glare-project\use-data\test-vector下
      + 注意设置坐标系4326
      + 注意使用utf-8显示中文
      + 存储好点后，即可供后端查询
-     + 你喜欢的话也可以用sun-glare-project\data\whpoiwgs84.csv建表单，一样的，方法不做赘述。但需要注意，用这个方法传入需要使用的csv是notepad打开显示ANSI的csv，不然会报错。需要根据csv文件表头先创建空表，等等等等。
-     + 后面部署用更大的更全的poi，这个是老师给的，即同位置的“武汉市POI_wgs84坐标系.csv”
+     + 你喜欢的话也可以用sun-glare-project\use-data\whpoi-wgs84.csv建表单，一样的，方法不做赘述。但需要注意，用这个方法传入需要使用的csv是notepad打开显示ANSI的csv，不然会报错。需要根据csv文件表头先创建空表，等等等等。
+     + 后面部署用更大的更全的poi，这个是老师给的，即同位置的“whpoi_wgs84_huge.csv”
    + 使用同一个工具，传入路网数据，因为网上教程少，建议按以下步骤做，可以正确部署
-     + 用sun-glare-project\data\test-vector下的whrd7.shp，这个相比whrd7line的区别是打断成了单线，目前来看更少报错，虽然内存更大，想折腾可以用whrd7line。打断方式在func中的python程序实现，我忘了保存加encording=utf-8了，现在没有路名...
+     + 用sun-glare-project\use-data\test-vector下的whrd7line.shp。打断方式在func中的python程序实现，我忘了保存加encording=utf-8了，现在没有路名...
      + 记得使用4326坐标系
      + 勾选第三个和第五个
      + 之后运行后，打开pgadmin4，然后记得先启动pgrouting
