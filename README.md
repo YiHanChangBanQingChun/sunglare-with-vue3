@@ -55,7 +55,7 @@
    + 找到后端文件，即func中的server-app.py
    + 目前我用的是py3.11.4，感觉版本影响不大，因为包少
    ```cmd
-   pip install Flask Flask-SQLAlchemy GeoAlchemy2 Flask-CORS psycopg2-binary uuid shapely
+   pip install Flask Flask-SQLAlchemy werkzeug geoalchemy2 Flask-CORS psycopg2-binary uuid json os tempfile shapely flask-bcrypt flask-login hmac shutil
    ```
    +  注意：
       +  这里使用 psycopg2-binary 而不是 psycopg2，因为 psycopg2-binary 是预编译版本，更容易安装，但功能上与 psycopg2 相同。
