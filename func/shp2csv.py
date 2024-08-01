@@ -59,46 +59,53 @@ def process_csv(input_csv_path, output_csv_path):
 # input_csv_path = r"E:\webgislocation\sun-glare-project\data\test-vector\pano_dot\panonear10inroad50_2.csv"
 # output_csv_path = r"E:\webgislocation\sun-glare-project\data\test-vector\pano_dot\pano_nr10inrd50_2_jishu.csv"
 # process_csv(input_csv_path, output_csv_path)
-
-
 import os
 import shutil
 import pandas as pd
+from tqdm import tqdm
 
 def copy_files_based_on_pid(csv_path, source_folders, target_folder):
     # 读取CSV文件
     df = pd.read_csv(csv_path, encoding='utf-8')
     
-    # 获取所有pid
-    pids = df['pid'].astype(str).tolist()
+    # 获取所有pid，跳过第一行
+    pids = df['pid'].astype(str).tolist()[1:]
     
     # 确保目标文件夹存在
     if not os.path.exists(target_folder):
         os.makedirs(target_folder)
     
-    # 遍历每个源文件夹
-    for folder in source_folders:
-        for root, _, files in os.walk(folder):
-            for file in files:
-                # 提取文件名中的pid部分
-                file_pid = file.split('_')[0]
-                if file_pid in pids:
-                    # 构建源文件路径和目标文件路径
-                    source_file = os.path.join(root, file)
-                    target_file = os.path.join(target_folder, file)
-                    # 复制文件
-                    shutil.copy2(source_file, target_file)
-                    print(f"复制文件: {source_file} 到 {target_file}")
+    # 统计需要复制的文件数量，基于CSV文件中的行数
+    total_files = len(pids)
+    
+    # 遍历每个源文件夹并复制文件，显示进度条
+    with tqdm(total=total_files, desc="复制文件进度") as pbar:
+        for folder in source_folders:
+            for root, _, files in os.walk(folder):
+                for file in files:
+                    # 提取文件名中的pid部分
+                    file_pid = file.split('_')[0]
+                    if file_pid in pids:
+                        # 构建源文件路径和目标文件路径
+                        source_file = os.path.join(root, file)
+                        target_file = os.path.join(target_folder, file)
+                        try:
+                            # 复制文件
+                            shutil.copy2(source_file, target_file)
+                            pbar.update(1)
+                            print(f"复制文件: {source_file} 到 {target_file}")
+                        except Exception as e:
+                            print(f"错误: 无法复制文件 {source_file} 到 {target_file}. 错误信息: {e}")
 
 # 使用示例
-csv_path = r"E:\webgislocation\sun-glare-project\data\test-vector\pano_dot\pano_nr10inrd50_2_jishu.csv"
+csv_path = r"D:\街景全景_武汉\sunglare\pano_nr10inrd50_2_jishu.csv"
 source_folders = [
-    r"E:\webgislocation\sun-glare-project\data\part1",
-    r"E:\webgislocation\sun-glare-project\data\part2_车头朝中间",
-    r"E:\webgislocation\sun-glare-project\data\part3_车头朝中间",
-    r"E:\webgislocation\sun-glare-project\data\part4_车头朝中间",
-    r"E:\webgislocation\sun-glare-project\data\part5_车头朝中间"
+    r"D:\街景全景_武汉\part1",
+    r"D:\街景全景_武汉\part2_车头朝中间",
+    r"D:\街景全景_武汉\part3_车头朝中间",
+    r"D:\街景全景_武汉\part4_车头朝中间",
+    r"D:\街景全景_武汉\part5_车头朝中间"
 ]
-target_folder = r"E:\webgislocation\sun-glare-project\data\processed_files"
+target_folder = r"D:\wuhan_rd_pano\processed_files"
 
 copy_files_based_on_pid(csv_path, source_folders, target_folder)
