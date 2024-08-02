@@ -66,8 +66,10 @@
 </template>
 
 <script>
-import { ref, watch } from 'vue'
-// 数据库还没搭，先随便写个结构出来，flask的后端也还没做，估计不难
+import { ref, watch, computed } from 'vue'
+import { useStore } from 'vuex'
+import { useRouter } from 'vue-router'
+
 export default {
   setup () {
     const username = ref('')
@@ -76,12 +78,14 @@ export default {
     const securityQuestion = ref('')
     const securityAnswer = ref('')
     const birthday = ref('')
-    const loginUsername = ref('')
-    const loginPassword = ref('')
+    const loginUsername = ref('') // 你的用户名绑定
+    const loginPassword = ref('') // 你的密码绑定
     const showRegisterModal = ref(false)
     const isUsernameValid = ref(true)
     const isPasswordValid = ref(true)
     const isEmailValid = ref(true)
+    const store = useStore()
+    const router = useRouter()
 
     // 清空注册表单，注册时调用
     const clearRegisterForm = () => {
@@ -217,7 +221,15 @@ export default {
         if (response.ok) {
           const data = await response.json()
           alert(data.message) // 弹窗提示登录成功
+          // 更新Vuex Store
+          store.dispatch('login', { username: loginUsername.value, avatarUrl: 'your-avatar-url' })
+          console.log('登录成功:', data)
+          console.log('当前登录状态:', store.state)
           // 这里可以添加更多的逻辑，比如跳转到另一个页面
+          // 等待三秒后跳转到用户中心界面
+          setTimeout(() => {
+            router.push({ name: 'yong-hu-zhong-xin' })
+          }, 3000)
         } else {
           const errorData = await response.json()
           alert(errorData.message) // 弹窗提示登录失败
@@ -227,6 +239,9 @@ export default {
         alert('登录请求失败，请稍后再试。')
       }
     }
+
+    // 计算属性，用于获取登录用户的信息
+    const loggedInUser = computed(() => store.state.user)
 
     return {
       // 用户信息
@@ -258,7 +273,10 @@ export default {
       isPasswordValid,
 
       // 登录方法
-      login
+      login,
+
+      // 登录用户信息
+      loggedInUser
     }
   }
 }

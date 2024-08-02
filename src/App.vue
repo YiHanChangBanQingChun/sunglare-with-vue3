@@ -9,12 +9,38 @@
         <h4><router-link to="/lu-jing-gui-hua">路径规划</router-link></h4>|
         <h4><router-link to="/xuan-guang-qing-kuang">眩光状况</router-link></h4>|
         <h4><router-link to="/guan-yu">关于</router-link></h4>|
-        <h4><router-link to="/deng-lu">登录</router-link></h4>
+        <h4>
+          <router-link v-if="!isLoggedIn" to="/deng-lu">请登录</router-link>
+          <router-link v-else to="/yong-hu-zhong-xin">已登录</router-link>
+        </h4>
+        <div class="avatar"></div>
       </nav>
     </div>
   </div>
   <router-view/>
 </template>
+
+<script>
+import { computed } from 'vue'
+import { useStore } from 'vuex'
+
+export default {
+  setup () {
+    const store = useStore()
+    const isLoggedIn = computed(() => store.state.isLoggedIn)
+
+    const handleLogout = () => {
+      store.dispatch('logout')
+      // 这里可以添加更多的逻辑，比如跳转到登录页面
+    }
+
+    return {
+      isLoggedIn,
+      handleLogout
+    }
+  }
+}
+</script>
 
 <style>
 #zhuang-tai-lan {
@@ -53,6 +79,19 @@ nav h1 {
 .biao-ti h2 {
   color: rgb(53, 94, 90); /* 修改为您想要的颜色 */
 }
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #ccc; /* 这里可以设置默认头像的背景颜色 */
+  background-image: url('../public/icon.png'); /* 设置默认头像 */
+  background-size: cover; /* 使图片覆盖整个容器 */
+  background-position: center; /* 使图片居中 */
+  display: inline-block;
+  margin-left: 10px;
+}
+
 body {
   background-color: #4158D0;
   background-image: linear-gradient(43deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%);

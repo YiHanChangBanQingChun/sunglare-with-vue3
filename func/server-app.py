@@ -314,7 +314,22 @@ def login():
     except ValueError as e:
         print(f"检查密码哈希时出错: {e}")
         return jsonify({'message': '内部服务器错误'}), 500
+
+@app.route('/user_info', methods=['GET'])
+def get_user_info():
+    username = request.args.get('username')
+    user = User.query.filter_by(username=username).first()
+    if user:
+        return jsonify({
+            'username': user.username,
+            'email': user.email,
+            'security_question': user.security_question,
+            'birthday': user.birthday.strftime('%Y-%m-%d')
+        })
+    else:
+        return jsonify({'message': 'User not found'}), 404
     
+
 # 清空 temp 文件夹的函数
 def clear_temp_folder():
     temp_dir = r"E:\webgislocation\sun-glare-project\func\tmp"

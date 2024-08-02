@@ -41,6 +41,11 @@ const routes = [
     path: '/lu-jing-gui-hua/route',
     name: 'route',
     component: () => import(/* webpackChunkName: "lu-jing-gui-hua-route" */ '../views/RouteView.vue')
+  },
+  {
+    path: '/yong-hu-zhong-xin',
+    name: 'yong-hu-zhong-xin',
+    component: () => import(/* webpackChunkName: "yong-hu-zhong-xin" */ '../views/UserView.vue')
   }
 ]
 
