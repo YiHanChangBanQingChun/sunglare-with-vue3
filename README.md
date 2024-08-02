@@ -119,7 +119,7 @@
 
      + 用wuhanpoi84.shp文件，在sun-glare-project\use-data\test-vector下
 
-     + 注意设置坐标系4326
+     + 注意设置坐标系4326，即srid需要设置
 
      + 注意使用utf-8显示中文
 
@@ -171,7 +171,7 @@
         UPDATE whrd7 SET reverse_cost =length;
         ```
 
-     + 完成初始化后，让我们检验一下数据是否可以正确规划路径以下是直接全部运行的脚本
+     + 完成初始化后，让我们检验一下数据是否可以正确规划路径，以下是直接全部运行的脚本
 
         ```SQL
         WITH start_vertex AS (
