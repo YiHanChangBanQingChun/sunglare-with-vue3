@@ -18,6 +18,14 @@ from flask_login import LoginManager, UserMixin, login_user
 import hmac
 import shutil
 
+
+
+print("Hello World !")
+print("你好！")
+print("谢谢！")
+
+
+
 # step 1: create a Flask app
 app = Flask(__name__)
 CORS(app)
