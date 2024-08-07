@@ -1,8 +1,8 @@
 <template>
     <div class="deng-lu">
-      <div class="text">
+      <!-- <div class="text">
         <h1>欢迎登录</h1>
-      </div>
+      </div> -->
       <div class="login-container">
         <div class="image-container">
           <img src="/login.png" alt="Login Image">
@@ -71,6 +71,7 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 
 export default {
+  name: 'LoginView',
   setup () {
     const username = ref('')
     const password = ref('')

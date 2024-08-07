@@ -136,8 +136,8 @@ def assign_nearest_point_attributes(line_shapefile, point_shapefile, output_shap
     
     print("处理完成，结果已保存到", output_shapefile)
 
-# 示例调用
-line_shapefile = r"E:\webgislocation\sun-glare-project\data\test-vector\whrd7.shp"
-point_shapefile = r"E:\webgislocation\sun-glare-project\data\test-vector\pano_dot\panonear10inroad.shp"
-output_shapefile = r"E:\webgislocation\sun-glare-project\data\test-vector\pano_dot\panonear10inroad50_2.shp"
-assign_nearest_point_attributes(line_shapefile, point_shapefile, output_shapefile)
+# # 示例调用
+# line_shapefile = r"E:\webgislocation\sun-glare-project\use-data\whrd7line\whrd7line.shp"
+# point_shapefile = r"E:\webgislocation\poinrd.shp"
+# output_shapefile = r"E:\webgislocation\poinrd50_3.shp"
+# assign_nearest_point_attributes(line_shapefile, point_shapefile, output_shapefile)

@@ -1,8 +1,8 @@
 <template>
   <div class="guan-yu">
-    <div class="text">
+    <!-- <div class="text">
     <h1>关于网页</h1>
-    </div>
+    </div> -->
   </div>
   <body>
     <div class="xiang-mu-jie-shao-container">
@@ -45,6 +45,9 @@
 </template>
 
 <script>
+export default {
+  name: 'AboutView'
+}
 </script>
 
 <style>
@@ -63,6 +66,7 @@
   grid-template-rows: auto auto; /* 定义两行，高度根据内容自动调整 */
   gap: 20px; /* 定义网格项之间的间隔 */
   padding: 20px; /* 容器内边距 */
+  margin-top: 10vh; /* 向下移动20px，可以根据需要调整这个值 */
 }
 
 .xiang-mu-jie-shao {

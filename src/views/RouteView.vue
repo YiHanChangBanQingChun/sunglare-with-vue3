@@ -1,6 +1,6 @@
 <template>
 <div class="lu-jing-gui-hua">
-    <h1>这个页面是放路径规划的</h1>
+    <!-- <h1>这个页面是放路径规划的</h1> -->
     <!-- 搜索框 -->
     <!-- 外层容器 -->
     <div class="search-containers">
@@ -30,7 +30,7 @@
     </div>
     </div>
     <!-- 地图容器 -->
-    <div id="mapViewDiv" style="height: 560px;"></div>
+    <div id="viewDiv"></div>
 </div>
 </template>
 
@@ -196,7 +196,7 @@ export default {
       })
       // 创建MapView实例
       this.view = new MapView({
-        container: 'mapViewDiv', // 使用正确的容器ID
+        container: 'viewDiv', // 使用正确的容器ID
         map: map,
         center: [114.3, 30.7], // 使用中心点坐标
         zoom: 4,
@@ -216,6 +216,8 @@ export default {
           snapToZoom: false
         }
       })
+      // 移动缩放控件到左下角
+      this.view.ui.move('zoom', 'bottom-left')
       // 创建GraphicsLayer实例
       const graphicsLayer = new GraphicsLayer()
       map.add(graphicsLayer)
@@ -398,8 +400,11 @@ export default {
 <style>
 /*之后要自己调样式的大小，这个仅作参考*/
 #viewDiv {
-  height: 100vh; /* 将高度设置为视口高度的80% */
-  width: 98vw; /* 将宽度设置为视口宽度的80% */
+  position: fixed; /* 固定定位 */
+  top: 0; /* 紧贴网页顶部 */
+  height: 100vh; /* 将高度设置为视口高度的100% */
+  width: 100vw; /* 将宽度设置为视口宽度的100% */
+  z-index: -1; /* 设置较低的z-index值，使其在App.vue的下部分 */
   /*margin: auto;*/
 }
 
@@ -423,7 +428,7 @@ export default {
   flex-direction: column; /* 保持垂直排列 */
   justify-content: flex-start; /* 从顶部开始排列 */
   align-items: flex-start; /* 子元素沿交叉轴的开始边缘对齐，即顶部对齐 */
-  width: 50%; /* 设置一个固定宽度 */
+  width: 30%; /* 设置一个固定宽度 */
   padding: 10px; /* 根据需要调整，确保搜索框周围有足够空间 */
   background-color: #f0f0f0; /* 背景颜色稍微深于白色 */
   border-radius: 10px; /* 添加圆角边框 */
