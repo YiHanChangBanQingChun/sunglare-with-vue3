@@ -70,7 +70,10 @@ export default {
 }
 
 .xiang-mu-jie-shao {
-  background: rgba(255,255,255,0.45);
+  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  border-radius: 10px; /* 添加圆角边框 */
   -webkit-backdrop-filter: blur(25px);
   backdrop-filter: blur(25px);
   border: 1px solid rgba(255,255,255,0.45);

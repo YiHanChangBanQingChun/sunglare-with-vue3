@@ -165,125 +165,130 @@ def update_yaw_with_e_angle(point_shp_path, line_shp_path, output_shp_path):
 
 
 
-# # 5. 生成鱼眼图像，北对齐
-# from PIL import Image
-# import numpy as np
-# import os, os.path
-# import math
-# import cv2
-# def cylinder2fisheyeImage (panoImg,yaw,outputImgFile='fisheye.jpg'):
+# 5. 生成鱼眼图像，北对齐
+from PIL import Image
+import numpy as np
+import os, os.path
+import math
+import cv2
+def cylinder2fisheyeImage (panoImg,yaw,outputImgFile='fisheye.jpg'):
     
-#     # read the dimension information of input panorama
-#     dims = panoImg.shape
+    # read the dimension information of input panorama
+    dims = panoImg.shape
 
-#     Hs = dims[0]
-#     Ws = dims[1]
+    Hs = dims[0]
+    Ws = dims[1]
     
-#     panoImg2 = panoImg[0:int(Hs/2),:]
-#     del panoImg
-    
-    
-#     #the roate anagle
-#     rotateAng = 360 - float(yaw)# the rotate angle
+    panoImg2 = panoImg[0:int(Hs/2),:]
+    del panoImg
     
     
-#     # get the radius of the fisheye
-#     R1 = 0
-#     R2 = int(2*Ws/(2*np.pi) - R1 +0.5) # For google Street View pano
+    #the roate anagle
+    rotateAng = 360 - float(yaw)# the rotate angle
     
-#     R22 = Hs + R1
     
-#     # estimate the size of the sphere or fish-eye image
-#     Hd = int(Ws/np.pi)+2
-#     Wd = int(Ws/np.pi)+2
+    # get the radius of the fisheye
+    R1 = 0
+    R2 = int(2*Ws/(2*np.pi) - R1 +0.5) # For google Street View pano
     
-#     # create empty matrics to store the affine parameters
-#     xmap = np.zeros((Hd,Wd),np.float32)
-#     ymap = np.zeros((Hd,Wd),np.float32)
+    R22 = Hs + R1
     
-#     # the center of the destination image, or the sphere image
-#     CSx = int(0.5*Wd)
-#     CSy = int(0.5*Hd)
+    # estimate the size of the sphere or fish-eye image
+    Hd = int(Ws/np.pi)+2
+    Wd = int(Ws/np.pi)+2
     
-#     # split the sphere image into four parts, and reproject the panorama for each section
-#     for yD in range(Hd):
-#         for xD in range(CSx):
-#             r = math.sqrt((yD - CSy)**2 + (xD - CSx)**2)
-#             theta = 0.5*np.pi + math.atan((yD - CSy)/(xD - CSx+0.0000001))
+    # create empty matrics to store the affine parameters
+    xmap = np.zeros((Hd,Wd),np.float32)
+    ymap = np.zeros((Hd,Wd),np.float32)
+    
+    # the center of the destination image, or the sphere image
+    CSx = int(0.5*Wd)
+    CSy = int(0.5*Hd)
+    
+    # split the sphere image into four parts, and reproject the panorama for each section
+    for yD in range(Hd):
+        for xD in range(CSx):
+            r = math.sqrt((yD - CSy)**2 + (xD - CSx)**2)
+            theta = 0.5*np.pi + math.atan((yD - CSy)/(xD - CSx+0.0000001))
             
-#             xS = theta/(2*np.pi)*Ws
-#             yS = (r - R1)/(R2 - R1)*Hs
+            xS = theta/(2*np.pi)*Ws
+            yS = (r - R1)/(R2 - R1)*Hs
             
-#             xmap.itemset((yD,xD),xS)
-#             ymap.itemset((yD,xD),yS)
+            xmap.itemset((yD,xD),xS)
+            ymap.itemset((yD,xD),yS)
         
-#         for xD in range(CSx,Wd):
-#             r = math.sqrt((yD - CSy)**2 + (xD - CSx)**2)            
-#             theta = 1.5*np.pi + math.atan((yD - CSy)/(xD - CSx+0.0000001))
+        for xD in range(CSx,Wd):
+            r = math.sqrt((yD - CSy)**2 + (xD - CSx)**2)            
+            theta = 1.5*np.pi + math.atan((yD - CSy)/(xD - CSx+0.0000001))
             
-#             xS = theta/(2*np.pi)*Ws
-#             yS = (r - R1)/(R2 - R1)*Hs 
+            xS = theta/(2*np.pi)*Ws
+            yS = (r - R1)/(R2 - R1)*Hs 
             
-#             xmap.itemset((yD,xD),xS)
-#             ymap.itemset((yD,xD),yS)
+            xmap.itemset((yD,xD),xS)
+            ymap.itemset((yD,xD),yS)
     
-#     # using the affine to generate new hemispherical image
-#     outputImg = cv2.remap(panoImg2,xmap,ymap,cv2.INTER_CUBIC)
-#     del xmap,ymap,panoImg2    
+    # using the affine to generate new hemispherical image
+    outputImg = cv2.remap(panoImg2,xmap,ymap,cv2.INTER_CUBIC)
+    del xmap,ymap,panoImg2    
     
-#     # remove the black line in central column of the buttom
-#     if len(dims) > 2:
-#         outputImg[int(CSy):,CSx,:] = outputImg[int(CSy):,CSx - 1,:]
-#         outputImg[int(CSy):,int(CSx + 0.5),:] = outputImg[CSy:,int(CSx + 0.5) + 1,:]
-#     else:
-#         outputImg[int(CSy):,CSx] = outputImg[int(CSy):,CSx - 1]
-#         outputImg[int(CSy):,int(CSx + 0.5)] = outputImg[CSy:,int(CSx + 0.5) + 1]
+    # remove the black line in central column of the buttom
+    if len(dims) > 2:
+        outputImg[int(CSy):,CSx,:] = outputImg[int(CSy):,CSx - 1,:]
+        outputImg[int(CSy):,int(CSx + 0.5),:] = outputImg[CSy:,int(CSx + 0.5) + 1,:]
+    else:
+        outputImg[int(CSy):,CSx] = outputImg[int(CSy):,CSx - 1]
+        outputImg[int(CSy):,int(CSx + 0.5)] = outputImg[CSy:,int(CSx + 0.5) + 1]
     
-#     # [rows,cols,bands] = outputImg.shape
-#     dims = outputImg.shape
-#     rows = dims[0]
-#     cols = dims[1]
+    # [rows,cols,bands] = outputImg.shape
+    dims = outputImg.shape
+    rows = dims[0]
+    cols = dims[1]
     
-#     M = cv2.getRotationMatrix2D((cols/2,rows/2),rotateAng,1)
-#     rotatedFisheyeImg = cv2.warpAffine(outputImg,M,(cols,rows))
+    M = cv2.getRotationMatrix2D((cols/2,rows/2),rotateAng,1)
+    rotatedFisheyeImg = cv2.warpAffine(outputImg,M,(cols,rows))
     
     
-#     img = Image.fromarray(rotatedFisheyeImg)
-#     del outputImg
-#     img.save(outputImgFile)
-#     del img
+    img = Image.fromarray(rotatedFisheyeImg)
+    del outputImg
+    img.save(outputImgFile)
+    del img
     
-#     return rotatedFisheyeImg
+    return rotatedFisheyeImg
 
-# def generate_fisheye_images(shp_file, image_folder, output_folder):
-#     # Read the point shapefile
-#     gdf = gpd.read_file(shp_file)
+def generate_fisheye_images(shp_file, image_folder, output_folder):
+    # Read the point shapefile
+    gdf = gpd.read_file(shp_file)
 
-#     # Iterate through TIFF files in the image folder
-#     for file_name in os.listdir(image_folder):
-#         if file_name.endswith('.tif'):
-#             # Extract pid from file name
-#             pid = os.path.splitext(file_name)[0].split('_')[0]
+    # Filter out rows where pid is -1
+    gdf = gdf[gdf['pid'] != -1]
 
-#             # Find wa corresponding to pid in the shapefile
-#             wa = gdf[gdf['pid'] == pid]['wa'].values[0]
+    # Initialize the progress bar
+    with tqdm(total=len(gdf)) as pbar:
+        # Iterate through the filtered rows in the shapefile
+        for index, row in gdf.iterrows():
+            pid = row['pid']
+            yaw = row['yaw']
 
-#             # Calculate yaw by subtracting 90 from wa
-#             yaw = wa - 90
+            # Find the corresponding PNG file in the image folder
+            file_name = f"{pid}.png"
+            file_path = os.path.join(image_folder, file_name)
 
-#             # Read TIFF image and convert to numpy array
-#             file_path = os.path.join(image_folder, file_name)
-#             with Image.open(file_path) as img:
-#                 panoImg = np.array(img)
+            if os.path.exists(file_path):
+                # Read PNG image and convert to numpy array
+                with Image.open(file_path) as img:
+                    panoImg = np.array(img)
 
-#                 # Call the function to convert to fisheye image
-#                 hemi_img = cylinder2fisheyeImage(panoImg, yaw)
+                    # Call the function to convert to fisheye image
+                    hemi_img = cylinder2fisheyeImage(panoImg, yaw)
 
-#                 # Generate output file path
-#                 output_file = os.path.join(output_folder, os.path.splitext(file_name)[0] + '_whemi.tif')
+                    # Generate output file path
+                    output_file = os.path.join(output_folder, f"{pid}.png")
 
-#                 # Save the hemi_img to the specified output file location
-#                 Image.fromarray(hemi_img).save(output_file)
+                    # Save the hemi_img to the specified output file location
+                    Image.fromarray(hemi_img).save(output_file)
+            
+            # Update the progress bar
+            pbar.update(1)
 
 if __name__ == "__main__":
     multiline_file = r"E:\webgislocation\rdraw.shp"
@@ -318,8 +323,16 @@ if __name__ == "__main__":
 
     # 4. 更新点数据的yaw列
     # 示例调用
-    point_shp_path = r"E:\webgislocation\poinrd50_3.shp"
-    line_shp_path = r"E:\webgislocation\rdsingle_from_E.shp"
-    output_shp_path = r"E:\webgislocation\poinrd50_3_yaw.shp"
+    # point_shp_path = r"E:\webgislocation\poinrd50_3.shp"
+    # line_shp_path = r"E:\webgislocation\rdsingle_from_E.shp"
+    # output_shp_path = r"E:\webgislocation\poinrd50_3_yaw.shp"
 
-    update_yaw_with_e_angle(point_shp_path, line_shp_path, output_shp_path)
+    # update_yaw_with_e_angle(point_shp_path, line_shp_path, output_shp_path)
+
+    # 5. 生成鱼眼图像，北对齐
+    shp_file = r"E:\webgislocation\poinrd50_3_yaw.shp"
+    image_folder = 'path/to/your/image/folder'
+    output_folder = 'path/to/your/output/folder'
+
+    # 调用 generate_fisheye_images 函数
+    generate_fisheye_images(shp_file, image_folder, output_folder)

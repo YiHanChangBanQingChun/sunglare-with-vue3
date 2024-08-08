@@ -430,11 +430,14 @@ export default {
   align-items: flex-start; /* 子元素沿交叉轴的开始边缘对齐，即顶部对齐 */
   width: 30%; /* 设置一个固定宽度 */
   padding: 10px; /* 根据需要调整，确保搜索框周围有足够空间 */
-  background-color: #f0f0f0; /* 背景颜色稍微深于白色 */
+  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   border-radius: 10px; /* 添加圆角边框 */
-  border: 1px solid #ccc; /* 添加边框 */
+  border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
   margin-bottom: 10px;
   position: relative; /* 添加相对定位 */
+  top: 0vh;
 }
 
 /* 移除左右外边距 */
@@ -462,10 +465,8 @@ export default {
 }
 
 .search-box:focus {
-  padding-right: 60px; /* 聚焦时增加右侧内边距，使框向右变长 */
   border-width: 2px;
   border-color: blue;
-  transition: padding-right 0.3s ease, border-color 0.3s ease; /* 平滑过渡效果 */
   text-indent: 0px; /* 聚焦时减少文本缩进 */
 }
 

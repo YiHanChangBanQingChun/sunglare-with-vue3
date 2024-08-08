@@ -392,6 +392,10 @@ export default {
   flex-direction: column; /* 子元素垂直排列 */
   width: 100%; /* 使容器宽度充满父容器 */
   text-align: center; /* 文本居中，影响到所有的表格单元 */
+  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  border-radius: 10px; /* 添加圆角边框 */
 }
 
 .weather th, .weather td {
@@ -409,6 +413,10 @@ export default {
   justify-content: center; /* 子元素在主轴上居中对齐 */
   align-items: center; /* 子元素在交叉轴上居中对齐 */
   margin-top: 10vh; /* 向下移动20px，可以根据需要调整这个值 */
+  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  border-radius: 10px; /* 添加圆角边框 */
 }
 
 .select-container {
