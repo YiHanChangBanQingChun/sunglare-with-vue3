@@ -226,9 +226,8 @@ def route_plan():
         "features": features
     }
 
-    # 使用同一个UUID既作为文件名的一部分，也作为返回给前端的ID
+# 使用同一个UUID既作为文件名的一部分，也作为返回给前端的ID
     route_plan_id = str(uuid.uuid4())
-    temp_dir = r"E:\webgislocation\sun-glare-project\func\tmp"
     temp_file_name = f"route_plan_{route_plan_id}.geojson"
     temp_file_path = os.path.join(temp_dir, temp_file_name)
 
@@ -245,7 +244,7 @@ def route_plan():
 def get_geojson(route_id):
     # 根据route_id构造文件路径
     print(route_id)
-    file_path = f'E:/webgislocation/sun-glare-project/func/tmp/route_plan_{route_id}.geojson'
+    file_path = os.path.join(BASE_DIR, 'tmp', f'route_plan_{route_id}.geojson')
     # 返回文件内容
     return send_file(file_path, mimetype='application/json')
 
@@ -332,7 +331,6 @@ def get_user_info():
 
 # 清空 temp 文件夹的函数
 def clear_temp_folder():
-    temp_dir = r"E:\webgislocation\sun-glare-project\func\tmp"
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
     os.makedirs(temp_dir)
@@ -351,6 +349,14 @@ def initialize():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+    # 获取当前文件的目录
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    print(BASE_DIR)
+    temp_dir = os.path.join(BASE_DIR, 'tmp')
+    print(temp_dir)
+    # 检查 tmp 目录是否存在，如果不存在则创建
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
     app.run(debug=True)
 # test codes are as follows, in order to test the database connection and data situation
 '''

@@ -13,9 +13,9 @@
   </div>
   <div class="echarts-wrapper">
     <!-- 这里放echarts的图 -->
-    <div ref="echartsRef" class="echarts-container">
+    <div ref="zhuzhuangtu" class="echarts-container">
     </div>
-    <div class="echarts-container" id="main">
+    <div class="echarts-container" id="yibiaopan">
     </div>
 
   </div>
@@ -104,7 +104,7 @@ export default {
     }
   },
   mounted () {
-    this.initEcharts()
+    this.initzhuzhuangtu()
     // 调试信息
     console.log('Echarts is mounted')
     // 420100 是武汉市的区划代码，其他区域的区划代码可以参考高德地图的行政区划代码
@@ -124,152 +124,15 @@ export default {
       this.fetchWeatherInfo('420100')
     }, 60000)
     this.fetchWeatherInfo('420100')
-    // 初始化图表
-    echarts.use([GaugeChart, CanvasRenderer])
-    const chartDom = document.getElementById('main')
-    const myChart = echarts.init(chartDom)
-    const option = {
-      // ECharts配置项
-      series: [
-        {
-          type: 'gauge',
-          center: ['50%', '60%'],
-          startAngle: 200,
-          endAngle: -20,
-          min: 0,
-          max: 60,
-          splitNumber: 12,
-          itemStyle: {
-            color: 'greeen'
-          },
-          progress: {
-            show: true,
-            width: 30
-          },
-          pointer: {
-            show: false
-          },
-          axisLine: {
-            lineStyle: {
-              width: 30
-            }
-          },
-          axisTick: {
-            distance: -45,
-            splitNumber: 5,
-            lineStyle: {
-              width: 2,
-              color: '#999'
-            }
-          },
-          splitLine: {
-            distance: -52,
-            length: 14,
-            lineStyle: {
-              width: 3,
-              color: '#999'
-            }
-          },
-          axisLabel: {
-            distance: 0,
-            color: '#999',
-            fontSize: 10
-          },
-          anchor: {
-            show: false
-          },
-          title: {
-            show: false
-          },
-          detail: {
-            valueAnimation: true,
-            width: '60%',
-            lineHeight: 40,
-            borderRadius: 8,
-            offsetCenter: [0, '-15%'],
-            fontSize: 20,
-            fontWeight: 'bolder',
-            formatter: '{value} °C',
-            color: 'green'
-          },
-          data: [
-            {
-              value: 20
-            }
-          ]
-        },
-        {
-          type: 'gauge',
-          center: ['50%', '60%'],
-          startAngle: 200,
-          endAngle: -20,
-          min: 0,
-          max: 60,
-          itemStyle: {
-            color: ''
-          },
-          progress: {
-            show: true,
-            width: 8
-          },
-          pointer: {
-            show: false
-          },
-          axisLine: {
-            show: false
-          },
-          axisTick: {
-            show: false
-          },
-          splitLine: {
-            show: false
-          },
-          axisLabel: {
-            show: false
-          },
-          detail: {
-            show: false
-          },
-          data: [
-            {
-              value: 20
-            }
-          ]
-        }
-      ]
-    }
-    // 使用配置项初始化图表
-    option && myChart.setOption(option)
-    setInterval(() => {
-      // 每隔2秒更新一次图表
-      if (this.currentTemperature !== null) {
-        myChart.setOption({
-          series: [
-            {
-              data: [
-                { value: this.currentTemperature } // 使用实际温度值更新图表
-              ]
-            },
-            {
-              data: [
-                { value: this.currentTemperature } // 使用实际温度值更新图表
-              ]
-            }
-          ]
-        })
-      }
-    }, 2000)
+    this.inityibiaopan()
   },
-  // 在组件销毁前清除定时器
   beforeUnmount () {
     if (this.intervalid) {
       clearInterval(this.intervalid)
       console.log('清除定时器')
-      // 清除定时器
     }
   },
   methods: {
-    // 处理区域选择变化
     handleDistrictChange () {
       clearInterval(this.intervalid)
       console.log('选择的区域:', this.selectedDistrict)
@@ -278,28 +141,153 @@ export default {
         this.fetchWeatherInfo(this.selectedDistrict)
       }, 60000)
     },
-    // 初始化Echarts
-    initEcharts () {
-      const myChart = echarts.init(this.$refs.echartsRef)
-      myChart.setOption({
-        title: {
-          text: '太阳眩光状况'
-        },
+    initzhuzhuangtu () {
+      this.barChart = echarts.init(this.$refs.zhuzhuangtu)
+      this.barChart.setOption({
+        title: { text: '各区气温' },
         tooltip: {},
-        xAxis: {
-          data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-        },
-        yAxis: {},
+        xAxis: { type: 'category', data: [] },
+        yAxis: { type: 'value' },
         series: [{
-          name: '眩光强度',
+          name: '气温',
           type: 'bar',
-          data: [5, 20, 36, 10, 10, 20]
+          data: []
         }]
       })
     },
-    // 获取天气信息
+    updatezhuzhuangtu () {
+      const xAxisData = this.weatherInfos.map(info => info.city)
+      const seriesData = this.weatherInfos.map(info => parseFloat(info.temperature))
+      this.barChart.setOption({
+        xAxis: { data: xAxisData },
+        series: [{ data: seriesData }]
+      })
+    },
+    inityibiaopan () {
+      const chartDom = document.getElementById('yibiaopan')
+      const myChart = echarts.init(chartDom)
+      const option = {
+        series: [
+          {
+            type: 'gauge',
+            center: ['50%', '60%'],
+            startAngle: 200,
+            endAngle: -20,
+            min: 0,
+            max: 60,
+            splitNumber: 12,
+            itemStyle: {
+              color: 'greeen'
+            },
+            progress: {
+              show: true,
+              width: 30
+            },
+            pointer: {
+              show: false
+            },
+            axisLine: {
+              lineStyle: {
+                width: 30
+              }
+            },
+            axisTick: {
+              distance: -45,
+              splitNumber: 5,
+              lineStyle: {
+                width: 2,
+                color: '#999'
+              }
+            },
+            splitLine: {
+              distance: -52,
+              length: 14,
+              lineStyle: {
+                width: 3,
+                color: '#999'
+              }
+            },
+            axisLabel: {
+              distance: 0,
+              color: '#999',
+              fontSize: 10
+            },
+            anchor: {
+              show: false
+            },
+            title: {
+              show: false
+            },
+            detail: {
+              valueAnimation: true,
+              width: '60%',
+              lineHeight: 40,
+              borderRadius: 8,
+              offsetCenter: [0, '-15%'],
+              fontSize: 20,
+              fontWeight: 'bolder',
+              formatter: '{value} °C',
+              color: 'green'
+            },
+            data: [
+              {
+                value: 20
+              }
+            ]
+          },
+          {
+            type: 'gauge',
+            center: ['50%', '60%'],
+            startAngle: 200,
+            endAngle: -20,
+            min: 0,
+            max: 60,
+            itemStyle: {
+              color: ''
+            },
+            progress: {
+              show: true,
+              width: 8
+            },
+            pointer: {
+              show: false
+            },
+            axisLine: {
+              show: false
+            },
+            axisTick: {
+              show: false
+            },
+            splitLine: {
+              show: false
+            },
+            axisLabel: {
+              show: false
+            },
+            detail: {
+              show: false
+            },
+            data: [
+              {
+                value: 20
+              }
+            ]
+          }
+        ]
+      }
+      myChart.setOption(option)
+      setInterval(() => {
+        if (this.currentTemperature !== null) {
+          myChart.setOption({
+            series: [
+              { data: [{ value: this.currentTemperature }] },
+              { data: [{ value: this.currentTemperature }] }
+            ]
+          })
+        }
+      }, 2000)
+    },
     async fetchWeatherInfo (district) {
-      // 统计用区划代码名称
       const districtNames = {
         420100: '武汉市',
         420102: '江岸区',
@@ -316,25 +304,23 @@ export default {
         420116: '黄陂区',
         420117: '新洲区'
       }
-      // 打印选择的区域信息
       console.log(`选择的区域: ${districtNames[district] || '未知区域'} (${district})`)
-      // 高德地图的天气查询接口，30万一天，够用
+
       const key = '6fcbe57360a4a9ba6bccb06ac366a3bc'
       const url = `https://restapi.amap.com/v3/weather/weatherInfo?city=${district}&key=${key}&extensions=base`
-      // 发送GET请求获取天气信息
+
       try {
         const response = await axios.get(url)
         if (response.data.status === '1' && response.data.lives && response.data.lives.length > 0) {
           const weatherInfo = response.data.lives[0]
           const index = this.weatherInfos.findIndex(info => info.city === weatherInfo.city)
           if (index !== -1) {
-            // 如果已存在，更新该区域的天气信息
             this.weatherInfos[index] = weatherInfo
           } else {
-            // 如果不存在，添加新的天气信息
             this.weatherInfos.push(weatherInfo)
           }
           this.updateWeatherInfo(weatherInfo)
+          this.updatezhuzhuangtu()
           console.log('获取天气信息成功:', weatherInfo)
         } else {
           console.error('获取天气信息失败:', response.data.info)
@@ -344,11 +330,11 @@ export default {
       }
     },
     updateWeatherInfo (weatherInfo) {
-      // 更新温度值
       this.currentTemperature = parseFloat(weatherInfo.temperature)
     }
   }
 }
+
 </script>
 
 <style>
