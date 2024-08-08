@@ -1,7 +1,7 @@
 <template>
     <div class="yong-hu-zhong-xin">
       <div class="text">
-        <h1>这是用户界面</h1>
+        <!-- <h1>这是用户界面</h1> -->
         <p>用户名: {{ userInfo.username }}</p>
         <p>邮箱: {{ userInfo.email }}</p>
         <p>安全问题: {{ userInfo.security_question }}</p>
@@ -18,6 +18,7 @@ import { mapState, mapActions } from 'vuex'
 import axios from 'axios'
 
 export default {
+  name: 'UserView',
   data () {
     return {
       userInfo: {}
@@ -81,6 +82,7 @@ border: 1px solid rgba(255,255,255,0.45);
 border-radius: 15px; /* 添加圆角 */
 padding: 20px; /* 内边距 */
 text-align: left; /* 文本居中 */
+margin-top: 10vh; /* 向下移动20px，可以根据需要调整这个值 */
 }
 
 /* 查询按钮的容器样式 */

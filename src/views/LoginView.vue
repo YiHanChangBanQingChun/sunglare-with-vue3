@@ -1,8 +1,8 @@
 <template>
     <div class="deng-lu">
-      <div class="text">
+      <!-- <div class="text">
         <h1>欢迎登录</h1>
-      </div>
+      </div> -->
       <div class="login-container">
         <div class="image-container">
           <img src="/login.png" alt="Login Image">
@@ -71,6 +71,7 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 
 export default {
+  name: 'LoginView',
   setup () {
     const username = ref('')
     const password = ref('')
@@ -290,14 +291,17 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.1);
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .modal {
-  background: white;
+  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  border-radius: 10px; /* 添加圆角边框 */
   padding: 20px;
   border-radius: 10px;
   width: 500px; /* 增加宽度 */
@@ -368,16 +372,20 @@ export default {
   }
 }
 
-.login-box{
-  margin-top: 5px; /* 顶部外边距 */
-  margin-bottom: 5px; /* 底部外边距 */
+.login-box {
+  width: 33.33%; /* 设置宽度为页面的三分之一 */
+  max-width: 400px; /* 设置一个最大宽度以避免在大屏幕上过宽 */
+  margin: 5px auto; /* 顶部和底部外边距为5px，水平居中 */
+  padding: 20px; /* 内边距，根据需要调整 */
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 子元素居中对齐 */
   background: rgba(109, 72, 72, 0.65);
   -webkit-backdrop-filter: blur(25px);
   backdrop-filter: blur(25px);
-  border: 1px solid rgba(255,255,255,0.45);
+  border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 15px; /* 添加圆角 */
-  padding: 20px; /* 内边距 */
-  text-align: left /* 文本居中 */
+  text-align: left; /* 文本左对齐 */
 }
 
 .form-container {
@@ -396,7 +404,7 @@ export default {
 
 .form-group label {
   margin-bottom: 5px;
-  color:#ccc;
+  color:rgba(255, 255, 255, 1);
 }
 
 .form-group input {
@@ -458,19 +466,9 @@ button:hover {
   border-width: 2px; /* 边框粗细 */
 }
 
-.login-box {
-  width: 33.33%; /* 设置宽度为页面的三分之一 */
-  max-width: 400px; /* 设置一个最大宽度以避免在大屏幕上过宽 */
-  margin: 0 auto; /* 水平居中 */
-  padding: 20px; /* 内边距，根据需要调整 */
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* 子元素居中对齐 */
-}
-
 .note {
   font-size: 12px;
-  color: #666;
+  color: rgba(255, 255, 255, 1);
   margin-top: 5px;
   font-style: italic;
 }
@@ -483,5 +481,10 @@ button:hover {
   border-color: red !important;
   outline: none;
   border-width: 2px;
+}
+
+.modal h2 {
+  text-align: center;
+  color: white; /* 设置文本颜色为白色 */
 }
 </style>

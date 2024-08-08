@@ -1,8 +1,8 @@
 <template>
   <div class="xuan-guang-qing-kuang">
-    <div class="text">
+    <!-- <div class="text">
       <h1>这里放眩光的信息图表</h1>
-    </div>
+    </div> -->
   </div>
   <div class="select-container">
     <select v-model="selectedDistrict" @change="handleDistrictChange">
@@ -392,6 +392,10 @@ export default {
   flex-direction: column; /* 子元素垂直排列 */
   width: 100%; /* 使容器宽度充满父容器 */
   text-align: center; /* 文本居中，影响到所有的表格单元 */
+  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  border-radius: 10px; /* 添加圆角边框 */
 }
 
 .weather th, .weather td {
@@ -408,12 +412,22 @@ export default {
   flex-direction: row; /* 确保子元素水平排列 */
   justify-content: center; /* 子元素在主轴上居中对齐 */
   align-items: center; /* 子元素在交叉轴上居中对齐 */
+  margin-top: 10vh; /* 向下移动20px，可以根据需要调整这个值 */
+  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  border-radius: 10px; /* 添加圆角边框 */
 }
 
 .select-container {
   display: flex; /* 使用Flexbox布局 */
-  justify-content: center; /* 水平居中 */
-  margin: 20px 0; /* 添加一些上下外边距 */
+  justify-content: flex-start; /* 水平靠左 */
+  align-items: flex-start; /* 垂直靠上 */
+  position: absolute; /* 绝对定位 */
+  top: 0; /* 距离顶部0 */
+  left: 0; /* 距离左侧0 */
+  margin: 20px; /* 添加一些外边距 */
+  width: 30% ;
 }
 
 select {

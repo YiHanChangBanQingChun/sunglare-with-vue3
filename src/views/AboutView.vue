@@ -1,8 +1,8 @@
 <template>
   <div class="guan-yu">
-    <div class="text">
+    <!-- <div class="text">
     <h1>关于网页</h1>
-    </div>
+    </div> -->
   </div>
   <body>
     <div class="xiang-mu-jie-shao-container">
@@ -45,6 +45,9 @@
 </template>
 
 <script>
+export default {
+  name: 'AboutView'
+}
 </script>
 
 <style>
@@ -63,10 +66,14 @@
   grid-template-rows: auto auto; /* 定义两行，高度根据内容自动调整 */
   gap: 20px; /* 定义网格项之间的间隔 */
   padding: 20px; /* 容器内边距 */
+  margin-top: 10vh; /* 向下移动20px，可以根据需要调整这个值 */
 }
 
 .xiang-mu-jie-shao {
-  background: rgba(255,255,255,0.45);
+  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  border-radius: 10px; /* 添加圆角边框 */
   -webkit-backdrop-filter: blur(25px);
   backdrop-filter: blur(25px);
   border: 1px solid rgba(255,255,255,0.45);

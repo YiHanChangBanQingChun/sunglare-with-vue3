@@ -696,6 +696,7 @@ def cylinder2fisheyeImage (panoImg,yaw,outputImgFile='fisheye.jpg'):
     #the roate anagle
     rotateAng = 360 - float(yaw)# the rotate angle
     
+    
     # get the radius of the fisheye
     R1 = 0
     R2 = int(2*Ws/(2*np.pi) - R1 +0.5) # For google Street View pano

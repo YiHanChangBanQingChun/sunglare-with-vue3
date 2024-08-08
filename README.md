@@ -56,25 +56,25 @@
 
    + 找到后端文件，即func中的server-app.py
 
-   + 目前我用的是py3.11.4，感觉版本影响不大，因为包少
+   + 使用Python3.11.0
 
    + 可选：创建虚拟环境
 
-      + 克隆（myenv换成你想换的名字）
+      + 克隆
 
         ```cmd
-        conda create --name myenv python=3.11 
+        conda create --n flask-py11 python==3.11 
         ```
 
       + 激活
 
         ```cmd
-        conda activate myenv
+        conda activate flask-py11
         ```
-
-   ```cmd
-   pip install Flask Flask-SQLAlchemy werkzeug geoalchemy2 Flask-CORS psycopg2-binary uuid json os tempfile shapely flask-bcrypt flask-login hmac shutil
-   ```
+        cd到func文件夹中输入，即可完成
+        ```cmd
+        pip install -r requirements.txt
+        ```
 
    +  注意：
  
@@ -119,11 +119,30 @@
 
      + 用wuhanpoi84.shp文件，在sun-glare-project\use-data\test-vector下
 
-     + 注意设置坐标系4326
+     + 注意设置坐标系4326，即需要设置srid
 
      + 注意使用utf-8显示中文
 
      + 存储好点后，即可供后端查询
+     
+     + 注意，目前的列名需要更改为后端搭配的列名，即留意server-app下的模型结构，也要修改表单名字，改成英文的：
+       ```python
+       class Location(db.Model):
+           __tablename__ = 'locations'
+           id = db.Column(db.Integer, primary_key=True)
+           name = db.Column(db.String(255))
+           address = db.Column(db.String(255))
+           baidu_longitude = db.Column(db.Float)
+           baidu_latitude = db.Column(db.Float)
+           wgs84_longitude = db.Column(db.Float)
+           wgs84_latitude = db.Column(db.Float)
+           baidu_index = db.Column(db.String(255))
+           label = db.Column(db.String(255))
+           geom = db.Column(Geometry(geometry_type='POINT', srid=4326))
+
+    def __repr__(self):
+        return f'<Location {self.name}>'
+       ``` 
 
      + 你喜欢的话也可以用sun-glare-project\use-data\whpoi-wgs84.csv建表单，一样的，方法不做赘述。但需要注意使用postgis创建geom列。但需要注意，用这个方法传入需要使用的csv是notepad打开显示ANSI的csv，不然会报错。需要根据csv文件表头先创建空表，等等等等。
 
@@ -171,7 +190,7 @@
         UPDATE whrd7 SET reverse_cost =length;
         ```
 
-     + 完成初始化后，让我们检验一下数据是否可以正确规划路径以下是直接全部运行的脚本
+     + 完成初始化后，让我们检验一下数据是否可以正确规划路径，以下是直接全部运行的脚本
 
         ```SQL
         WITH start_vertex AS (

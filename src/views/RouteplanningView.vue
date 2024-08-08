@@ -1,8 +1,8 @@
 <template>
   <div class="lu-jing-gui-hua">
-    <div class="text">
+    <!-- <div class="text">
       <h1>这个页面是放初始选项的</h1>
-    </div>
+    </div> -->
     <!-- 搜索框 -->
     <!-- 外层容器 -->
     <div class="search-containers">
@@ -36,7 +36,7 @@
       </div>
     </div>
   </div>
-  <div id="viewDiv" style="height: 560px;"></div>
+  <div id="viewDiv"></div>
   <!-- 分别显示起点和终点选中结果的代码 -->
    <!-- 这个是初始调试用的，这个界面不跳转时是可以用的，目前已经荒废
   <div v-if="selectedResultStart" class="selected-result-start">
@@ -217,7 +217,7 @@ export default {
     },
     // 创建地图视图
     createMapView (map, tileInfo) {
-      return new MapView({
+      const mapView = new MapView({
         map: map,
         center: [114.3, 30.7], // 使用中心点坐标
         zoom: 4,
@@ -237,6 +237,8 @@ export default {
           snapToZoom: false
         }
       })
+      mapView.ui.move('zoom', 'bottom-left') // 移动缩放控件到左下角
+      return mapView
     }
   }
 }
@@ -245,8 +247,11 @@ export default {
 <style>
 /*之后要自己调样式的大小，这个仅作参考*/
 #viewDiv {
-  height: 68vh; /* 将高度设置为视口高度的80% */
-  width: 98vw; /* 将宽度设置为视口宽度的80% */
+  position: fixed; /* 固定定位 */
+  top: 0; /* 紧贴网页顶部 */
+  height: 100vh; /* 将高度设置为视口高度的100% */
+  width: 100vw; /* 将宽度设置为视口宽度的100% */
+  z-index: -1; /* 设置较低的z-index值，使其在App.vue的下部分 */
   /*margin: auto;*/
 }
 
@@ -282,13 +287,16 @@ export default {
   flex-direction: column; /* 保持垂直排列 */
   justify-content: flex-start; /* 从顶部开始排列 */
   align-items: flex-start; /* 子元素沿交叉轴的开始边缘对齐，即顶部对齐 */
-  width: 50%; /* 设置一个固定宽度 */
+  width: 30%; /* 设置一个固定宽度 */
   padding: 10px; /* 根据需要调整，确保搜索框周围有足够空间 */
-  background-color: #f0f0f0; /* 背景颜色稍微深于白色 */
+  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   border-radius: 10px; /* 添加圆角边框 */
-  border: 1px solid #ccc; /* 添加边框 */
+  border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
   margin-bottom: 10px;
   position: relative; /* 添加相对定位 */
+  top: 0vh;
 }
 
 /* 移除左右外边距 */
@@ -316,10 +324,8 @@ export default {
 }
 
 .search-box:focus {
-  padding-right: 60px; /* 聚焦时增加右侧内边距，使框向右变长 */
   border-width: 2px;
   border-color: blue;
-  transition: padding-right 0.3s ease, border-color 0.3s ease; /* 平滑过渡效果 */
   text-indent: 0px; /* 聚焦时减少文本缩进 */
 }
 

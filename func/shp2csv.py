@@ -18,13 +18,13 @@ def shp_to_csv_with_geometry(shp_path, csv_path):
     
     start_time = time.time()
     # 将GeoDataFrame导出为CSV
-    gdf.to_csv(csv_path, index=False, encoding='utf-8-sig')
+    gdf.to_csv(csv_path, index=False, encoding='utf-8')
     print(f"保存CSV文件耗时: {time.time() - start_time:.2f}秒")
 
 # # 使用示例
-# shp_path = r"E:\webgislocation\sun-glare-project\data\test-vector\pano_dot\panonear10inroad50_2.shp"
-# csv_path = r"E:\webgislocation\sun-glare-project\data\test-vector\pano_dot\panonear10inroad50_2.csv"
-# shp_to_csv_with_geometry(shp_path, csv_path)
+shp_path = r"E:\webgislocation\poinrd50_3_yaw.shp"
+csv_path = r"E:\webgislocation\poinrd50_3_yaw.csv"
+shp_to_csv_with_geometry(shp_path, csv_path)
 
 
 import pandas as pd
@@ -57,7 +57,7 @@ def process_csv(input_csv_path, output_csv_path):
 
 # # 使用示例
 # input_csv_path = r"E:\webgislocation\sun-glare-project\data\test-vector\pano_dot\panonear10inroad50_2.csv"
-# output_csv_path = r"E:\webgislocation\sun-glare-project\data\test-vector\pano_dot\pano_nr10inrd50_2_jishu.csv"
+# output_csv_path = r"E:\webgislocation\sun-glare-project\data\test-vector\pano_dot\pano_nr10inrd50_2_js.csv"
 # process_csv(input_csv_path, output_csv_path)
 import os
 import shutil
@@ -97,15 +97,15 @@ def copy_files_based_on_pid(csv_path, source_folders, target_folder):
                         except Exception as e:
                             print(f"错误: 无法复制文件 {source_file} 到 {target_file}. 错误信息: {e}")
 
-# 使用示例
-csv_path = r"D:\街景全景_武汉\sunglare\pano_nr10inrd50_2_jishu.csv"
-source_folders = [
-    r"D:\街景全景_武汉\part1",
-    r"D:\街景全景_武汉\part2_车头朝中间",
-    r"D:\街景全景_武汉\part3_车头朝中间",
-    r"D:\街景全景_武汉\part4_车头朝中间",
-    r"D:\街景全景_武汉\part5_车头朝中间"
-]
-target_folder = r"D:\wuhan_rd_pano\processed_files"
+# # 使用示例
+# csv_path = r"D:\街景全景_武汉\sunglare\pano_nr10inrd50_2_jishu.csv"
+# source_folders = [
+#     r"D:\街景全景_武汉\part1",
+#     r"D:\街景全景_武汉\part2_车头朝中间",
+#     r"D:\街景全景_武汉\part3_车头朝中间",
+#     r"D:\街景全景_武汉\part4_车头朝中间",
+#     r"D:\街景全景_武汉\part5_车头朝中间"
+# ]
+# target_folder = r"D:\wuhan_rd_pano\processed_files"
 
-copy_files_based_on_pid(csv_path, source_folders, target_folder)
+# copy_files_based_on_pid(csv_path, source_folders, target_folder)

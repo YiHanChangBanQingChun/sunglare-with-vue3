@@ -1,11 +1,10 @@
 <template>
 <div class="home">
     <!-- <img alt="Vue logo" src="/icon.png"> -->
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <div class="text">
+    <!-- <div class="text">
     <h1>武汉市实时炫光状况（目前用于实验调用面在地图上显示）</h1>
-    </div>
+    </div> -->
     <div id="viewDiv"></div>
 </div>
 </template>
@@ -98,15 +97,17 @@ export default {
           }
         }
       })
+
       // 将BasemapToggle添加到地图视图
       // mapView.ui.add(basemapToggle, 'bottom-right')
       // 将BasemapGallery添加到地图视图
       mapView.ui.add(basemapGallery, 'bottom-right')
       // 将Search小部件添加到地图视图
       mapView.ui.add(searchWidget, {
-        position: 'top-right',
+        position: 'top-left',
         index: 2
       })
+      mapView.ui.move('zoom', 'bottom-left')
     },
     // 创建地图视图
     createMapView (map, tileInfo) {
@@ -138,10 +139,12 @@ export default {
 </script>
 
 <style scoped>
-/*之后要自己调样式的大小，这个仅作参考*/
 #viewDiv {
-  height: 70vh; /* 将高度设置为视口高度的80% */
-  width: 98vw; /* 将宽度设置为视口宽度的80% */
+  position: fixed; /* 固定定位 */
+  top: 0; /* 紧贴网页顶部 */
+  height: 100vh; /* 将高度设置为视口高度的100% */
+  width: 100vw; /* 将宽度设置为视口宽度的100% */
+  z-index: -1; /* 设置较低的z-index值，使其在App.vue的下部分 */
   /*margin: auto;*/
 }
 
