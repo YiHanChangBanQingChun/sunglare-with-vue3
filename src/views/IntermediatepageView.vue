@@ -118,7 +118,7 @@ export default {
       // 发送请求获取搜索结果
       if (query.length >= 2) {
         // 使用的是本地的Flask后端，需要根据实际情况修改URL，结合后端接口的标识使用不同的URL
-        fetch('http://127.0.0.1:5000/search', {
+        fetch(`${process.env.VUE_APP_API_URL}/api/search`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

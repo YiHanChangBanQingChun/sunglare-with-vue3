@@ -105,7 +105,7 @@ export default {
         return
       }
       if (query.length >= 2) {
-        fetch('http://127.0.0.1:5000/search', {
+        fetch(`${process.env.VUE_APP_API_URL}/api/search`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -373,7 +373,7 @@ export default {
         return
       }
       // 修改为后端提供的接口URL，需要准备数据库，后端代码以及部署后端服务
-      const geojsonUrl = `http://localhost:5000/get_geojson/${routeId}`
+      const geojsonUrl = `${process.env.VUE_APP_API_URL}/api/get_geojson/${routeId}`
       fetch(geojsonUrl) // 使用fetch API获取GeoJSON文件
         .then(response => response.json()) // 将响应转换为JSON
         .then(data => {

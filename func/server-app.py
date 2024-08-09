@@ -17,15 +17,33 @@ from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user
 import hmac
 import shutil
+from flask_cors import CORS
 
 # step 1: create a Flask app
+# 初始化 Flask 应用
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres1@localhost/postgis_34_sample'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# 初始化扩展
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
+
+# 创建数据库表
+with app.app_context():
+    db.create_all()
+
+# 获取当前文件的目录
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+print(BASE_DIR)
+temp_dir = os.path.join(BASE_DIR, 'tmp')
+print(temp_dir)
+
+# 检查 tmp 目录是否存在，如果不存在则创建
+if not os.path.exists(temp_dir):
+    os.makedirs(temp_dir)
 
 # step 2: create a model
 '''
@@ -88,7 +106,7 @@ class Location(db.Model):
     
 # step 3: crate a route
 # step 3.1: add information to the table
-@app.route('/location', methods=['POST'])
+@app.route('/api/location', methods=['POST'])
 def add_point():
     data = request.json
     new_location = Location(name=data['name'], geom=f'SRID=4326;POINT({data["lon"]} {data["lat"]})')  # 使用 Location 类和正确的 geom 字段
@@ -97,13 +115,13 @@ def add_point():
     return jsonify({'message': 'Point added successfully!'}), 201
 
 # step 3.2: get information from the table
-@app.route('/location', methods=['GET'])
+@app.route('/api/location', methods=['GET'])
 def get_points():
     points = Location.query.all()
     return jsonify([{'name': point.name, 'geom': str(point.geom)} for point in points])  # 修改这里
 
 # step 3.3: renew the information to the table
-@app.route('/location/<int:id>', methods=['PUT'])
+@app.route('/api/location/<int:id>', methods=['PUT'])
 def update_point(id):
     point = Location.query.get_or_404(id)
     data = request.json
@@ -114,7 +132,7 @@ def update_point(id):
     return jsonify({'message': 'Point updated successfully!'})
 
 # step 3.4: delete the information from the table
-@app.route('/location/<int:id>', methods=['DELETE'])
+@app.route('/api/location/<int:id>', methods=['DELETE'])
 def delete_point(id):
     point = Location.query.get_or_404(id)
     db.session.delete(point)
@@ -122,7 +140,7 @@ def delete_point(id):
     return jsonify({'message': 'Point deleted successfully!'})
 
 # step 4: search the information of poi from the table
-@app.route('/search', methods=['POST'])
+@app.route('/api/search', methods=['POST'])
 def search():
     data = request.json
     search_query_start = data.get('searchQueryStart', '')
@@ -240,7 +258,7 @@ def route_plan():
     
     return jsonify({"id": route_plan_id, "tempFilePath": temp_file_path})
 
-@app.route('/get_geojson/<route_id>')
+@app.route('/api/get_geojson/<route_id>')
 def get_geojson(route_id):
     # 根据route_id构造文件路径
     print(route_id)
@@ -262,7 +280,7 @@ class User(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-@app.route('/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
     print("注册请求数据:", data)
@@ -287,7 +305,7 @@ def register():
     db.session.commit()
     return jsonify({'message': 'Registered successfully'}), 201
 
-@app.route('/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
     print("接收到的登录请求数据:", data)
@@ -314,7 +332,7 @@ def login():
         print(f"检查密码哈希时出错: {e}")
         return jsonify({'message': '内部服务器错误'}), 500
 
-@app.route('/user_info', methods=['GET'])
+@app.route('/api/user_info', methods=['GET'])
 def get_user_info():
     username = request.args.get('username')
     user = User.query.filter_by(username=username).first()
@@ -347,17 +365,7 @@ def initialize():
 
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    # 获取当前文件的目录
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    print(BASE_DIR)
-    temp_dir = os.path.join(BASE_DIR, 'tmp')
-    print(temp_dir)
-    # 检查 tmp 目录是否存在，如果不存在则创建
-    if not os.path.exists(temp_dir):
-        os.makedirs(temp_dir)
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
 # test codes are as follows, in order to test the database connection and data situation
 '''
 def get_location_info_by_id(id):

@@ -115,7 +115,7 @@ export default {
         return
       }
       if (query.length >= 2) {
-        fetch('http://127.0.0.1:5000/search', {
+        fetch(`${process.env.VUE_APP_API_URL}/api/search`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -188,7 +188,7 @@ export default {
           location: [this.selectedResultEnd.wgs84_longitude, this.selectedResultEnd.wgs84_latitude]
         }
         // 发送请求到后端进行路径规划
-        axios.post('http://127.0.0.1:5000/api/route/plan', { start: startWithLocation, end: endWithLocation })
+        axios.post(`${process.env.VUE_APP_API_URL}/api/route/plan`, { start: startWithLocation, end: endWithLocation })
           .then(response => {
             // 后端返回的路径规划结果ID
             const routePlanId = response.data.id
