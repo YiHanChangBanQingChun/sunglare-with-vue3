@@ -31,6 +31,10 @@
     </div>
     <!-- 地图容器 -->
     <div id="viewDiv"></div>
+    <div class="route-info">
+      <p>总时长: {{ totalHours }}小时{{ totalMinutes }}分钟</p>
+      <p>总距离: {{ totalDistance }}</p>
+    </div>
 </div>
 </template>
 
@@ -40,7 +44,7 @@ import MapView from '@geoscene/core/views/MapView.js'
 import Graphic from '@geoscene/core/Graphic'
 import Point from '@geoscene/core/geometry/Point.js'
 import GraphicsLayer from '@geoscene/core/layers/GraphicsLayer'
-import GeoJSONLayer from '@geoscene/core/layers/GeoJSONLayer'
+import FeatureLayer from '@geoscene/core/layers/FeatureLayer'
 
 export default {
   name: 'RouteView',
@@ -51,7 +55,10 @@ export default {
       searchResults: [],
       searchResultsEnd: [],
       searchQueryStart: '',
-      searchQueryEnd: ''
+      searchQueryEnd: '',
+      totalHours: 0,
+      totalMinutes: 0,
+      totalDistance: ''
     }
   },
   // 在组件挂载时初始化地图
@@ -377,19 +384,54 @@ export default {
       fetch(geojsonUrl) // 使用fetch API获取GeoJSON文件
         .then(response => response.json()) // 将响应转换为JSON
         .then(data => {
-          const geojsonLayer = new GeoJSONLayer({ // 创建GeoJSON图层
-            url: geojsonUrl, // 使用获取到的GeoJSON数据
+          let totalLength = 0
+          let totalAggCost = 0
+          const geojsonLayer = new FeatureLayer({ // 创建FeatureLayer图层
+            source: data.features.map((feature, index) => {
+              totalLength += feature.properties.length
+              totalAggCost = feature.properties.agg_cost // 最后一个agg_cost即为总时长
+              return {
+                geometry: {
+                  type: 'polyline',
+                  paths: feature.geometry.coordinates
+                },
+                attributes: {
+                  ...feature.properties,
+                  id: index // 为每个要素生成唯一的ID
+                }
+              }
+            }),
             renderer: {
               type: 'simple', // 使用简单渲染器
               symbol: {
                 type: 'simple-line', // 使用简单线符号
                 color: [0, 0, 255], // 蓝色
-                width: 5 // 宽度为2像素
+                width: 3 // 宽度为3像素
               }
-            }
+            },
+            objectIdField: 'id', // 必须指定一个唯一的字段作为ObjectId
+            fields: [
+              { name: 'id', type: 'oid' },
+              { name: 'seq', type: 'integer' },
+              { name: 'path_seq', type: 'integer' },
+              { name: 'node', type: 'integer' },
+              { name: 'edge', type: 'integer' },
+              { name: 'cost', type: 'double' },
+              { name: 'agg_cost', type: 'double' },
+              { name: 'length', type: 'double' } // 添加length字段
+            ]
           })
-          // 将GeoJSON图层添加到地图上
-          map.add(geojsonLayer) // 将GeoJSON图层添加到地图上
+          // 将FeatureLayer图层添加到地图上
+          map.add(geojsonLayer)
+          // 计算总时长（小时和分钟）
+          this.totalHours = Math.floor(totalAggCost / 3600)
+          this.totalMinutes = Math.floor((totalAggCost % 3600) / 60)
+          // 计算总距离（米或千米）
+          if (totalLength < 1000) {
+            this.totalDistance = `${totalLength.toFixed(2)}米`
+          } else {
+            this.totalDistance = `${(totalLength / 1000).toFixed(2)}千米`
+          }
         })
         .catch(error => console.error('Error loading the geojson file:', error))
     }
@@ -406,6 +448,16 @@ export default {
   width: 100vw; /* 将宽度设置为视口宽度的100% */
   z-index: -1; /* 设置较低的z-index值，使其在App.vue的下部分 */
   /*margin: auto;*/
+}
+
+.route-info {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: white;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
 }
 
 .lu-jing-gui-hua {

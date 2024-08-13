@@ -1,9 +1,23 @@
-# 1. 将多线转换为单线
 import geopandas as gpd
 from shapely.geometry import LineString
+import time
+from tqdm import tqdm
+from PIL import Image, ImageDraw
+import numpy as np
+import os, os.path
+import math
+import cv2
+import pandas as pd
+from datetime import datetime, timedelta
+from pysolar.solar import *
+from shapely.geometry import Point
+from pyproj import Transformer
 
+# 1. 将多线转换为单线
 def split_line(line, row):
-    """将一条线分割成多条两点组成的直线"""
+    """
+    将一条线分割成多条两点组成的直线
+    """
     lines = []
     coords = list(line.coords)
     for i in range(len(coords) - 1):
@@ -15,22 +29,17 @@ def split_line(line, row):
     return lines
 
 def multiline_to_singleline(input_shp, output_shp):
-    # 读取原始shp文件，指定编码为 UTF-8
+    """
+    将多线转换为单线，并确保每条线只有两个坐标点
+    """
     gdf = gpd.read_file(input_shp, encoding='utf-8')
-    
-    # 检查并打印 CRS
     print("原始 CRS:", gdf.crs)
-    
-    # 如果 CRS 不是 EPSG:4326，则转换为 EPSG:4326
     if gdf.crs != 'EPSG:4326':
         gdf = gdf.to_crs('EPSG:4326')
         print("转换后的 CRS:", gdf.crs)
-    
-    # 打印转换前的属性表
     print("转换前的属性表:")
     print(gdf)
     i = 0
-    # 将多线转换为单线，并确保每条线只有两个坐标点
     singlelines = []
     for index, row in gdf.iterrows():
         geom = row.geometry
@@ -42,31 +51,19 @@ def multiline_to_singleline(input_shp, output_shp):
             i += 1
             print("LineString change singleline", i)
         else:
-            # 非线性几何类型，直接添加
             singlelines.append(row)
-    
-    # 创建新的GeoDataFrame
     new_gdf = gpd.GeoDataFrame(singlelines, crs=gdf.crs)
-    
-    # 打印转换后的属性表
     print("\n转换后的属性表:")
     print(new_gdf)
-    
-    # 保存为新的shp文件，指定编码为 UTF-8
     new_gdf.to_file(output_shp, encoding='utf-8')
 
 # 2. 计算道路行驶方向
-import geopandas as gpd
-from shapely.geometry import LineString
-from tqdm import tqdm
-import pandas as pd
-import time
-
 def reverse_lines(gdf):
-    # 设置显示选项以完整显示几何属性
+    '''
+    反转几何属性并更新起点和终点坐标
+    '''
     pd.set_option('display.max_colwidth', None)
     pd.set_option('display.max_rows', None)
-    
     # 反转几何属性并更新起点和终点坐标
     print_count = 0
     for idx, row in tqdm(gdf.iterrows(), total=gdf.shape[0], desc="Processing"):
@@ -74,236 +71,671 @@ def reverse_lines(gdf):
             if print_count < 5:
                 # 打印反转前的几何属性
                 print(f"反转前的几何属性 (索引 {idx}): {row.geometry}")
-            
             # 反转几何属性
             reversed_geom = LineString(row.geometry.coords[::-1])
             gdf.at[idx, 'geometry'] = reversed_geom
-            
             # 更新起点和终点坐标
             gdf.at[idx, 'start_x'] = reversed_geom.coords[0][0]
             gdf.at[idx, 'start_y'] = reversed_geom.coords[0][1]
             gdf.at[idx, 'end_x'] = reversed_geom.coords[-1][0]
             gdf.at[idx, 'end_y'] = reversed_geom.coords[-1][1]
-            
             # 将 'oneway' 标签的值从 'T' 转为 'F'
             gdf.at[idx, 'oneway'] = 'F'
-
             # 更新 'angle' 属性
             new_angle = row['angle'] + 180
             if new_angle > 360:
                 new_angle -= 360
             gdf.at[idx, 'angle'] = new_angle
-
             if print_count < 5:
                 # 打印反转后的几何属性
                 print(f"反转后的几何属性 (索引 {idx}): {reversed_geom}")
                 print_count += 1
                 time.sleep(3)
-    
     return gdf
 
 #3. 重置为东开始的角度
-import geopandas as gpd
-from tqdm import tqdm
-
 def calculate_e_angle(gdf):
+    '''
+    计算从东开始的逆时针角度
+    '''
     # 新建字段 'E_angle'
     gdf['E_angle'] = None
-    
     for idx, row in tqdm(gdf.iterrows(), total=gdf.shape[0], desc="Calculating E_angle"):
         angle = row['angle']
-        
         # 计算从东开始的逆时针角度
         e_angle = (450 - angle) % 360
-        
         # 将计算结果保存到新字段
         gdf.at[idx, 'E_angle'] = e_angle
-    
     return gdf
 
 # 4. 更新点数据的yaw列
-import geopandas as gpd
-from tqdm import tqdm
-
-import geopandas as gpd
-from tqdm import tqdm
-
 def update_yaw_with_e_angle(point_shp_path, line_shp_path, output_shp_path):
+    '''
+    更新点数据的yaw列
+    '''
     # 读取点和线的shapefile数据
     points_gdf = gpd.read_file(point_shp_path)
     lines_gdf = gpd.read_file(line_shp_path)
-    
     # 打印点和线数据的列名
     print("Points GeoDataFrame columns:", points_gdf.columns)
     print("Lines GeoDataFrame columns:", lines_gdf.columns)
-    
     # 设置坐标系为 EPSG:4326
     points_gdf = points_gdf.to_crs(epsg=4326)
     lines_gdf = lines_gdf.to_crs(epsg=4326)
-    
     # 初始化点数据中的yaw列，全部赋值为-1
     points_gdf['yaw'] = -1
-    
     # 确保 NEAR_FID 和 id 列的数据类型一致
     points_gdf['NEAR_FID'] = points_gdf['NEAR_FID'].astype(int)
     lines_gdf['id'] = lines_gdf['id'].astype(int)
-    
     # 创建一个字典用于快速查找线数据中的E_angle
     line_angle_dict = lines_gdf.set_index('id')['E_angle'].to_dict()
-    
     # 打印字典的前几个元素以进行调试
     print("Line angle dictionary (first 5 elements):", dict(list(line_angle_dict.items())[:5]))
-    
     # 遍历点数据，更新yaw列
     for idx, row in tqdm(points_gdf.iterrows(), total=points_gdf.shape[0], desc="Updating yaw"):
         near_fid = row['NEAR_FID']
         if near_fid in line_angle_dict:
             points_gdf.at[idx, 'yaw'] = line_angle_dict[near_fid]
-    
     # 保存更新后的点数据到新的shapefile
     points_gdf.to_file(output_shp_path, encoding='utf-8', driver='ESRI Shapefile')
 
-
-
 # 5. 生成鱼眼图像，北对齐
-from PIL import Image
-import numpy as np
-import os, os.path
-import math
-import cv2
 def cylinder2fisheyeImage (panoImg,yaw,outputImgFile='fisheye.jpg'):
-    
-    # read the dimension information of input panorama
+    '''
+    将全景图像转换为鱼眼图像
+    '''
+    # 读取输入全景图的尺寸信息
     dims = panoImg.shape
-
     Hs = dims[0]
     Ws = dims[1]
-    
     panoImg2 = panoImg[0:int(Hs/2),:]
     del panoImg
-    
-    
-    #the roate anagle
-    rotateAng = 360 - float(yaw)# the rotate angle
-    
-    
-    # get the radius of the fisheye
+    # 旋转角的定义
+    rotateAng = 360 - float(yaw)
+    # 得到鱼眼的半径
     R1 = 0
-    R2 = int(2*Ws/(2*np.pi) - R1 +0.5) # For google Street View pano
-    
+    R2 = int(2*Ws/(2*np.pi) - R1 +0.5)
     R22 = Hs + R1
-    
-    # estimate the size of the sphere or fish-eye image
+    # 估计球体或鱼眼图像的大小
     Hd = int(Ws/np.pi)+2
     Wd = int(Ws/np.pi)+2
-    
-    # create empty matrics to store the affine parameters
+    # 创建空矩阵来存储仿射参数
     xmap = np.zeros((Hd,Wd),np.float32)
     ymap = np.zeros((Hd,Wd),np.float32)
-    
-    # the center of the destination image, or the sphere image
+    # 目标图像或球体图像的中心
     CSx = int(0.5*Wd)
     CSy = int(0.5*Hd)
-    
-    # split the sphere image into four parts, and reproject the panorama for each section
+    # 将球体图像分成四个部分，并为每个部分重新投影全景
     for yD in range(Hd):
         for xD in range(CSx):
             r = math.sqrt((yD - CSy)**2 + (xD - CSx)**2)
-            theta = 0.5*np.pi + math.atan((yD - CSy)/(xD - CSx+0.0000001))
-            
+            theta = 0.5*np.pi + math.atan((yD - CSy)/(xD - CSx+0.0000001)) 
             xS = theta/(2*np.pi)*Ws
             yS = (r - R1)/(R2 - R1)*Hs
-            
             xmap.itemset((yD,xD),xS)
             ymap.itemset((yD,xD),yS)
-        
         for xD in range(CSx,Wd):
             r = math.sqrt((yD - CSy)**2 + (xD - CSx)**2)            
             theta = 1.5*np.pi + math.atan((yD - CSy)/(xD - CSx+0.0000001))
-            
             xS = theta/(2*np.pi)*Ws
             yS = (r - R1)/(R2 - R1)*Hs 
-            
             xmap.itemset((yD,xD),xS)
             ymap.itemset((yD,xD),yS)
-    
-    # using the affine to generate new hemispherical image
+    # 利用仿射生成新的半球形图像
     outputImg = cv2.remap(panoImg2,xmap,ymap,cv2.INTER_CUBIC)
     del xmap,ymap,panoImg2    
-    
-    # remove the black line in central column of the buttom
+    # 去掉底部中心栏的黑线
     if len(dims) > 2:
         outputImg[int(CSy):,CSx,:] = outputImg[int(CSy):,CSx - 1,:]
         outputImg[int(CSy):,int(CSx + 0.5),:] = outputImg[CSy:,int(CSx + 0.5) + 1,:]
     else:
         outputImg[int(CSy):,CSx] = outputImg[int(CSy):,CSx - 1]
         outputImg[int(CSy):,int(CSx + 0.5)] = outputImg[CSy:,int(CSx + 0.5) + 1]
-    
-    # [rows,cols,bands] = outputImg.shape
     dims = outputImg.shape
     rows = dims[0]
     cols = dims[1]
-    
     M = cv2.getRotationMatrix2D((cols/2,rows/2),rotateAng,1)
     rotatedFisheyeImg = cv2.warpAffine(outputImg,M,(cols,rows))
-    
-    
     img = Image.fromarray(rotatedFisheyeImg)
     del outputImg
     img.save(outputImgFile)
     del img
-    
     return rotatedFisheyeImg
 
 def generate_fisheye_images(shp_file, image_folder, output_folder):
-    # Read the point shapefile
+    '''
+    适应文件夹系统的生成鱼眼图像流程函数
+    '''
+    # 读取点shp文件
     gdf = gpd.read_file(shp_file)
-
-    # Filter out rows where pid is -1
+    # 过滤掉pid为-1的行
     gdf = gdf[gdf['pid'] != -1]
-
-    # Initialize the progress bar
+    # 初始化进度条
     with tqdm(total=len(gdf)) as pbar:
-        # Iterate through the filtered rows in the shapefile
+        # 遍历shapefile中过滤的行
         for index, row in gdf.iterrows():
             pid = row['pid']
             yaw = row['yaw']
-
-            # Find the corresponding PNG file in the image folder
+            # 在image文件夹中找到相应的PNG文件
             file_name = f"{pid}.png"
             file_path = os.path.join(image_folder, file_name)
-
             if os.path.exists(file_path):
-                # Read PNG image and convert to numpy array
+                # 读取PNG图像并转换为numpy数组
                 with Image.open(file_path) as img:
                     panoImg = np.array(img)
-
-                    # Call the function to convert to fisheye image
+                    # 调用该函数转换为鱼眼图像
                     hemi_img = cylinder2fisheyeImage(panoImg, yaw)
-
-                    # Generate output file path
                     output_file = os.path.join(output_folder, f"{pid}.png")
-
-                    # Save the hemi_img to the specified output file location
+                    # 将hemi_img保存到指定的输出文件位置
                     Image.fromarray(hemi_img).save(output_file)
-            
             # Update the progress bar
             pbar.update(1)
+
+# 6.优化csv文件
+def get_better_csv(input_file, output_file):
+    # 读取 CSV 文件
+    df = pd.read_csv(input_file, encoding='utf-8')
+    
+    # 删除指定的列
+    df.drop(columns=['name','NEAR_DIST', 'NEAR_ANGLE', 'geometry'], inplace=True)
+    
+    # 删除 pid 列中等于 "-1" 的行
+    df = df[df['pid'] != '-1']
+    
+    # 将 'id' 列移动到最前面并重命名为 'dot_id'
+    df.rename(columns={'id': 'dot_id'}, inplace=True)
+    cols = ['dot_id'] + [col for col in df.columns if col != 'dot_id']
+    df = df[cols]
+    
+    # 将所有大写的列名修改为小写
+    df.columns = [col.lower() for col in df.columns]
+    
+    # 坐标转换：从 EPSG:32648 转换为 EPSG:4326
+    transformer = Transformer.from_crs("epsg:32648", "epsg:4326")
+    df['50lon'], df['50lat'] = transformer.transform(df['50lon'].values, df['50lat'].values)
+    
+    # 保存处理后的数据到新的 CSV 文件中
+    df.to_csv(output_file, index=False, encoding='utf-8-sig')
+
+# 7.计算眩光遮挡状况
+def date_to_sun_elevation(date,lon,lat):
+    '''
+    根据日期与经纬度获得太阳高度角
+    '''
+    sun_elevation = get_altitude(lat,lon,date)
+    return sun_elevation
+
+def azimuth_angle_calculator(lat,lon,date):
+    '''
+    计算太阳方位角，根据经纬度以及日期
+    '''
+    azimuth_angle = (get_azimuth(lat,lon,date))
+    return azimuth_angle
+
+def Sun_judgement_noaa_creat_new(pid, skyImg, glareSize, azimuth, sunele, output_img_dir):
+    '''
+    判断太阳是否被遮挡
+    pid: str - 图像的唯一标识符
+    skyImg: numpy.ndarray - 天空图像的数组表示
+    glareSize: int - 太阳眩光的大小
+    azimuth: float - 太阳方位角
+    sunele: float - 太阳高度角
+    output_img_dir: str - 输出图像的文件夹路径
+    '''
+    # 如果不存在，新建一个文件夹用于存储输出图像
+    if not os.path.exists(output_img_dir):
+        os.makedirs(output_img_dir)
+    [cols, rows] = skyImg.shape
+    # 将方位角和日晷转换为弧度
+    azimuth_skyimg = -(azimuth - 90)
+    if azimuth_skyimg < 0: 
+        azimuth_skyimg += 360
+    sunele = sunele * np.pi / 180.0
+    azimuth = azimuth_skyimg * np.pi / 180.0
+    # 根据方位角和太阳高度在鱼眼图像上定位相应的像素点
+    R = int(0.5 * rows)
+    if sunele < 0: 
+        sunele = 0
+    r = (90 - sunele * 180 / np.pi) / 90.0 * R
+    px = int(r * math.cos(azimuth) + int(0.5 * cols)) - 1
+    py = int(int(0.5 * rows) - r * math.sin(azimuth)) - 1
+    boundXl = px - glareSize
+    if boundXl < 0: boundXl = 0
+    boundXu = px + glareSize
+    if boundXu > cols - 1: boundXu = cols - 1
+    boundYl = py - glareSize
+    if boundYl < 0: boundYl = 0
+    boundYu = py + glareSize
+    if boundYu > rows - 1: boundYu = rows - 1
+    # 确定太阳是在遮挡的还是开放的天空像素上
+    idx = np.where(skyImg[boundYl:boundYu, boundXl:boundXu] == 255)  # 白色为天空
+    if len(idx[0]) / (4 * glareSize * glareSize) > 0.5:
+        shade = 0
+    else:
+        shade = 1
+    # 在天空图像上绘制太阳位置
+    img = Image.fromarray(skyImg)
+    draw = ImageDraw.Draw(img)
+    draw.point((px, py), fill="red")
+    # 修改原图像中的像素值
+    skyImg[py, px] = 5
+    # 生成具有唯一名称的输出图像路径
+    img_filename = os.path.join(output_img_dir, f"{pid}_sun.png")
+    # 保存修改后的天空图像与太阳的位置
+    img.save(img_filename)
+    return shade
+
+def Sun_judgement_noaa(skyImg, glareSize, azimuth, sunele):
+    '''
+    判断太阳是否被遮挡
+    pid: str - 图像的唯一标识符
+    skyImg: numpy.ndarray - 天空图像的数组表示
+    glareSize: int - 太阳眩光的大小
+    azimuth: float - 太阳方位角
+    sunele: float - 太阳高度角
+    output_img_dir: str - 输出图像的文件夹路径
+    '''
+    [cols, rows] = skyImg.shape
+    # 将方位角和日晷转换为弧度
+    azimuth_skyimg = -(azimuth - 90)
+    if (azimuth_skyimg < 0): 
+        azimuth_skyimg += 360
+    sunele = sunele * np.pi / 180.0
+    azimuth = azimuth_skyimg * np.pi / 180.0
+    # 根据方位角和太阳高度在鱼眼图像上定位相应的像素点
+    R = int(0.5 * rows)
+    if (sunele < 0): 
+        sunele = 0
+    r = (90 - sunele * 180 / np.pi) / 90.0 * R
+    px = int(r * math.cos(azimuth) + int(0.5 * cols)) - 1
+    py = int(int(0.5 * rows) - r * math.sin(azimuth)) - 1
+    boundXl = px - glareSize
+    if (boundXl < 0): boundXl = 0
+    boundXu = px + glareSize
+    if (boundXu > cols - 1): boundXu = cols - 1
+    boundYl = py - glareSize
+    if (boundYl < 0): boundYl = 0
+    boundYu = py + glareSize
+    if (boundYu > rows - 1): boundYu = rows - 1
+    # 确定太阳是在遮挡的还是开放的天空像素上
+    idx = np.where(skyImg[boundYl:boundYu, boundXl:boundXu] == 255)  # 白色为天空
+    if (len(idx[0]) / (4 * glareSize * glareSize) > 0.5):
+        shade = 0
+    else:
+        shade = 1
+    return shade
+
+def sun_glare_calculator(date,lon,lat,vision_form_slope_angle,vision_form_east_angle):
+    '''
+    太阳眩光的判断,未考虑街景,单纯从水平与垂直着手,判断水平和垂直是否符合条件,符合条件返回1
+    '''
+    horizental_glare_situation = horizental_glare_calculator(date,lon,lat,vision_form_east_angle)
+    vertical_glare_situation = vertical_glare_calculatior(date,lon,lat,vision_form_slope_angle)
+    if horizental_glare_situation == 1 and vertical_glare_situation == 1:
+        sun_glare_situation = 1
+    else:
+        sun_glare_situation = 0
+    return sun_glare_situation
+
+def horizental_glare_calculator(date,lon,lat,vision_form_east_angle):
+    '''
+    水平眩光的判断
+    '''
+    azimuth_angle_east = azimuth_angle_calculator_north_to_east(lat,lon,date)
+    horizental_glare = azimuth_angle_east - vision_form_east_angle
+    horizental_glare_situation = (horizental_glare < 25) & (horizental_glare > -25)
+    return horizental_glare_situation.astype(int)
+
+def azimuth_angle_calculator_north_to_east(lat,lon,date):
+    '''
+    将太阳方位角转为东开始，且逆时针增加
+    '''
+    azimuth_angle = azimuth_angle_calculator(lat,lon,date)
+    azimuth_angle_east = 90 - azimuth_angle
+    while azimuth_angle_east < 0:
+        azimuth_angle_east += 360
+    return azimuth_angle_east
+
+#坡度情况也不知道，假设知道为0。
+def vertical_glare_calculatior(date,lon,lat,vision_form_slope_angle = 0):
+    '''
+    坡度默认为0,因为街景图象获取的时候都是平视角获取的
+    '''
+    sun_elevation = date_to_sun_elevation(date,lon,lat)
+    vertical_glare = sun_elevation - vision_form_slope_angle
+    vertical_glare_situation = (vertical_glare < 25) & (vertical_glare > -25)
+    #1 is true
+    return vertical_glare_situation.astype(int)
+
+def initialize_csv(csv_file):
+    if not os.path.exists(csv_file):
+        with open(csv_file, mode='w', newline='') as file:
+            file.write("pid,result\n")
+    return pd.read_csv(csv_file)
+
+def get_sun_glare_situation_from_hemi_pano_and_date(csv_file, hemi_place_test, year, month, day, second, interval_minutes):
+    # 生成文件名
+    result_filename = f"result_{year}_{month:02d}_{day:02d}_interval_{interval_minutes}min.csv"
+    result_df = initialize_csv(result_filename)
+    df = pd.read_csv(csv_file)
+    for index, row in tqdm(df.iterrows(), total=len(df), desc="Processing"):
+        pid = row['pid']
+        lon, lat = row['lon'], row['lat']
+        yaw = row['yaw']
+        image_file = f"{pid}.png"
+        image_path = os.path.join(hemi_place_test, image_file)
+        totaltime = 0
+        if not os.path.exists(image_path):
+            print(f"Image file {image_file} not found, skipping...")
+            continue
+        hemiimg_pil = Image.open(image_path)
+        print(image_file)
+        hemiimg = np.array(hemiimg_pil)
+        hemiimg_gray = cv2.cvtColor(hemiimg, cv2.COLOR_RGB2GRAY)
+        start_time = datetime(year, month, day, 6, 0, second)
+        end_time = datetime(year, month, day, 18, 59, second)
+        current_time = start_time
+        while current_time <= end_time:
+            date = current_time.strftime("%Y-%m-%d %H:%M:%S")
+            if date not in result_df.columns:
+                result_df[date] = 0
+            sunele = date_to_sun_elevation(date, lon, lat)
+            if sunele <= 0:
+                current_time += timedelta(minutes=interval_minutes)
+                continue
+            azimuth = azimuth_angle_calculator(lat, lon, date)
+            zhedang = Sun_judgement_noaa(hemiimg_gray, 5, azimuth, sunele)
+            xuanguangtiaojian = sun_glare_calculator(date, lon, lat, vision_form_slope_angle=0, vision_form_east_angle=yaw)
+            if xuanguangtiaojian == 1 and zhedang == 0:
+                totaltime += interval_minutes
+                now = 1
+                print(date, "YES", pid)
+            else:
+                now = 0
+            result_df.loc[result_df['pid'] == pid, date] = now
+            current_time += timedelta(minutes=interval_minutes)
+        result_df.loc[result_df['pid'] == pid, 'result'] = totaltime
+    result_df.to_csv('result_{year}_{month:02d}_{day:02d}_interval_{interval_minutes}min.csv', index=False)
+
+# 7.1使用多线程运行的方式
+'''
+import pandas as pd
+import os
+from tqdm import tqdm
+from PIL import Image
+import numpy as np
+import math
+import cv2
+from datetime import datetime as dt, timedelta
+from pysolar.solar import *
+import pytz
+from multiprocessing import Pool, Manager
+
+def date_to_sun_elevation(date, lon, lat):
+    sun_elevation = get_altitude(lat, lon, date)
+    return sun_elevation
+
+def azimuth_angle_calculator(lat, lon, date):
+    azimuth_angle = get_azimuth(lat, lon, date)
+    return azimuth_angle
+
+def Sun_judgement_noaa(skyImg, glareSize, azimuth, sunele):
+    [cols, rows] = skyImg.shape
+    azimuth_skyimg = -(azimuth - 90)
+    if azimuth_skyimg < 0:
+        azimuth_skyimg += 360
+    sunele = sunele * np.pi / 180.0
+    azimuth = azimuth_skyimg * np.pi / 180.0
+    R = int(0.5 * rows)
+    if sunele < 0:
+        sunele = 0
+    r = (90 - sunele * 180 / np.pi) / 90.0 * R
+    px = int(r * math.cos(azimuth) + int(0.5 * cols)) - 1
+    py = int(int(0.5 * rows) - r * math.sin(azimuth)) - 1
+    boundXl = px - glareSize
+    if boundXl < 0: boundXl = 0
+    boundXu = px + glareSize
+    if boundXu > cols - 1: boundXu = cols - 1
+    boundYl = py - glareSize
+    if boundYl < 0: boundYl = 0
+    boundYu = py + glareSize
+    if boundYu > rows - 1: boundYu = rows - 1
+    idx = np.where(skyImg[boundYl:boundYu, boundXl:boundXu] == 255)
+    shade = 0 if len(idx[0]) / (4 * glareSize * glareSize) > 0.5 else 1
+    return shade
+
+def sun_glare_calculator(date, lon, lat, vision_form_slope_angle, vision_form_east_angle):
+    sun_elevation = date_to_sun_elevation(date, lon, lat)
+    if sun_elevation <= 0:
+        return 0  # 太阳高度角小于0，不可能产生眩光
+    
+    horizental_glare_situation = horizental_glare_calculator(date, lon, lat, vision_form_east_angle)
+    vertical_glare_situation = vertical_glare_calculatior(date, lon, lat, vision_form_slope_angle)
+    sun_glare_situation = 1 if horizental_glare_situation == 1 and vertical_glare_situation == 1 else 0
+    return sun_glare_situation
+
+def horizental_glare_calculator(date, lon, lat, vision_form_east_angle):
+    azimuth_angle_east = azimuth_angle_calculator_north_to_east(lat, lon, date)
+    horizental_glare = azimuth_angle_east - vision_form_east_angle
+    horizental_glare_situation = (horizental_glare < 25) & (horizental_glare > -25)
+    return horizental_glare_situation.astype(int)
+
+def azimuth_angle_calculator_north_to_east(lat, lon, date):
+    azimuth_angle = azimuth_angle_calculator(lat, lon, date)
+    azimuth_angle_east = 90 - azimuth_angle
+    while azimuth_angle_east < 0:
+        azimuth_angle_east += 360
+    return azimuth_angle_east
+
+def vertical_glare_calculatior(date, lon, lat, vision_form_slope_angle=0):
+    sun_elevation = date_to_sun_elevation(date, lon, lat)
+    vertical_glare = sun_elevation - vision_form_slope_angle
+    vertical_glare_situation = (vertical_glare < 25) & (vertical_glare > -25)
+    return vertical_glare_situation.astype(int)
+
+def split_csv_file(csv_file, output_dir, num_chunks):
+    df = pd.read_csv(csv_file)
+    chunk_size = len(df) // num_chunks
+    chunks = [df.iloc[i:i + chunk_size] for i in range(0, len(df), chunk_size)]
+    
+    chunk_files = []
+    for i, chunk in enumerate(chunks):
+        chunk_file = os.path.join(output_dir, f"chunk_{i}.csv")
+        chunk.to_csv(chunk_file, index=False)
+        chunk_files.append(chunk_file)
+    
+    return chunk_files
+
+def process_image_chunk(args):
+    chunk_file, hemi_place_test, year, month, day, second, interval_minutes, local_timezone, output_dir, chunk_index = args
+    df = pd.read_csv(chunk_file)
+    result_filename = os.path.join(output_dir, f"result_chunk_{chunk_index}.csv")
+    
+    # 如果文件不存在，创建它，并写入表头
+    if not os.path.exists(result_filename):
+        result_df = pd.DataFrame(columns=['pid'] + [f"{year}-{month:02d}-{day:02d} {hour:02d}:{minute:02d}:{second:02d}" 
+                                                     for hour in range(5, 20) 
+                                                     for minute in range(20 if hour == 5 else 0, 60, interval_minutes)] + ['result'])
+        result_df.to_csv(result_filename, index=False, mode='w')
+
+    for index, row in df.iterrows():
+        pid = row['pid']
+        lon, lat = row['lon'], row['lat']
+        yaw = row['yaw']
+        image_file = f"{pid}.png"
+        image_path = os.path.join(hemi_place_test, image_file)
+        totaltime = 0
+        if pid == '-1' or not os.path.exists(image_path):
+            continue
+
+        hemiimg_pil = Image.open(image_path)
+        hemiimg = np.array(hemiimg_pil)
+        hemiimg_gray = cv2.cvtColor(hemiimg, cv2.COLOR_RGB2GRAY)
+        start_time = dt(year, month, day, 5, 20, second)
+        end_time = dt(year, month, day, 19, 50, second)
+        current_time = start_time
+
+        result_data = {'pid': pid}
+        
+        while current_time <= end_time:
+            date = local_timezone.localize(current_time)
+            sunele = date_to_sun_elevation(date, lon, lat)
+            if sunele <= 0:
+                now = 0
+                result_data[date.strftime("%Y-%m-%d %H:%M:%S")] = now
+                current_time += timedelta(minutes=interval_minutes)
+                continue
+            azimuth = azimuth_angle_calculator(lat, lon, date)
+            zhedang = Sun_judgement_noaa(hemiimg_gray, 5, azimuth, sunele)
+            xuanguangtiaojian = sun_glare_calculator(date, lon, lat, vision_form_slope_angle=0, vision_form_east_angle=yaw)
+            now = 1 if xuanguangtiaojian == 1 and zhedang == 0 else 0
+
+            result_data[date.strftime("%Y-%m-%d %H:%M:%S")] = now
+            totaltime += interval_minutes if now else 0
+
+            current_time += timedelta(minutes=interval_minutes)
+        
+        result_data['result'] = totaltime
+        
+        # 将结果附加到CSV文件中
+        result_df = pd.DataFrame([result_data])
+        result_df.to_csv(result_filename, index=False, mode='a', header=False)
+    
+    return result_filename
+
+def merge_csv_files(csv_files, output_file):
+    combined_df = pd.concat([pd.read_csv(f) for f in csv_files])
+    combined_df.to_csv(output_file, index=False)
+
+def get_sun_glare_situation_multithreaded(csv_file, hemi_place_test, year, month, day, second, interval_minutes, output_dir, num_threads):
+    # Split the input CSV file into smaller chunks
+    chunk_files = split_csv_file(csv_file, output_dir, num_threads)
+    
+    local_timezone = pytz.timezone('Asia/Shanghai')
+    result_files = []
+    
+    # 计算总的图像数量，用于设置进度条的总数
+    total_images = sum([len(pd.read_csv(chunk_file)) for chunk_file in chunk_files])
+
+    # Process each chunk file in a separate process
+    with Pool(processes=num_threads) as pool:
+        args = [
+            (chunk_file, hemi_place_test, year, month, day, second, interval_minutes, local_timezone, output_dir, i)
+            for i, chunk_file in enumerate(chunk_files)
+        ]
+        with tqdm(total=total_images, desc="Overall Progress") as pbar:
+            for result_file in pool.imap_unordered(process_image_chunk, args):
+                result_files.append(result_file)
+                pbar.update(1)
+    
+    # Merge the result CSV files into a single file
+    final_result_file = os.path.join(output_dir, f"result_{year}_{month:02d}_{day:02d}_interval_{interval_minutes}min.csv")
+    merge_csv_files(result_files, final_result_file)
+
+    # Clean up temporary files
+    for file in chunk_files + result_files:
+        os.remove(file)
+
+if __name__ == "__main__":
+    # 示例调用
+    clean_pano_csv_file = r'D:\wuhan_rd_pano\road\pano_road_01.csv'
+    hemi_folder = r'D:\wuhan_rd_pano\hemi'
+    output_directory = r'D:\wuhan_rd_pano\road\season'
+    num_threads = 48  # 使用系统CPU核数作为线程数
+    get_sun_glare_situation_multithreaded(clean_pano_csv_file, hemi_folder, 2024, 1, 15, 0, 10, output_directory, num_threads)
+'''
+
+# 8. 合并并优化列名，删除无眩光列
+def merge_csv_files_in_chunks(clean_csv_path, date_csv_folder, output_folder):
+    # 获取 date_csv_folder 文件夹中的所有 CSV 文件
+    date_csv_files = [f for f in os.listdir(date_csv_folder) if f.endswith('.csv')]
+    
+    # 如果输出文件夹不存在，则创建它
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    # 读取 clean_csv_path 文件
+    clean_df = pd.read_csv(clean_csv_path)
+    clean_df['pid'] = clean_df['pid'].astype(str)
+    
+    # 循环处理每个 CSV 文件，并显示进度条
+    for date_csv_file in tqdm(date_csv_files, desc="合并CSV文件进度"):
+        date_csv_path = os.path.join(date_csv_folder, date_csv_file)
+        
+        # 读取 date_csv_path 文件
+        date_df = pd.read_csv(date_csv_path)
+        
+        # 将 date_df 的 pid 列转换为字符串类型
+        date_df['pid'] = date_df['pid'].astype(str)
+        
+        # 修改列名，删除日期部分并在时间前面加上 't'
+        new_columns = ['pid'] + ['t' + col.split(' ')[1] if ' ' in col else col for col in date_df.columns[1:]]
+        date_df.columns = new_columns
+        
+        # 删除 result 列为 0 的行
+        date_df = date_df[date_df['result'] != 0]
+        
+        # 根据 pid 列进行合并
+        merged_df = pd.merge(date_df, clean_df[['pid', '50lon', '50lat', 'road_name', 'near_fid', 'yaw']], on='pid', how='left')
+        
+        # 保存合并后的 DataFrame 到新的 CSV 文件
+        output_csv_path = os.path.join(output_folder, date_csv_file)
+        merged_df.to_csv(output_csv_path, index=False, encoding='utf-8-sig')
+
+def csv_to_shp(csv_file, shp_file, lon_col='50lon', lat_col='50lat', epsg=32648):
+    """
+    将 CSV 文件中的点数据转换为 Shapefile 格式。
+
+    参数:
+    csv_file (str): 输入的 CSV 文件路径。
+    shp_file (str): 输出的 Shapefile 文件路径。
+    lon_col (str): 经度列名，默认为 '50lon'。
+    lat_col (str): 纬度列名，默认为 '50lat'。
+    epsg (int): 坐标系 EPSG 代码，默认为 32648。
+    """
+    # 读取 CSV 文件
+    df = pd.read_csv(csv_file, low_memory=False)
+
+    # 处理列名，将日期部分去掉，只保留时间部分，并在时间部分前加上字母 t
+    new_columns = {}
+    for col in df.columns:
+        if ' ' in col:
+            new_col = 't' + col.split(' ')[1]
+            new_columns[col] = new_col
+        else:
+            new_columns[col] = col
+    df.rename(columns=new_columns, inplace=True)
+
+    # 创建几何列
+    geometry = [Point(xy) for xy in zip(df[lon_col], df[lat_col])]
+
+    # 创建 GeoDataFrame
+    gdf = gpd.GeoDataFrame(df, geometry=geometry)
+
+    # 设置坐标系为 EPSG:32648
+    gdf.set_crs(epsg=epsg, inplace=True)
+
+    # 保存为 Shapefile，确保保存为中文
+    gdf.to_file(shp_file, encoding='utf-8')
 
 if __name__ == "__main__":
     multiline_file = r"E:\webgislocation\rdraw.shp"
     singleline_file = r"E:\webgislocation\rdsingle.shp"
     rdsingle_only_BF_file = r"E:\webgislocation\rdsingle_onlyBF.shp"
     rdsingle_from_E_file = r"E:\webgislocation\rdsingle_from_E.shp"
+    point_shp_path = r"E:\webgislocation\poinrd50_3.shp"
+    yaw_shp_path = r"E:\webgislocation\poinrd50_3_yaw.shp"
+    pano_folder = 'path/to/your/image/folder'
+    sky_image_folder = 'path/to/your/image/folder'
+    hemi_folder = 'path/to/your/image/folder'
+    pano_csv_file = r"E:\webgislocation\filtered.csv"
+    clean_pano_csv_file = r"E:\webgislocation\pano_road_01.csv"
+    shp_date_file = r"E:\webgislocation\merged_pano_road.shp"
     # 1. 将多线转换为单线
-
-
     # # 调用函数
     # multiline_to_singleline(multiline_file, singleline_file)
 
     # 2. 计算道路行驶方向
-
-
     # gdf = gpd.read_file(singleline_file, encoding='utf-8')
     # # 确保坐标系为EPSG:4326
     # gdf = gdf.to_crs(epsg=4326)
@@ -313,7 +745,6 @@ if __name__ == "__main__":
     # gdf.to_file(rdsingle_only_BF_file, encoding='utf-8')
 
     # 3. 重置为东开始的角度
-
     # gdf = gpd.read_file(rdsingle_only_BF_file, encoding='utf-8')
     # # 确保坐标系为EPSG:4326
     # gdf = gdf.to_crs(epsg=4326)
@@ -322,17 +753,19 @@ if __name__ == "__main__":
     # gdf.to_file(rdsingle_from_E_file, encoding='utf-8')
 
     # 4. 更新点数据的yaw列
-    # 示例调用
-    # point_shp_path = r"E:\webgislocation\poinrd50_3.shp"
-    # line_shp_path = r"E:\webgislocation\rdsingle_from_E.shp"
-    # output_shp_path = r"E:\webgislocation\poinrd50_3_yaw.shp"
-
-    # update_yaw_with_e_angle(point_shp_path, line_shp_path, output_shp_path)
+    # update_yaw_with_e_angle(point_shp_path, rdsingle_from_E_file, yaw_shp_path)
 
     # 5. 生成鱼眼图像，北对齐
-    shp_file = r"E:\webgislocation\poinrd50_3_yaw.shp"
-    image_folder = 'path/to/your/image/folder'
-    output_folder = 'path/to/your/output/folder'
+    # output_folder = 'path/to/your/output/folder'
+    # # 调用 generate_fisheye_images 函数
+    # generate_fisheye_images(yaw_shp_path, sky_image_folder, hemi_folder)
 
-    # 调用 generate_fisheye_images 函数
-    generate_fisheye_images(shp_file, image_folder, output_folder)
+    # 6. 优化csv文件
+    # get_better_csv(pano_csv_file, clean_pano_csv_file)
+
+    # 7. 计算眩光遮挡状况
+    # get_sun_glare_situation_from_hemi_pano_and_date(clean_pano_csv_file, hemi_folder, 2021, 1, 1, 0, 15)
+
+    # 8. 合并csv
+    merge_csv_files_in_chunks(clean_pano_csv_file,r"E:\webgislocation\time",r"E:\webgislocation\time_merge")
+    # csv_to_shp(merge_csv_file, shp_date_file)

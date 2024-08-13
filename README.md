@@ -140,34 +140,34 @@
            label = db.Column(db.String(255))
            geom = db.Column(Geometry(geometry_type='POINT', srid=4326))
 
-    def __repr__(self):
-        return f'<Location {self.name}>'
+       def __repr__(self):
+           return f'<Location {self.name}>'
        ``` 
 
      + 你喜欢的话也可以用sun-glare-project\use-data\whpoi-wgs84.csv建表单，一样的，方法不做赘述。但需要注意使用postgis创建geom列。但需要注意，用这个方法传入需要使用的csv是notepad打开显示ANSI的csv，不然会报错。需要根据csv文件表头先创建空表，等等等等。
 
        + 加geom列方法：首先，添加一个新的geom列到你的表中。假设你的表名为your_table，可以使用以下SQL命令：
 
-        ```sql
-        ALTER TABLE your_table ADD COLUMN geom geometry(Point, 4326);
-        ```
+          ```sql
+          ALTER TABLE your_table ADD COLUMN geom geometry(Point, 4326);
+          ```
         
        + 其次，使用ST_SetSRID和ST_MakePoint函数将x和y列的值转换为geom列的值：
 
-        ```sql
-        ALTER TABLE your_table ADD COLUMN geom geometry(Point, 4326);
-        ```
+          ```sql
+          ALTER TABLE your_table ADD COLUMN geom geometry(Point, 4326);
+          ```
 
        + 确保geom列已正确填充，可以运行以下查询来检查：
         
-        ```sql
-        SELECT x, y, ST_AsText(geom) FROM your_table LIMIT 10;
-        ```
+          ```sql
+          SELECT x, y, ST_AsText(geom) FROM your_table LIMIT 10;
+          ```
 
      + 后面部署用更大的更全的poi，这个是老师给的，即同位置的“whpoi_wgs84_huge.csv”
 
-   + 使用同一个工具，传入路网数据，因为网上教程少，建议按以下步骤做，可以正确部署
-
+   + 使用同一个工具，传入路网数据，因为网上教程少，建议按以下步骤做，可以正确部署(注：老方法已经弃用，我根据老方法处理完数据后，直接导出了csv，之后部署可以直接新建表然后复制表。只需要启动了pgrouting和postgis功能就可以操作)
+     + 以下是旧方法（已弃用，下滑可查看新方法）
      + 用sun-glare-project\use-data\test-vector下的whrd7line.shp。打断方式在func中的python程序实现，我忘了保存加encording=utf-8了，现在没有路名...
 
      + 记得使用4326坐标系
@@ -179,6 +179,8 @@
      + 键入以下代码（方便展示和写文档合并了，但是每次仅运行一行）
         
         ```SQL
+        DELETE FROM whrd7
+       WHERE fclass IN ('bridleway', 'footway', 'pedestrian', 'steps', 'cycleway');
         ALTER TABLE whrd7 ADD COLUMN source integer;
         ALTER TABLE whrd7 ADD COLUMN target integer;
         ALTER TABLE whrd7 ADD COLUMN length double precision;
@@ -189,29 +191,127 @@
         ALTER TABLE whrd7 ADD COLUMN reverse_cost double precision;
         UPDATE whrd7 SET reverse_cost =length;
         ```
+     + 乘以系数，将成本系数的度换为米
+       ```sql
+       UPDATE whrd7
+       SET length = length * 98049.67060050,
+           reverse_cost = reverse_cost * 98049.67060050;
+       ``` 
+     + 设置单双向正确的成本
+       ```sql
+       UPDATE whrd7
+       SET 
+           reverse_cost = CASE 
+               WHEN oneway = 'F' THEN 99999 
+               ELSE reverse_cost 
+           END,
+           length = CASE 
+               WHEN oneway = 'T' THEN 99999 
+               ELSE length 
+           END
+       WHERE oneway IN ('F', 'T');
+       ``` 
+     + 新建一列 maxspeed_mps，将 maxspeed 转换为米每秒单位
+       ```sql
+       ALTER TABLE whrd7 ADD COLUMN maxspeed_mps FLOAT;
 
+       UPDATE whrd7
+       SET maxspeed_mps = CASE
+           WHEN maxspeed = 0 THEN 50 / 3.6
+           ELSE maxspeed / 3.6
+       END;
+       ``` 
+     + 新建两列 forward_time 和 reverse_time
+       ```sql
+       ALTER TABLE whrd7 ADD COLUMN forward_time FLOAT;
+       ALTER TABLE whrd7 ADD COLUMN reverse_time FLOAT;
+       ``` 
+     + 计算正向和反向的时间成本
+       ```sql
+       UPDATE whrd7
+       SET 
+           forward_time = CASE
+               WHEN length = 99999 THEN 99999
+               ELSE length / maxspeed_mps
+           END,
+           reverse_time = CASE
+               WHEN reverse_cost = 99999 THEN 99999
+               ELSE reverse_cost / maxspeed_mps
+           END;
+       ``` 
      + 完成初始化后，让我们检验一下数据是否可以正确规划路径，以下是直接全部运行的脚本
 
         ```SQL
-        WITH start_vertex AS (
-        SELECT id FROM whrd7_vertices_pgr
-        ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(114.13257559110757,30.62535117304848), 4326) LIMIT 1
-        ), end_vertex AS (
-        SELECT id FROM whrd7_vertices_pgr
-        ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(114.32733343250193,30.260181353114426), 4326) LIMIT 1
-        )
-        SELECT seq, path_seq, node, edge, cost, agg_cost, geom
-        FROM pgr_astar(
-        'SELECT gid AS id, source, target, length AS cost, reverse_cost, 
-        COALESCE(ST_X(ST_StartPoint(geom)), 0) AS x1, COALESCE(ST_Y(ST_StartPoint(geom)), 0) AS y1, 
-        COALESCE(ST_X(ST_EndPoint(geom)), 0) AS x2, COALESCE(ST_Y(ST_EndPoint(geom)), 0) AS y2 
-        FROM whrd7
-        WHERE geom IS NOT NULL AND (ST_GeometryType(geom) = ''ST_LineString'' OR ST_GeometryType(geom) = ''ST_MultiLineString'')',
-        (SELECT id FROM start_vertex), (SELECT id FROM end_vertex), directed := true
-        ) AS route
-        JOIN whrd7 ON route.edge = whrd7.gid;
+       WITH start_vertex AS (
+           SELECT id FROM whrd7_vertices_pgr
+           ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(114.13257559110757,30.62535117304848), 4326) LIMIT 1
+       ), end_vertex AS (
+           SELECT id FROM whrd7_vertices_pgr
+           ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(114.32733343250193,30.260181353114426), 4326) LIMIT 1
+       )
+       SELECT seq, path_seq, node, edge, cost, agg_cost, geom, length
+       FROM pgr_astar(
+           'SELECT gid AS id, source, target, 
+           CASE 
+               WHEN forward_time = 99999 THEN 99999 
+               ELSE forward_time 
+           END AS cost, 
+           CASE 
+               WHEN reverse_time = 99999 THEN 99999 
+               ELSE reverse_time 
+           END AS reverse_cost, 
+           COALESCE(ST_X(ST_StartPoint(geom)), 0) AS x1, COALESCE(ST_Y(ST_StartPoint(geom)), 0) AS y1, 
+           COALESCE(ST_X(ST_EndPoint(geom)), 0) AS x2, COALESCE(ST_Y(ST_EndPoint(geom)), 0) AS y2 
+           FROM whrd7
+           WHERE geom IS NOT NULL AND (ST_GeometryType(geom) = ''ST_LineString'' OR ST_GeometryType(geom) = ''ST_MultiLineString'')',
+           (SELECT id FROM start_vertex), (SELECT id FROM end_vertex), directed := true
+       ) AS route
+       JOIN whrd7 ON route.edge = whrd7.gid;
         ```
+      + 以下是新方法（原始文件在use-data.7z里的whrd7.csv以及whrd7_vertices_pgr.csv，使用前先把之前的在数据库的同名路网两个文件给删除或重命名）：
 
+      + 创建表
+          ```sql
+          CREATE TABLE whrd7 (
+              gid SERIAL PRIMARY KEY,
+              fclass VARCHAR(255),
+              name VARCHAR(255),
+              oneway VARCHAR(255),
+              maxspeed INTEGER,
+              e_angle FLOAT,
+              id INTEGER,
+              geom GEOMETRY(Geometry, 4326),
+              source INTEGER,
+              length FLOAT,
+              target INTEGER,
+              reverse_cost FLOAT,
+              maxspeed_mps FLOAT,
+              forward_time FLOAT,
+              reverse_time FLOAT
+          );
+          CREATE TABLE whrd7_vertices_pgr (
+              id SERIAL PRIMARY KEY,
+              cnt INTEGER,
+              chk INTEGER,
+              ein INTEGER,
+              eout INTEGER,
+              the_geom GEOMETRY(Geometry, 4326)
+          );
+          ```
+      + 复制表
+          ```sql
+         COPY whrd7 (gid, fclass, name, oneway, maxspeed, e_angle, id, geom, source, length, target, reverse_cost, maxspeed_mps, forward_time, reverse_time)
+         FROM 'D:/path/to/your/whrd7.csv'
+         DELIMITER ','
+         CSV HEADER;
+
+         COPY whrd7_vertices_pgr (id, cnt, chk, ein, eout, the_geom)
+         FROM 'D:/path/to/your/whrd7_vertices_pgr.csv'
+         DELIMITER ','
+         CSV HEADER;
+          ```
+      + 之后键入旧方法的查询语句，也可以得到一样的结果
+    + 
     + 目前只是简单搭建，这个路径规划的限制条件未增加，后面估计要结合眩光更改
 
     + 创建用户信息表单，在query tool键入以下语句即可

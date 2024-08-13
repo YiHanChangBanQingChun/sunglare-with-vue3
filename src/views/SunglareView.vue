@@ -17,7 +17,8 @@
     </div>
     <div class="echarts-container" id="yibiaopan">
     </div>
-
+    <div ref="polarChart" class="echarts-container">
+    </div>
   </div>
   <!-- 画了个表格出来 -->
   <div class="weather">
@@ -56,15 +57,23 @@
 
 <script>
 import axios from 'axios'
+import { toRaw } from 'vue'
 import * as echarts from 'echarts/core'
-// 合并导入 BarChart 和 GaugeChart
-import { BarChart, GaugeChart } from 'echarts/charts'
 import {
+  LegendComponent,
+  PolarComponent,
   TitleComponent,
   TooltipComponent,
   GridComponent
 } from 'echarts/components'
+import {
+  LineChart,
+  BarChart,
+  GaugeChart,
+  ScatterChart // 引入 ScatterChart
+} from 'echarts/charts'
 import { CanvasRenderer } from 'echarts/renderers'
+
 // 注册必须的组件
 echarts.use([
   BarChart,
@@ -72,7 +81,11 @@ echarts.use([
   TitleComponent,
   TooltipComponent,
   GridComponent,
-  CanvasRenderer
+  CanvasRenderer,
+  LegendComponent,
+  PolarComponent,
+  LineChart,
+  ScatterChart // 注册 ScatterChart
 ])
 
 export default {
@@ -100,31 +113,24 @@ export default {
         { code: '420117', name: '新洲区' }
       ],
       selectedDistrict: null,
-      currentTemperature: null
+      currentTemperature: null,
+      polarChart: null, // 极坐标图
+      solarData: [], // 当前时间的太阳位置数据
+      solarTrajectoryData: [] // 当天的太阳轨迹数据
     }
   },
-  mounted () {
+  async mounted () {
     this.initzhuzhuangtu()
-    // 调试信息
     console.log('Echarts is mounted')
-    // 420100 是武汉市的区划代码，其他区域的区划代码可以参考高德地图的行政区划代码
-    const districts = [
-      '420100', '420102', '420103',
-      '420104', '420105', '420106',
-      '420107', '420111', '420112',
-      '420113', '420114', '420115',
-      '420116', '420117'
-    ]
-    // this.fetchWeatherInfo()
-    districts.forEach(district => {
-      this.fetchWeatherInfo(district)
-    })
-    // 每隔 1 分钟刷新一次天气信息，默认是武汉市的天气信息
+    await this.fetchWeatherInfo(this.selectedDistrict) // 默认加载武汉市的天气信息
     this.intervalid = setInterval(() => {
-      this.fetchWeatherInfo('420100')
+      this.fetchWeatherInfo(this.selectedDistrict)
     }, 60000)
-    this.fetchWeatherInfo('420100')
-    this.inityibiaopan()
+    this.inityibiaopan(this.selectedDistrict) // 传入默认区域名称
+    this.initPolarChart() // 初始化极坐标图
+    const areaName = '武汉市' // 替换为实际的区域名称
+    await this.fetchSolarAngles(areaName)
+    await this.fetchSolarAnglesDay(areaName)
   },
   beforeUnmount () {
     if (this.intervalid) {
@@ -163,19 +169,26 @@ export default {
         series: [{ data: seriesData }]
       })
     },
-    inityibiaopan () {
+    inityibiaopan (areaName) {
       const chartDom = document.getElementById('yibiaopan')
       const myChart = echarts.init(chartDom)
+      console.log('初始化仪表盘:', areaName)
       const option = {
+        tooltip: {
+          formatter: function (params) {
+            return `城市: ${areaName}<br/>${params.seriesName}: ${params.value}°C `
+          }
+        },
         series: [
           {
+            name: '温度',
             type: 'gauge',
             center: ['50%', '60%'],
             startAngle: 200,
             endAngle: -20,
-            min: 0,
-            max: 60,
-            splitNumber: 12,
+            min: -5,
+            max: 40,
+            splitNumber: 9,
             itemStyle: {
               color: 'greeen'
             },
@@ -210,13 +223,20 @@ export default {
             axisLabel: {
               distance: 0,
               color: '#999',
-              fontSize: 10
+              fontSize: 13
             },
             anchor: {
               show: false
             },
             title: {
-              show: false
+              show: true,
+              offsetCenter: [0, '70%'],
+              fontSize: 16,
+              fontWeight: 'bolder',
+              color: '#333',
+              left: 'center',
+              top: 'top',
+              formatter: () => `当前市的实时温度\n${areaName}`
             },
             detail: {
               valueAnimation: true,
@@ -236,17 +256,18 @@ export default {
             ]
           },
           {
+            name: '温度',
             type: 'gauge',
             center: ['50%', '60%'],
             startAngle: 200,
             endAngle: -20,
-            min: 0,
-            max: 60,
+            min: -5,
+            max: 40,
             itemStyle: {
               color: ''
             },
             progress: {
-              show: true,
+              show: false,
               width: 8
             },
             pointer: {
@@ -287,6 +308,147 @@ export default {
         }
       }, 2000)
     },
+    async fetchSolarAngles (areaName) {
+      console.log('获取当前时间的太阳角度信息:', areaName)
+      // const time = new Date().toISOString()
+      const date = new Date() //
+      date.setHours(13) //
+      date.setMinutes(8) //
+      const time = date.toISOString() //
+      const url = `${process.env.VUE_APP_API_URL}/api/solar_angles?area_name=${encodeURIComponent(areaName)}&time=${time}`
+      console.log('请求太阳角度信息:', url)
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        if (response.ok) {
+          const solarInfo = await response.json()
+          this.solarData = [solarInfo]
+          console.log('Solar Data:', this.solarData) // 添加这行
+          this.updatePolarChart(areaName)
+          console.log('获取太阳角度信息成功:', solarInfo)
+        } else {
+          const errorData = await response.json()
+          console.error('获取太阳角度信息失败:', errorData.message)
+        }
+      } catch (error) {
+        console.error('请求太阳角度信息发生错误:', error)
+      }
+    },
+    async fetchSolarAnglesDay (areaName) {
+      console.log('获取一天内的太阳角度轨迹信息:', areaName)
+      const date = new Date().toISOString().split('T')[0]
+      const url = `${process.env.VUE_APP_API_URL}/api/solar_angles_day?area_name=${encodeURIComponent(areaName)}&date=${date}`
+      console.log('请求太阳角度信息:', url)
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        if (response.ok) {
+          const solarInfo = await response.json()
+          this.solarTrajectoryData = solarInfo.map(item => ({
+            solarAzimuth: item.solar_azimuth,
+            solarAltitude: item.solar_altitude,
+            isSunrise: item.is_sunrise,
+            isSunset: item.is_sunset
+          }))
+          this.updatePolarChart(areaName)
+          console.log('获取太阳角度信息成功:', solarInfo)
+        } else {
+          const errorData = await response.json()
+          console.error('获取太阳角度信息失败:', errorData.message)
+        }
+      } catch (error) {
+        console.error('请求太阳角度信息发生错误:', error)
+      }
+    },
+    initPolarChart () {
+      this.polarChart = echarts.init(this.$refs.polarChart)
+      this.updatePolarChart()
+    },
+    updatePolarChart (areaName = '') {
+      const rawData = toRaw(this.solarData)
+      const option = {
+        title: {
+          text: `太阳高度角和方位角 - ${areaName}`,
+          fontSize: 16,
+          left: 'center',
+          top: 'top'
+        },
+        legend: {
+          data: ['当前太阳角度', '太阳轨迹'],
+          left: 'left',
+          bottom: '0%'
+        },
+        polar: {
+          center: ['50%', '55%'],
+          radius: '65%'
+        },
+        tooltip: {
+          trigger: 'item',
+          formatter: function (params) {
+            return `${params.seriesName}<br/>区名: ${areaName}<br/>高度角: ${params.value[0]}<br/>方位角: ${params.value[1]}`
+          }
+        },
+        angleAxis: {
+          type: 'value',
+          startAngle: 0,
+          clockwise: false,
+          min: 0,
+          max: 360
+        },
+        radiusAxis: {
+          min: 0,
+          max: 90
+        },
+        series: [
+          {
+            coordinateSystem: 'polar',
+            name: '当前太阳角度',
+            type: 'scatter',
+            data: rawData.map(item => [item.solar_altitude, item.solar_azimuth]),
+            itemStyle: {
+              color: 'purple'
+            },
+            markLine: {
+              symbol: 'none',
+              lineStyle: {
+                type: 'dashed',
+                color: 'pink'
+              },
+              data: rawData.map(item => [
+                { coord: [0, 0] },
+                { coord: [item.solar_altitude, item.solar_azimuth] }
+              ])
+            }
+          },
+          {
+            coordinateSystem: 'polar',
+            name: '太阳轨迹',
+            type: 'line',
+            data: this.solarTrajectoryData.map(item => [item.solarAltitude, item.solarAzimuth]),
+            itemStyle: {
+              color: 'blue'
+            },
+            markPoint: {
+              data: this.solarTrajectoryData.filter(item => item.isSunrise || item.isSunset).map(item => ({
+                coord: [item.solarAltitude, item.solarAzimuth],
+                name: item.isSunrise ? '日出' : '日落',
+                value: item.isSunrise ? '日出' : '日落'
+              }))
+            }
+          }
+        ]
+      }
+      console.log('ECharts Option:', option) // 添加这行
+      this.polarChart.setOption(option)
+    },
     async fetchWeatherInfo (district) {
       const districtNames = {
         420100: '武汉市',
@@ -322,6 +484,9 @@ export default {
           this.updateWeatherInfo(weatherInfo)
           this.updatezhuzhuangtu()
           console.log('获取天气信息成功:', weatherInfo)
+          this.inityibiaopan(districtNames[district]) // 更新仪表盘
+          await this.fetchSolarAngles(districtNames[district])
+          await this.fetchSolarAnglesDay(districtNames[district])
         } else {
           console.error('获取天气信息失败:', response.data.info)
         }
@@ -356,7 +521,7 @@ export default {
 .text {
   margin-top: 5px; /* 顶部外边距 */
   margin-bottom: 5px; /* 底部外边距 */
-  background: rgba(109, 72, 72, 0.45);
+  background: rgba(255, 255, 255, 0.65);
   -webkit-backdrop-filter: blur(25px);
   backdrop-filter: blur(25px);
   border: 1px solid rgba(255,255,255,0.45);
@@ -378,7 +543,7 @@ export default {
   flex-direction: column; /* 子元素垂直排列 */
   width: 100%; /* 使容器宽度充满父容器 */
   text-align: center; /* 文本居中，影响到所有的表格单元 */
-  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  background: rgba(255, 255, 255, 0.65); /* 应用深色毛玻璃效果 */
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   border-radius: 10px; /* 添加圆角边框 */
@@ -399,7 +564,7 @@ export default {
   justify-content: center; /* 子元素在主轴上居中对齐 */
   align-items: center; /* 子元素在交叉轴上居中对齐 */
   margin-top: 10vh; /* 向下移动20px，可以根据需要调整这个值 */
-  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  background: rgba(255, 255, 255, 0.65); /* 应用深色毛玻璃效果 */
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   border-radius: 10px; /* 添加圆角边框 */
