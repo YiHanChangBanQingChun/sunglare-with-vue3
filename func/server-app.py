@@ -29,7 +29,7 @@ print("谢谢！")
 # step 1: create a Flask app
 app = Flask(__name__)
 CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres1@localhost/postgis_34_sample'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456@localhost/postgis_34_sample'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -167,7 +167,7 @@ def search():
 conn_params = {
     "dbname": "postgis_34_sample",
     "user": "postgres",
-    "password": "postgres1",
+    "password": "123456",
     "host": "localhost"
 }
 

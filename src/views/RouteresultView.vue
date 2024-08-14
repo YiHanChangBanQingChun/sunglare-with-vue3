@@ -1,42 +1,60 @@
 <template>
-<div class="lu-jing-gui-hua">
-  <!-- <div class="text">
-    <h1>这个页面是放选中两点后的</h1>
-  </div> -->
+  <!-- 输入了起点和终点之后,还没有摁查询路径的画面 -->
+   <div class="lu-jing-gui-hua">
     <!-- 搜索框 -->
     <!-- 外层容器 -->
     <div class="search-containers">
-     <div class="search-container start">
-        <input type="text" v-model="searchQueryStart" @input="onSearchInputChange($event, true)" placeholder="搜索起点..." class="search-box search-box-start"/>
+      <!-- 交换的侧边栏 -->
+      <div class="revert-containers">
+        <div class="car"><img src="https://wx3.sinaimg.cn/orj360/008tIcISgy1hsgyr8gzsjj300o00odfl.jpg"></div>
+        <div class="swap-action">
+          <!-- 绑定 swap 方法到点击事件 -->
+          <button @click="swap" title="切换起终点">
+            <img src="https://wx1.sinaimg.cn/orj360/008tIcISgy1hsiz7qtw48j301s01sq2p.jpg" alt="revert" style="width: 22px; height: 25px;">
+          </button>
+        </div>
+      </div>
+      <!-- 搜索起点的容器 -->
+      <div class="search-container start">
+        <!-- 图片 -->
+        <div class="search-icon-wrapper">
+          <img src="https://wx1.sinaimg.cn/orj360/008tIcISgy1hsgyr8gv8dj300f00f0oh.jpg" alt="pink">
+        </div>
+        <!-- 输入框 -->
+        <input type="text" v-model="searchQueryStart" @input="onSearchInputChange($event, true)" placeholder="请输入起点" class="search-box search-box-start"/>
+        <!-- 修正后的起点搜索结果展示 -->
         <div class="search-results" v-if="searchResults.length && searchQueryStart">
         <ul>
-            <li v-for="(result, index) in searchResults" :key="index" @click="selectResult(result, true)">
+          <li v-for="(result, index) in searchResults" :key="index" @click="selectResult(result, true)">
             {{ result.name }}
-            </li>
+          </li>
         </ul>
-        </div>
+      </div>
     </div>
+     <!-- 搜索终点的容器 -->
     <div class="search-container end">
-        <input type="text" v-model="searchQueryEnd" @input="onSearchInputChange($event, false)" placeholder="搜索终点..." class="search-box search-box-end"/>
-        <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd">
-        <ul>
-            <li v-for="(result, index) in searchResultsEnd" :key="index" @click="selectResult(result, false)">
-            {{ result.name }}
-            </li>
-        </ul>
-        </div>
-    </div>
-    <div class="search-action">
-      <button @click="clcSearch">重新选择</button>
-        <button @click="onSearch">查询路径</button>
-    </div>
-    <div v-if="isLoading" class="loader-overlay">
-      <div class="loader"></div>
-    </div>
-    </div>
-    <!-- 地图容器 -->
-    <div id="viewDiv"></div>
+    <!-- 图片容器 -->
+      <div class="search-icon-wrapper">
+        <img src="https://wx4.sinaimg.cn/orj360/008tIcISgy1hsgyr8got8j300f00f0o9.jpg" alt="green">
+      </div>
+    <!-- 输入框 -->
+   <input type="text" v-model="searchQueryEnd" @input="onSearchInputChange($event, false)" placeholder="请输入终点" class="search-box search-box-end"/>
+    <!-- 修正后的终点搜索结果展示 -->
+    <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd">
+      <ul>
+        <li v-for="(result, index) in searchResultsEnd" :key="index" @click="selectResult(result, false)">
+        {{ result.name }}
+        </li>
+      </ul>
+   </div>
 </div>
+      <div class="search-action">
+        <button @click="clcSearch">重新选择</button>
+        <button @click="onSearch">查询路径</button>
+      </div>
+    </div>
+  </div>
+  <div id="viewDiv"></div>
 </template>
 
 <script>
@@ -47,19 +65,37 @@ import Point from '@geoscene/core/geometry/Point.js'
 import GraphicsLayer from '@geoscene/core/layers/GraphicsLayer'
 import axios from 'axios'
 
+import { ref } from 'vue'
+
 export default {
-  name: 'RouteResultView',
+  name: 'RouteresultView',
+  setup () {
+    const searchQueryStart = ref('')
+    const searchQueryEnd = ref('')
+
+    const swap = () => {
+      const temp = searchQueryStart.value
+      searchQueryStart.value = searchQueryEnd.value
+      searchQueryEnd.value = temp
+    }
+
+    return {
+      searchQueryStart,
+      searchQueryEnd,
+      swap
+      // 其他返回的响应式状态...
+    }
+  },
   data () {
     return {
       selectedResultStart: null,
       selectedResultEnd: null,
       searchResults: [],
       searchResultsEnd: [],
-      searchQueryStart: '',
-      searchQueryEnd: '',
       isLoading: false
     }
   },
+
   mounted () {
     // 初始化地图
     this.initMap()
@@ -133,6 +169,7 @@ export default {
         this[searchResultsField] = []
       }
     },
+
     // 处理选择搜索结果事件
     selectResult (result, isStart = true) {
       console.log('用户选择了搜索结果:', result)
@@ -219,6 +256,7 @@ export default {
         alert('请确保起点和终点都已选择。')
       }
     },
+
     // 初始化地图
     initMap () {
       const map = new Map({
@@ -255,6 +293,7 @@ export default {
 
       this.drawPoints(graphicsLayer)
     },
+
     // 在地图上绘制起点和终点
     drawPoints (graphicsLayer) {
       // 检查this.$route.query.start和this.$route.query.end是否定义
@@ -408,22 +447,13 @@ export default {
   height: 100vh; /* 将高度设置为视口高度的100% */
   width: 100vw; /* 将宽度设置为视口宽度的100% */
   z-index: -1; /* 设置较低的z-index值，使其在App.vue的下部分 */
-  /*margin: auto;*/
+  margin: auto;
 }
 
 .lu-jing-gui-hua {
   display: flex;
-  flex-direction: column; /* 使子元素垂直排列 */
+  flex-direction: row; /* 使子元素垂直排列,使大框和revert小框水平分布 */
   align-items: flex; /* 水平居中对齐子元素 */
-}
-
-.text > h1 {
-  text-align: center; /* 文本居中 */
-  background: -webkit-linear-gradient(rgba(238,174,202,1), rgba(148,187,233,1));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent; /* 对于非WebKit浏览器的兼容 */
 }
 
 .text {
@@ -443,12 +473,13 @@ export default {
   flex-direction: column; /* 保持垂直排列 */
   justify-content: flex-start; /* 从顶部开始排列 */
   align-items: flex-start; /* 子元素沿交叉轴的开始边缘对齐，即顶部对齐 */
-  width: 30%; /* 设置一个固定宽度 */
+  width: 31%; /* 设置一个固定宽度 */
   padding: 10px; /* 根据需要调整，确保搜索框周围有足够空间 */
-  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  padding-left:20px;/*整个搜索框的左边空间*/
+  background: #FFFFFF; /* 应用深色毛玻璃效果 */
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
-  border-radius: 10px; /* 添加圆角边框 */
+  border-radius: 10px; /* 设置圆角 */
   border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
   margin-bottom: 10px;
   position: relative; /* 添加相对定位 */
@@ -459,14 +490,15 @@ export default {
 .search-container.start,
 .search-container.end {
   position: relative; /* 设置相对定位 */
-  margin: 0; /* 移除左右外边距 */
-  margin-top: 10px;
+  margin-top: 5px;
+  padding-left: 0px; /* 留出图片的空间 */
+  margin-left: 17px; /* 根据侧边栏宽度来设置左边距 */
 }
 
 .search-box {
-  padding: 8px 15px; /* 初始内边距 */
+  padding: 8px 8px; /* 初始内边距 */
   border: 2px solid #ccc;
-  border-radius: 20px;
+  border-radius: 10px;
   outline: none;
   flex-grow: 1;
   box-sizing: border-box;
@@ -518,7 +550,7 @@ export default {
 
 /* 查询按钮样式 */
 .search-action button {
-  padding: 10px 20px; /* 按钮内边距 */
+  padding: 8px 16px; /* 按钮内边距 */
   background-color: #007bff; /* 按钮背景颜色 */
   color: white; /* 文字颜色 */
   border: none; /* 去除边框 */
@@ -538,56 +570,51 @@ export default {
   margin-top: 0;
 }
 
-/* 加载动画样式 */
-.loader-overlay {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: 30%;
-  height: 30%;
-  background: rgba(255, 255, 255, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  transform: translate(-50%, -50%);
-}
-
-/* 加载动画样式 */
-.loader {
-  width: 50px;
-  aspect-ratio: 1;
-  display: grid;
-  border-radius: 50%;
-  background:
-    linear-gradient(0deg ,rgb(0 0 0/50%) 30%,#0000 0 70%,rgb(0 0 0/100%) 0) 50%/8% 100%,
-    linear-gradient(90deg,rgb(0 0 0/25%) 30%,#0000 0 70%,rgb(0 0 0/75% ) 0) 50%/100% 8%;
-  background-repeat: no-repeat;
-  animation: l23 1s infinite steps(12);
-}
-
-/* 加载动画样式 */
-.loader::before,
-.loader::after {
-  content: "";
-  grid-area: 1/1;
-  border-radius: 50%;
-  background: inherit;
-  opacity: 0.915;
-  transform: rotate(30deg);
-}
-
-/* 加载动画样式 */
-.loader::after {
-  opacity: 0.83;
-  transform: rotate(60deg);
-}
-
-/* 加载动画样式 */
-@keyframes l23 {
-  100% {transform: rotate(1turn)}
-}
-
 /* 将CSS链接转换为@import语句 */
 @import url("https://js.geoscene.cn/4.27/@geoscene/core/assets/geoscene/themes/light/main.css");
+
+.car{
+  left:1px;
+}
+.revert-containers{
+  position: absolute; /* 或使用 fixed，根据需要 */
+  left: 0; /* 侧边栏靠在最左边 */
+  top: 0; /* 根据需要调整垂直位置 */
+  z-index: 10; /* 确保侧边栏在其他元素上方 */
+  width: 30px;
+  height:102px;
+  padding-left:5px;
+  background-color: #FFFFFF;
+  border-radius: 10px; /* 设置圆角 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+}
+.swap-action button {
+  display:flex;
+  flex-direction: row; /* 保持水平排列 */
+  justify-content: flex-start; /* 水平排列的子元素靠左对齐 */
+  position: absolute;
+  left: 5px; /* 图标距离父容器左边的距离 */
+  top: 50%; /* 垂直居中对齐 */
+  transform: translateY(-50%); /* 使用transform属性垂直居中 */
+  border:white;/* 边框颜色设置为白色 */
+  padding:0px;
+  background-color: white;
+  cursor: pointer; /* 鼠标悬停时显示指针 */
+}
+/* 鼠标悬停时的样式 */
+.swap-action button:hover {
+  border: 2px solid #ccc;  /* 鼠标悬停时颜色变成灰色*/
+  border-radius: 3px; /* 所有角的圆角半径为3px */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+}
+
+.search-icon-wrapper {
+  display: inline-block; /* 或者使用 flex 布局 */
+  position: absolute; /* 绝对定位 */
+  left: -20px; /* 根据需要调整 */
+  top: 50%;
+  transform: translateY(-40%); /* 垂直居中对齐 */
+}
 </style>
