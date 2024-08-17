@@ -70,7 +70,6 @@
     </div>
     <!-- 地图容器 -->
     <div id="viewDiv"></div>
-</div>
 </template>
 
 <script>
