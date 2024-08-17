@@ -145,30 +145,30 @@ export default {
         id: result.id,
         label: result.label
       }
-      // 根据isStart判断是起点还是终点
+      // 获取当前的起点和终点信息
+      let currentStart = this.selectedResultStart ? JSON.stringify(this.selectedResultStart) : null
+      let currentEnd = this.selectedResultEnd ? JSON.stringify(this.selectedResultEnd) : null
+      // 根据isStart参数选择起点或终点
       if (isStart) {
         this.selectedResultStart = simplifiedResult
         this.searchQueryStart = simplifiedResult.name
         this.searchResults = []
-        // 跳转到结果页面，带上起点信息
-        this.$router.push({
-          path: '/lu-jing-gui-hua/intermediate-page',
-          query: {
-            start: JSON.stringify(simplifiedResult)
-          }
-        })
+        currentStart = JSON.stringify(simplifiedResult)
       } else {
         this.selectedResultEnd = simplifiedResult
         this.searchQueryEnd = simplifiedResult.name
         this.searchResultsEnd = []
-        // 跳转到结果页面，带上终点信息
-        this.$router.push({
-          path: '/lu-jing-gui-hua/intermediate-page',
-          query: {
-            end: JSON.stringify(simplifiedResult)
-          }
-        })
+        currentEnd = JSON.stringify(simplifiedResult)
       }
+      // 跳转到结果页面，带上起点和终点信息，并添加一个时间戳作为唯一查询参数
+      this.$router.push({
+        path: '/lu-jing-gui-hua/Intermediate-page',
+        query: {
+          start: currentStart,
+          end: currentEnd,
+          t: Date.now() // 添加时间戳
+        }
+      })
     },
     // 处理搜索按钮点击事件
     onSearch () {
@@ -385,11 +385,11 @@ export default {
         .then(response => response.json()) // 将响应转换为JSON
         .then(data => {
           let totalLength = 0
-          let totalAggCost = 0
+          let totalCost = 0
           const geojsonLayer = new FeatureLayer({ // 创建FeatureLayer图层
             source: data.features.map((feature, index) => {
               totalLength += feature.properties.length
-              totalAggCost = feature.properties.agg_cost // 最后一个agg_cost即为总时长
+              totalCost += feature.properties.cost
               return {
                 geometry: {
                   type: 'polyline',
@@ -424,8 +424,8 @@ export default {
           // 将FeatureLayer图层添加到地图上
           map.add(geojsonLayer)
           // 计算总时长（小时和分钟）
-          this.totalHours = Math.floor(totalAggCost / 3600)
-          this.totalMinutes = Math.floor((totalAggCost % 3600) / 60)
+          this.totalHours = Math.floor(totalCost / 3600)
+          this.totalMinutes = Math.floor((totalCost % 3600) / 60)
           // 计算总距离（米或千米）
           if (totalLength < 1000) {
             this.totalDistance = `${totalLength.toFixed(2)}米`

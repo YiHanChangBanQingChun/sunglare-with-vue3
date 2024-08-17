@@ -163,12 +163,13 @@ export default {
         this.searchResultsEnd = []
         currentEnd = JSON.stringify(simplifiedResult)
       }
-      // 跳转到结果页面，带上起点和终点信息
+      // 跳转到结果页面，带上起点和终点信息，并添加一个时间戳作为唯一查询参数
       this.$router.push({
-        path: '/lu-jing-gui-hua/intermediate-page',
+        path: '/lu-jing-gui-hua/Intermediate-page',
         query: {
           start: currentStart,
-          end: currentEnd
+          end: currentEnd,
+          t: Date.now() // 添加时间戳
         }
       })
     },

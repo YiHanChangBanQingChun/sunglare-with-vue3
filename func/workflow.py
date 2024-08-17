@@ -8,10 +8,13 @@ import os, os.path
 import math
 import cv2
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pysolar.solar import *
 from shapely.geometry import Point
 from pyproj import Transformer
+import matplotlib.pyplot as plt
+import psycopg2
+from psycopg2 import sql
 
 # 1. 将多线转换为单线
 def split_line(line, row):
@@ -675,6 +678,8 @@ def merge_csv_files_in_chunks(clean_csv_path, date_csv_folder, output_folder):
         # 删除 result 列为 0 的行
         date_df = date_df[date_df['result'] != 0]
         
+        # 删除全是 0 的列
+        date_df = date_df.loc[:, (date_df != 0).any(axis=0)]
         # 根据 pid 列进行合并
         merged_df = pd.merge(date_df, clean_df[['pid', '50lon', '50lat', 'road_name', 'near_fid', 'yaw']], on='pid', how='left')
         
@@ -718,6 +723,264 @@ def csv_to_shp(csv_file, shp_file, lon_col='50lon', lat_col='50lat', epsg=32648)
     # 保存为 Shapefile，确保保存为中文
     gdf.to_file(shp_file, encoding='utf-8')
 
+def update_whrd7_tables(date_csv_folder, db_params):
+    # 获取 date_csv_folder 文件夹中的所有 CSV 文件
+    date_csv_files = [f for f in os.listdir(date_csv_folder) if f.endswith('.csv')]
+    
+    # 连接数据库
+    conn = psycopg2.connect(**db_params)
+    cur = conn.cursor()
+    
+    # 循环处理每个 CSV 文件，并显示进度条
+    for date_csv_file in tqdm(date_csv_files, desc="处理CSV文件进度"):
+        date_csv_path = os.path.join(date_csv_folder, date_csv_file)
+        
+        # 读取 date_csv_path 文件
+        date_df = pd.read_csv(date_csv_path)
+        
+        # 获取月份
+        month = date_csv_file.split('_')[2]
+        
+        # 获取所有时间列
+        time_columns = [col for col in date_df.columns if col.startswith('t')]
+        
+        for time_col in time_columns:
+            # 创建专属的 whrd7 表
+            sanitized_time_col = time_col.replace(':', '_')
+            whrd7_table_name = f"whrd7_{month}_{sanitized_time_col}"
+            cur.execute(f"CREATE TABLE {whrd7_table_name} AS TABLE whrd7")
+            
+            # 获取需要更新的 near_fid 列表
+            near_fids = date_df.loc[date_df[time_col] == 1, 'near_fid'].tolist()
+            print(f"Updating {len(near_fids)} records in {whrd7_table_name}...")
+            # 更新 whrd7 表中的 forward_time 和 reverse_time
+            update_query = f"""
+            UPDATE {whrd7_table_name}
+            SET forward_time = 99999, reverse_time = 99999
+            WHERE id = ANY(%s)
+            """
+            cur.execute(update_query, (near_fids,))
+    
+    # 提交更改并关闭数据库连接
+    conn.commit()
+    cur.close()
+    conn.close()
+
+# 数据库连接参数
+db_params = {
+    "dbname": "postgis_34_sample",
+    "user": "postgres",
+    "password": "postgres1",
+    "host": "localhost"
+}
+
+
+def plot_solar_angles():
+    # 设置中文字体
+    plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
+    plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
+
+    # 武汉市的经纬度
+    latitude = 30.52
+    longitude = 114.31
+
+    # 2024年6月到8月的日期，每5天一条线
+    start_date = datetime(2024, 6, 1)
+    end_date = datetime(2024, 8, 31)
+    delta_days = 3
+
+    # 创建两个独立的图形
+    fig1, ax1 = plt.subplots(figsize=(10, 6))
+    fig2, ax2 = plt.subplots(figsize=(10, 6))
+
+    current_date = start_date
+    while current_date <= end_date:
+        times = []
+        altitudes = []
+        azimuths = []
+
+        # 从日出到日落，每5分钟一个间隔
+        dt = current_date.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+        while dt.date() == current_date.date():
+            # 转换为北京时间
+            dt_beijing = dt.astimezone(timezone(timedelta(hours=8)))
+            altitude = get_altitude(latitude, longitude, dt_beijing)
+            if altitude > 0:  # 只记录高度角大于0的时间点
+                azimuth = get_azimuth(latitude, longitude, dt_beijing)
+                times.append(dt_beijing.hour + dt_beijing.minute / 60)  # 只记录小时和分钟
+                altitudes.append(altitude)
+                azimuths.append((450 - azimuth) % 360)  # 转换方位角为从东开始逆时针
+            dt += timedelta(minutes=5)
+
+        if times:  # 确保有数据才绘制
+            # 绘制高度角
+            ax1.scatter(times, altitudes, label=current_date.strftime('%Y-%m-%d'), s=10)  # 设置点的大小为10
+
+            # 绘制方位角
+            ax2.scatter(times, azimuths, label=current_date.strftime('%Y-%m-%d'), s=10)  # 设置点的大小为10
+
+        current_date += timedelta(days=delta_days)
+
+    # 设置高度角图形属性
+    ax1.set_title('太阳高度角 (武汉市, 2024年6月到8月)')
+    ax1.set_xlabel('时间 (小时)')
+    ax1.set_ylabel('高度角 (度)')
+    ax1.set_xticks(range(0, 25, 2))  # 设置 x 轴刻度为每2小时
+    ax1.legend()
+    ax1.grid(True)  # 显示格网
+
+    # 设置方位角图形属性
+    ax2.set_title('太阳方位角 (武汉市, 2024年6月到8月)')
+    ax2.set_xlabel('时间 (小时)')
+    ax2.set_ylabel('方位角 (度)')
+    ax2.set_xticks(range(0, 25, 2))  # 设置 x 轴刻度为每2小时
+    ax2.legend()
+    ax2.grid(True)  # 显示格网
+
+    plt.tight_layout()
+    plt.show()
+
+# 10. 统计各区街景点数据
+def count_points_in_districts(point_csv, polygon_shp, output_csv):
+    # 读取点数据
+    points_df = pd.read_csv(point_csv)
+    points_gdf = gpd.GeoDataFrame(points_df, geometry=gpd.points_from_xy(points_df['50lon'], points_df['50lat']), crs="EPSG:4326")
+    
+    # 读取面数据
+    polygons_gdf = gpd.read_file(polygon_shp)
+    
+    # 确保面数据的坐标系为WGS84
+    polygons_gdf = polygons_gdf.to_crs(epsg=4326)
+    
+    # 空间连接，找到每个点所在的区
+    joined_gdf = gpd.sjoin(points_gdf, polygons_gdf, how="left", op="within")
+    
+    # 统计每个区的点数量
+    district_counts = joined_gdf.groupby('县区name').size().reset_index(name='计数')
+    
+    # 保存结果到新的CSV文件
+    district_counts.to_csv(output_csv, index=False, encoding='utf-8-sig')
+
+def count_points_in_districts_month(point_csv, polygon_shp, output_csv, monthly_files):
+    # 读取点数据
+    points_df = pd.read_csv(point_csv)
+    points_gdf = gpd.GeoDataFrame(points_df, geometry=gpd.points_from_xy(points_df['50lon'], points_df['50lat']), crs="EPSG:4326")
+    
+    # 读取面数据
+    polygons_gdf = gpd.read_file(polygon_shp)
+    
+    # 确保面数据的坐标系为WGS84
+    polygons_gdf = polygons_gdf.to_crs(epsg=4326)
+    
+    # 空间连接，找到每个点所在的区
+    joined_gdf = gpd.sjoin(points_gdf, polygons_gdf, how="left", op="within")
+    
+    # 统计每个区的点数量
+    district_counts = joined_gdf.groupby('县区name').size().reset_index(name='计数')
+    
+    # 处理每个月的文件
+    for monthly_file in monthly_files:
+        month_name = os.path.basename(monthly_file).split('_')[2]  # 从文件名中提取月份
+        monthly_df = pd.read_csv(monthly_file)
+        monthly_gdf = gpd.GeoDataFrame(monthly_df, geometry=gpd.points_from_xy(monthly_df['50lon'], monthly_df['50lat']), crs="EPSG:4326")
+        
+        # 空间连接，找到每个点所在的区
+        monthly_joined_gdf = gpd.sjoin(monthly_gdf, polygons_gdf, how="left", op="within")
+        
+        # 统计每个区的点数量
+        monthly_counts = monthly_joined_gdf.groupby('县区name').size().reset_index(name=f't{month_name}')
+        
+        # 将每个月的统计结果合并到总的统计结果中
+        district_counts = district_counts.merge(monthly_counts, on='县区name', how='left')
+    
+    # 保存结果到新的CSV文件
+    district_counts.to_csv(output_csv, index=False, encoding='utf-8-sig')
+
+def count_time_intervals_in_districts(polygon_shp, monthly_files, output_csv):
+    # 读取面数据
+    polygons_gdf = gpd.read_file(polygon_shp)
+    
+    # 确保面数据的坐标系为WGS84
+    polygons_gdf = polygons_gdf.to_crs(epsg=4326)
+    
+    all_time_counts = pd.DataFrame()
+    
+    # 处理每个月的文件
+    for monthly_file in monthly_files:
+        month_name = os.path.basename(monthly_file).split('_')[2]  # 从文件名中提取月份
+        monthly_df = pd.read_csv(monthly_file)
+        monthly_gdf = gpd.GeoDataFrame(monthly_df, geometry=gpd.points_from_xy(monthly_df['50lon'], monthly_df['50lat']), crs="EPSG:4326")
+        
+        # 空间连接，找到每个点所在的区
+        monthly_joined_gdf = gpd.sjoin(monthly_gdf, polygons_gdf, how="left", op="within")
+        
+        # 统计每个区每个时间段的点数量
+        time_columns = [col for col in monthly_df.columns if col.startswith('t')]
+        for time_col in time_columns:
+            time_counts = monthly_joined_gdf[monthly_joined_gdf[time_col] == 1].groupby('县区name').size().reset_index(name=f't{month_name}_{time_col}')
+            if all_time_counts.empty:
+                all_time_counts = time_counts
+            else:
+                all_time_counts = all_time_counts.merge(time_counts, on='县区name', how='outer')
+    
+    # 填充缺失值为0
+    all_time_counts = all_time_counts.fillna(0)
+    
+    # 保存结果到新的CSV文件
+    all_time_counts.to_csv(output_csv, index=False, encoding='utf-8-sig')
+
+# 11.统计各区街景点数据，存入数据库
+
+def import_csv_to_postgresql(csv_file, dbname, user, password, host, port, table_name):
+    # 读取 CSV 文件
+    df = pd.read_csv(csv_file)
+
+    # 连接到 PostgreSQL 数据库
+    conn = psycopg2.connect(
+        dbname=dbname,
+        user=user,
+        password=password,
+        host=host,
+        port=port
+    )
+    cursor = conn.cursor()
+
+    # 自动生成创建表的 SQL 语句
+    columns = df.columns
+    create_table_query = sql.SQL(
+        'CREATE TABLE IF NOT EXISTS {} ({})'
+    ).format(
+        sql.Identifier(table_name),
+        sql.SQL(', ').join(
+            sql.SQL('{} {}').format(
+                sql.Identifier(col),
+                sql.SQL('TEXT') if df[col].dtype == 'object' else sql.SQL('INTEGER')
+            ) for col in columns
+        )
+    )
+
+    # 执行创建表的 SQL 语句
+    cursor.execute(create_table_query)
+    conn.commit()
+
+    # 插入数据
+    for index, row in df.iterrows():
+        insert_query = sql.SQL(
+            'INSERT INTO {} ({}) VALUES ({})'
+        ).format(
+            sql.Identifier(table_name),
+            sql.SQL(', ').join(map(sql.Identifier, columns)),
+            sql.SQL(', ').join(sql.Placeholder() * len(columns))
+        )
+        cursor.execute(insert_query, tuple(row))
+
+    # 提交事务并关闭连接
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+
 if __name__ == "__main__":
     multiline_file = r"E:\webgislocation\rdraw.shp"
     singleline_file = r"E:\webgislocation\rdsingle.shp"
@@ -731,6 +994,10 @@ if __name__ == "__main__":
     pano_csv_file = r"E:\webgislocation\filtered.csv"
     clean_pano_csv_file = r"E:\webgislocation\pano_road_01.csv"
     shp_date_file = r"E:\webgislocation\merged_pano_road.shp"
+    polygon_shp = r"E:\webgislocation\wuhan_village.shp"
+    statistics_file = r"E:\webgislocation\statistics.csv"
+    monthly_files = [os.path.join(r"E:\webgislocation\time_merge", f) for f in os.listdir(r"E:\webgislocation\time_merge") if f.endswith('.csv')]
+    time_intervals_file = r"E:\webgislocation\district_time_intervals_counts.csv"
     # 1. 将多线转换为单线
     # # 调用函数
     # multiline_to_singleline(multiline_file, singleline_file)
@@ -767,5 +1034,24 @@ if __name__ == "__main__":
     # get_sun_glare_situation_from_hemi_pano_and_date(clean_pano_csv_file, hemi_folder, 2021, 1, 1, 0, 15)
 
     # 8. 合并csv
-    merge_csv_files_in_chunks(clean_pano_csv_file,r"E:\webgislocation\time",r"E:\webgislocation\time_merge")
+    # merge_csv_files_in_chunks(clean_pano_csv_file,r"E:\webgislocation\time",r"E:\webgislocation\time_merge")
     # csv_to_shp(merge_csv_file, shp_date_file)
+
+    # 9. 更新 whrd7 表
+    # update_whrd7_tables(r"E:\webgislocation\time_merge", db_params)
+
+    # 10.统计数据
+    # count_points_in_districts(clean_pano_csv_file, polygon_shp, statistics_file)
+    # count_points_in_districts_month(clean_pano_csv_file, polygon_shp, statistics_file, monthly_files)
+    # count_time_intervals_in_districts(polygon_shp, monthly_files, time_intervals_file)
+
+    # 11.将统计数据存入数据库
+    import_csv_to_postgresql(
+        csv_file= time_intervals_file,
+        dbname='postgis_34_sample',
+        user='postgres',
+        password='postgres1',
+        host='localhost',
+        port='5432',
+        table_name='time_statistics'
+    )

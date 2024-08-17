@@ -21,7 +21,7 @@
     </div>
   </div>
   <!-- 画了个表格出来 -->
-  <div class="weather">
+  <!-- <div class="weather">
   <h3>武汉市天气信息</h3>
   <div v-if="weatherInfos.length > 0">
     <table>
@@ -52,7 +52,7 @@
   <div v-else>
     <p>加载天气信息中...</p>
   </div>
-</div>
+</div> -->
 </template>
 
 <script>
@@ -116,7 +116,8 @@ export default {
       currentTemperature: null,
       polarChart: null, // 极坐标图
       solarData: [], // 当前时间的太阳位置数据
-      solarTrajectoryData: [] // 当天的太阳轨迹数据
+      solarTrajectoryData: [], // 当天的太阳轨迹数据
+      barChart: null // 柱状图
     }
   },
   async mounted () {
@@ -143,6 +144,7 @@ export default {
       clearInterval(this.intervalid)
       console.log('选择的区域:', this.selectedDistrict)
       this.fetchWeatherInfo(this.selectedDistrict)
+      this.fetchStatistics(this.selectedDistrict)
       this.intervalid = setInterval(() => {
         this.fetchWeatherInfo(this.selectedDistrict)
       }, 60000)
@@ -150,30 +152,85 @@ export default {
     initzhuzhuangtu () {
       this.barChart = echarts.init(this.$refs.zhuzhuangtu)
       this.barChart.setOption({
-        title: { text: '各区气温' },
+        title: {
+          text: '眩光占比',
+          left: 'center'
+        },
         tooltip: {},
-        xAxis: { type: 'category', data: [] },
-        yAxis: { type: 'value' },
+        xAxis: {
+          type: 'category',
+          data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+        },
+        yAxis: {
+          type: 'value',
+          axisLabel: {
+            formatter: '{value} %'
+          }
+        },
         series: [{
-          name: '气温',
+          name: '百分比',
           type: 'bar',
           data: []
         }]
       })
     },
-    updatezhuzhuangtu () {
-      const xAxisData = this.weatherInfos.map(info => info.city)
-      const seriesData = this.weatherInfos.map(info => parseFloat(info.temperature))
+    updatezhuzhuangtu (data, currentMonth) {
+      const xAxisData = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+      const seriesData = data.map(item => {
+        const total = item.count
+        const monthData = [
+          item.t01, item.t02, item.t03, item.t04, item.t05, item.t06,
+          item.t07, item.t08, item.t09, item.t10, item.t11, item.t12
+        ]
+        return monthData.map((value, index) => ({
+          value: (value / total * 100).toFixed(2),
+          itemStyle: index === currentMonth - 1 ? { color: 'red' } : {}
+        }))
+      }).flat()
       this.barChart.setOption({
         xAxis: { data: xAxisData },
         series: [{ data: seriesData }]
       })
+    },
+    async fetchStatistics (district = null) {
+      try {
+        const url = new URL(`${process.env.VUE_APP_API_URL}/api/statistics`)
+        if (district) {
+          url.searchParams.append('district', district)
+        }
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        const data = await response.json()
+        if (data) {
+          const currentMonth = new Date().getMonth() + 1
+          this.updatezhuzhuangtu(data, currentMonth)
+        } else {
+          console.error('获取统计数据失败:', data.info)
+        }
+      } catch (error) {
+        console.error('请求统计数据发生错误:', error)
+      }
     },
     inityibiaopan (areaName) {
       const chartDom = document.getElementById('yibiaopan')
       const myChart = echarts.init(chartDom)
       console.log('初始化仪表盘:', areaName)
       const option = {
+        title: {
+          text: '实时温度',
+          left: 'center',
+          top: 'top',
+          textStyle: {
+            fontSize: 16,
+            fontWeight: 'bolder',
+            color: '#333'
+          }
+        },
         tooltip: {
           formatter: function (params) {
             return `城市: ${areaName}<br/>${params.seriesName}: ${params.value}°C `
@@ -201,7 +258,10 @@ export default {
             },
             axisLine: {
               lineStyle: {
-                width: 30
+                width: 30,
+                color: [
+                  [1, '#e0e0e0'] // 初始状态为灰色
+                ]
               }
             },
             axisTick: {
@@ -299,10 +359,31 @@ export default {
       myChart.setOption(option)
       setInterval(() => {
         if (this.currentTemperature !== null) {
+          let color = 'green'
+          if (this.currentTemperature < 10) {
+            color = 'blue'
+          } else if (this.currentTemperature > 28) {
+            color = 'orange'
+          }
           myChart.setOption({
             series: [
-              { data: [{ value: this.currentTemperature }] },
-              { data: [{ value: this.currentTemperature }] }
+              {
+                data: [{ value: this.currentTemperature }],
+                itemStyle: { color: color },
+                detail: { color: color },
+                axisLine: {
+                  lineStyle: {
+                    color: [
+                      [this.currentTemperature / 40, color],
+                      [1, '#e0e0e0']
+                    ]
+                  }
+                }
+              },
+              {
+                data: [{ value: this.currentTemperature }],
+                itemStyle: { color: color }
+              }
             ]
           })
         }
@@ -310,11 +391,11 @@ export default {
     },
     async fetchSolarAngles (areaName) {
       console.log('获取当前时间的太阳角度信息:', areaName)
-      // const time = new Date().toISOString()
-      const date = new Date() //
-      date.setHours(13) //
-      date.setMinutes(8) //
-      const time = date.toISOString() //
+      const time = new Date().toISOString()
+      // const date = new Date() //
+      // date.setHours(13) //
+      // date.setMinutes(8) //
+      // const time = date.toISOString() //
       const url = `${process.env.VUE_APP_API_URL}/api/solar_angles?area_name=${encodeURIComponent(areaName)}&time=${time}`
       console.log('请求太阳角度信息:', url)
       try {
@@ -376,19 +457,19 @@ export default {
       const rawData = toRaw(this.solarData)
       const option = {
         title: {
-          text: `太阳高度角和方位角 - ${areaName}`,
+          text: `${areaName}太阳高度角和方位角`,
           fontSize: 16,
           left: 'center',
           top: 'top'
         },
         legend: {
           data: ['当前太阳角度', '太阳轨迹'],
-          left: 'left',
+          left: 'center',
           bottom: '0%'
         },
         polar: {
-          center: ['50%', '55%'],
-          radius: '65%'
+          center: ['50%', '53%'],
+          radius: '63%'
         },
         tooltip: {
           trigger: 'item',
@@ -532,8 +613,16 @@ export default {
 }
 
 .echarts-container {
-  width: 25vw; /* 或其他具体的像素值 */
-  height: 25vh; /* 或其他具体的像素值 */
+  width: 90%; /* 每个图表占据90%的宽度 */
+  height: 30vh; /* 每个图表占据30%的高度 */
+  margin: 5px 5px; /* 添加垂直方向的外边距 */
+  display: flex;
+  justify-content: center; /* 水平居中对齐 */
+  align-items: center; /* 垂直居中对齐 */
+  background: rgba(255, 255, 255, 0.65); /* 毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 毛玻璃效果 */
+  border-radius: 10px; /* 添加圆角边框 */
 }
 
 .weather {
@@ -560,14 +649,12 @@ export default {
 /* 新增echarts父容器样式 */
 .echarts-wrapper {
   display: flex;
-  flex-direction: row; /* 确保子元素水平排列 */
-  justify-content: center; /* 子元素在主轴上居中对齐 */
+  flex-direction: column; /* 确保子元素垂直排列 */
+  justify-content: flex-start; /* 子元素在主轴上靠左对齐 */
   align-items: center; /* 子元素在交叉轴上居中对齐 */
-  margin-top: 10vh; /* 向下移动20px，可以根据需要调整这个值 */
-  background: rgba(255, 255, 255, 0.65); /* 应用深色毛玻璃效果 */
-  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
-  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
-  border-radius: 10px; /* 添加圆角边框 */
+  width: 30%; /* 父容器占据30%的宽度 */
+  height: 100vh; /* 父容器占据整个视口高度 */
+  margin-top: 7vh; /* 向下移动20px，可以根据需要调整这个值 */
 }
 
 .select-container {

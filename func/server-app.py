@@ -22,6 +22,7 @@ from datetime import datetime, timezone,timedelta
 from pysolar.solar import get_altitude, get_azimuth
 from urllib.parse import unquote
 
+
 # step 1: create a Flask app
 # 初始化 Flask 应用
 app = Flask(__name__)
@@ -50,48 +51,6 @@ if not os.path.exists(temp_dir):
     os.makedirs(temp_dir)
 
 # step 2: create a model
-'''
-you can use the psql tool to get the table structure.
-such as this command:
-    SELECT
-        column_name,
-        data_type,
-        character_maximum_length,
-        numeric_precision,
-        column_default,
-        is_nullable
-    FROM
-        information_schema.columns
-    WHERE
-        table_name = 'locations';
-for my table, the result is:
-    column_name   |     data_type     | character_maximum_length | numeric_pr
-    ecision |            column_default             | is_nullable
-    -----------------+-------------------+--------------------------+-----------
-    --------+---------------------------------------+-------------
-    id              | integer           |                          |
-        32 | nextval('locations_id_seq'::regclass) | NO
-    name            | character varying |                      255 |
-            |                                       | YES
-    address         | character varying |                      255 |
-            |                                       | YES
-    baidu_longitude | double precision  |                          |
-        53 |                                       | YES
-    baidu_latitude  | double precision  |                          |
-        53 |                                       | YES
-    wgs84_longitude | double precision  |                          |
-        53 |                                       | YES
-    wgs84_latitude  | double precision  |                          |
-        53 |                                       | YES
-    baidu_index     | character varying |                      255 |
-            |                                       | YES
-    label           | character varying |                      255 |
-            |                                       | YES
-    geom            | USER-DEFINED      |                          |
-            |                                       | YES
-    (10 rows)
-so the model are as follows:
-'''
 class Location(db.Model):
     __tablename__ = 'locations'
     id = db.Column(db.Integer, primary_key=True)
@@ -107,7 +66,61 @@ class Location(db.Model):
 
     def __repr__(self):
         return f'<Location {self.name}>'
-    
+
+class User(db.Model):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password = db.Column(db.String(80), nullable=False)
+    email = db.Column(db.String(50), unique=True, nullable=False)
+    security_question = db.Column(db.String(100), nullable=False)
+    security_answer = db.Column(db.String(100), nullable=False)
+    birthday = db.Column(db.Date, nullable=False)
+
+areas = {
+    "武汉市": {"longitude": 114.31, "latitude": 30.52},
+    "蔡甸区": {"longitude": 113.96, "latitude": 30.45},
+    "东西湖区": {"longitude": 114.08, "latitude": 30.69},
+    "汉南区": {"longitude": 113.93, "latitude": 30.33},
+    "汉阳区": {"longitude": 114.21, "latitude": 30.54},
+    "洪山区": {"longitude": 114.42, "latitude": 30.54},
+    "黄陂区": {"longitude": 114.35, "latitude": 30.98},
+    "江岸区": {"longitude": 114.32, "latitude": 30.65},
+    "江汉区": {"longitude": 114.25, "latitude": 30.61},
+    "江夏区": {"longitude": 114.36, "latitude": 30.25},
+    "硚口区": {"longitude": 114.21, "latitude": 30.60},
+    "青山区": {"longitude": 114.43, "latitude": 30.63},
+    "武昌区": {"longitude": 114.34, "latitude": 30.56},
+    "新洲区": {"longitude": 114.75, "latitude": 30.80}
+}
+
+# 清空 temp 文件夹的函数
+def clear_temp_folder():
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
+    os.makedirs(temp_dir)
+
+# 标志变量，确保 clear_temp_folder 只执行一次
+temp_folder_cleared = False
+
+class Statistics(db.Model):
+    __tablename__ = 'statistics'
+    name = db.Column(db.String(50), nullable=False)
+    count = db.Column(db.Integer, nullable=False)
+    t01 = db.Column(db.Integer, nullable=False)
+    t02 = db.Column(db.Integer, nullable=False)
+    t03 = db.Column(db.Integer, nullable=False)
+    t04 = db.Column(db.Integer, nullable=False)
+    t05 = db.Column(db.Integer, nullable=False)
+    t06 = db.Column(db.Integer, nullable=False)
+    t07 = db.Column(db.Integer, nullable=False)
+    t08 = db.Column(db.Integer, nullable=False)
+    t09 = db.Column(db.Integer, nullable=False)
+    t10 = db.Column(db.Integer, nullable=False)
+    t11 = db.Column(db.Integer, nullable=False)
+    t12 = db.Column(db.Integer, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+
 # step 3: crate a route
 # step 3.1: add information to the table
 @app.route('/api/location', methods=['POST'])
@@ -164,19 +177,6 @@ def search():
     } for location in results]
     return jsonify(locations)
 
-'''
-# the main function are as follows,if you see the console output likes:
-#  * Serving Flask app 'server-app'
-#  * Debug mode: on
-# WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
-#  * Running on http://127.0.0.1:5000
-# Press CTRL+C to quit
-#  * Restarting with watchdog (windowsapi)
-#  * Debugger is active!
-#  * Debugger PIN: 369-638-132
-# then the database connection is successful.
-'''
-
 # 数据库连接参数
 conn_params = {
     "dbname": "postgis_34_sample",
@@ -207,14 +207,8 @@ def route_plan():
     SELECT seq, path_seq, node, edge, cost, agg_cost, ST_AsBinary(geom) AS geom, length
     FROM pgr_astar(
         'SELECT gid AS id, source, target, 
-        CASE 
-            WHEN forward_time = 99999 THEN 99999 
-            ELSE forward_time 
-        END AS cost, 
-        CASE 
-            WHEN reverse_time = 99999 THEN 99999 
-            ELSE reverse_time 
-        END AS reverse_cost, 
+        forward_time AS cost, 
+        reverse_time AS reverse_cost, 
         COALESCE(ST_X(ST_StartPoint(geom)), 0) AS x1, COALESCE(ST_Y(ST_StartPoint(geom)), 0) AS y1, 
         COALESCE(ST_X(ST_EndPoint(geom)), 0) AS x2, COALESCE(ST_Y(ST_EndPoint(geom)), 0) AS y2 
         FROM whrd7
@@ -281,16 +275,6 @@ def get_geojson(route_id):
     file_path = os.path.join(BASE_DIR, 'tmp', f'route_plan_{route_id}.geojson')
     # 返回文件内容
     return send_file(file_path, mimetype='application/json')
-
-class User(db.Model):
-    __tablename__ = 'users'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50), unique=True, nullable=False)
-    password = db.Column(db.String(80), nullable=False)
-    email = db.Column(db.String(50), unique=True, nullable=False)
-    security_question = db.Column(db.String(100), nullable=False)
-    security_answer = db.Column(db.String(100), nullable=False)
-    birthday = db.Column(db.Date, nullable=False)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -362,22 +346,7 @@ def get_user_info():
     else:
         return jsonify({'message': 'User not found'}), 404
 
-areas = {
-    "武汉市": {"longitude": 114.31, "latitude": 30.52},
-    "蔡甸区": {"longitude": 113.96, "latitude": 30.45},
-    "东西湖区": {"longitude": 114.08, "latitude": 30.69},
-    "汉南区": {"longitude": 113.93, "latitude": 30.33},
-    "汉阳区": {"longitude": 114.21, "latitude": 30.54},
-    "洪山区": {"longitude": 114.42, "latitude": 30.54},
-    "黄陂区": {"longitude": 114.35, "latitude": 30.98},
-    "江岸区": {"longitude": 114.32, "latitude": 30.65},
-    "江汉区": {"longitude": 114.25, "latitude": 30.61},
-    "江夏区": {"longitude": 114.36, "latitude": 30.25},
-    "硚口区": {"longitude": 114.21, "latitude": 30.60},
-    "青山区": {"longitude": 114.43, "latitude": 30.63},
-    "武昌区": {"longitude": 114.34, "latitude": 30.56},
-    "新洲区": {"longitude": 114.75, "latitude": 30.80}
-}
+
 
 @app.route('/api/solar_angles', methods=['GET'])
 def get_solar_angles():
@@ -457,14 +426,86 @@ def get_solar_angles_day():
             print(f"时间: {dt}, 太阳方位角: {azimuth}, 太阳高度角: {altitude}")
     return jsonify(solar_angles)
 
-# 清空 temp 文件夹的函数
-def clear_temp_folder():
-    if os.path.exists(temp_dir):
-        shutil.rmtree(temp_dir)
-    os.makedirs(temp_dir)
+@app.route('/api/statistics', methods=['GET'])
+def get_statistics():
+    district_code = request.args.get('district')
+    print(f"查询县区代码: {district_code}")
 
-# 标志变量，确保 clear_temp_folder 只执行一次
-temp_folder_cleared = False
+    district_names = {
+        '420100': '武汉市',
+        '420102': '江岸区',
+        '420103': '江汉区',
+        '420104': '硚口区',
+        '420105': '汉阳区',
+        '420106': '武昌区',
+        '420107': '青山区',
+        '420111': '洪山区',
+        '420112': '东西湖区',
+        '420113': '汉南区',
+        '420114': '蔡甸区',
+        '420115': '江夏区',
+        '420116': '黄陂区',
+        '420117': '新洲区'
+    }
+
+    district_name = district_names.get(district_code)
+
+    try:
+        # 连接数据库
+        conn = psycopg2.connect(**conn_params)
+        cur = conn.cursor()
+
+        if district_name:
+            # Query for statistics data for the specific district
+            query = """
+            SELECT name, count, t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12
+            FROM statistics
+            WHERE name = %s
+            """
+            cur.execute(query, (district_name,))
+        else:
+            # Query all district statistics
+            query = """
+            SELECT name, count, t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12
+            FROM statistics
+            """
+            cur.execute(query)
+
+        statistics = cur.fetchall()
+
+        # Convert the result to JSON
+        if statistics:
+            result = []
+            for stat in statistics:
+                result.append({
+                    'name': stat[0],
+                    'count': stat[1],
+                    't01': stat[2],
+                    't02': stat[3],
+                    't03': stat[4],
+                    't04': stat[5],
+                    't05': stat[6],
+                    't06': stat[7],
+                    't07': stat[8],
+                    't08': stat[9],
+                    't09': stat[10],
+                    't10': stat[11],
+                    't11': stat[12],
+                    't12': stat[13]
+                })
+                print(f"Found statistics for {stat[0]}")
+                print(stat)
+            return jsonify(result)
+        else:
+            return jsonify({'message': 'No statistics found'}), 404
+    except Exception as e:
+        print(e)
+        return jsonify({'message': 'An error occurred'}), 500
+    finally:
+        # 关闭数据库连接
+        cur.close()
+        conn.close()
+
 
 @app.before_request
 def initialize():
@@ -477,42 +518,3 @@ def initialize():
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
 # test codes are as follows, in order to test the database connection and data situation
-'''
-def get_location_info_by_id(id):
-    location = Location.query.get(id)
-    if location:
-        location_info = {
-            'id': location.id,
-            'name': location.name,
-            'address': location.address,
-            'baidu_longitude': location.baidu_longitude,
-            'baidu_latitude': location.baidu_latitude,
-            'wgs84_longitude': location.wgs84_longitude,
-            'wgs84_latitude': location.wgs84_latitude,
-            'baidu_index': location.baidu_index,
-            'label': location.label
-        }
-        return location_info
-    else:
-        return {'message': 'Location not found'}
-
-if __name__ == '__main__':
-    with app.app_context():  # 创建应用上下文
-        db.create_all()
-        # 测试代码
-        for test_id in range(16000):
-            #location = Location(name=f'Location {i}', geom=f'SRID=4326;POINT({i} {i})')
-        #test_id = 1  # 假设你有一个有效的 ID 为 1
-            location_info = get_location_info_by_id(test_id)
-            print(location_info)
-    app.run(debug=True, use_reloader=False)
-    # tips: 
-    # if you see the console output likes:
-    # {'id': 15999, 'name': '机场二高速/机场二通道/Ｓ１９/机场第二高速路入口', 'address': '湖北省武汉市东西湖区', 'baidu_longitude': 114.2537171, 'baidu_latitude': 30.65903207, 'wgs84_longitude': 114.24187046641983, 'wgs84_latitude': 30.655149767418738, 'baidu_index': '05a56a6b100467e16118097d', 'label': '机场入口'}
-    # * Serving Flask app 'server-app'
-    # * Debug mode: on
-    # WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
-    # * Running on http://127.0.0.1:5000
-    # Press CTRL+C to quit
-    # then the database connection is successful.
-'''

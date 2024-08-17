@@ -54,13 +54,13 @@ export default {
 .biao-ti h1 {
   display: inline-block; /* 使背景只在文字区域显示 */
   padding: 5px 5px; /* 添加内边距 */
-  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  background: rgb(255, 255, 255); /* 应用深色毛玻璃效果 */
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   border-radius: 10px; /* 添加圆角边框 */
   border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
   border-radius: 5px; /* 添加圆角 */
-  color: rgb(255, 255, 255); /* 修改为您想要的颜色 */
+  color: rgba(109, 72, 72, 0.65); /* 修改为您想要的颜色 */
 }
 
 .gong-neng-lan {
@@ -69,7 +69,7 @@ export default {
   right: 0; /* 靠右对齐 */
   display: flex; /* 启用Flex布局 */
   align-items: center; /* 垂直居中对齐 */
-  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  background: rgb(255, 255, 255); /* 应用深色毛玻璃效果 */
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   border-radius: 10px; /* 添加圆角边框 */
@@ -91,7 +91,7 @@ nav h3 {
 
 nav a {
   font-weight: bold;
-  color: rgb(255, 255, 255);
+  color: rgba(109, 72, 72, 0.65);
 }
 
 .avatar {
