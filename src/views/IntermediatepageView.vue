@@ -79,17 +79,29 @@ import Graphic from '@geoscene/core/Graphic'
 import Point from '@geoscene/core/geometry/Point.js'
 import GraphicsLayer from '@geoscene/core/layers/GraphicsLayer'
 import axios from 'axios'
-
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 export default {
   name: 'IntermediatePageView',
+  setup () {
+    const searchQueryStart = ref('')
+    const searchQueryEnd = ref('')
+    const selectedResultStart = ref(null)
+    const selectedResultEnd = ref(null)
+    const router = useRouter()
+
+    return {
+      searchQueryStart,
+      searchQueryEnd,
+      selectedResultStart,
+      selectedResultEnd,
+      router
+    }
+  },
   data () {
     return {
-      selectedResultStart: null, // 选择的起点
-      selectedResultEnd: null, // 选择的终点
-      searchQueryStart: '', // 起点搜索查询字符串
-      searchQueryEnd: '', // 终点搜索查询字符串
-      searchResults: [], // 起点搜索结果
-      searchResultsEnd: [], // 终点搜索结果
+      searchResults: [],
+      searchResultsEnd: [],
       isLoading: false
     }
   },
@@ -146,6 +158,24 @@ export default {
           console.error('Error parsing end parameter:', e)
         }
       }
+    },
+    // 交换起点和终点信息并跳转页面
+    swap () {
+      const tempQuery = this.searchQueryStart
+      this.searchQueryStart = this.searchQueryEnd
+      this.searchQueryEnd = tempQuery
+      // 交换 selectedResultStart 和 selectedResultEnd
+      const tempResult = this.selectedResultStart
+      this.selectedResultStart = this.selectedResultEnd
+      this.selectedResultEnd = tempResult
+      // 跳转到 intermediate-page 页面，并传递交换后的起点和终点信息
+      this.router.push({
+        path: '/lu-jing-gui-hua/result',
+        query: {
+          start: JSON.stringify(this.selectedResultStart),
+          end: JSON.stringify(this.selectedResultEnd)
+        }
+      })
     },
     // 处理搜索框输入变化
     onSearchInputChange (event, isStart) {
@@ -247,8 +277,6 @@ export default {
         }
       })
     },
-    // 导航到中间页面，就是想着重选就刷新搜索框顺便刷新页面，因为geoscene的api不能直接动态更新底图，
-    // 现在这个函数似乎还是运行不了。what can I say？ mamba out
     navigateToIntermediatePage (type, result, isUpdate = false) {
       const path = '/lu-jing-gui-hua/intermediate-page'
       const query = {
@@ -364,7 +392,7 @@ export default {
           geometry: startPoint,
           symbol: {
             type: 'simple-marker', // 自动转换为 SimpleMarkerSymbol
-            color: 'green',
+            color: 'red',
             size: '20px'
           },
           popupTemplate: {
@@ -397,12 +425,11 @@ export default {
           longitude: end.location[0],
           latitude: end.location[1]
         })
-
         const endGraphic = new Graphic({
           geometry: endPoint,
           symbol: {
             type: 'simple-marker',
-            color: 'red',
+            color: 'green',
             size: '20px'
           },
           popupTemplate: {

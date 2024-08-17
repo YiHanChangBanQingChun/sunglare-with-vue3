@@ -64,40 +64,42 @@
           <img src="https://wx4.sinaimg.cn/mw2000/008tIcISgy1hsq1fw9ob9j300w00w3ya.jpg" alt="search">
       </div>
     </div>
+    <!-- 地图展示 -->
+    <div id="viewDiv"></div>
   </div>
-  <!-- 地图展示 -->
-  <div id="viewDiv"></div>
-  <!-- 时间选择框 -->
-  <div class="choose-time">
-    <div class="form-group">
-      <label for="date-input">选择日期：</label>
-      <input id="date-input" type="date" v-model="selectedDate">
-      <label for="time-input">选择时间：</label>
-      <input id="time-input" type="time" v-model="selectedTime">
+  <div class="main-container">
+    <!-- 时间选择框 -->
+    <div class="choose-time">
+      <div class="form-group">
+        <label for="date-input">选择日期：</label>
+        <input id="date-input" type="date" v-model="selectedDate">
+        <label for="time-input">选择时间：</label>
+        <input id="time-input" type="time" v-model="selectedTime">
+      </div>
     </div>
-  </div>
-  <!-- 路线展示 -->
-  <div class="routelist">
-    <ul class="cardlist">
-      <div class="route" data-index="0">
-        <div class="introduction">无眩光路径</div>
-        <p class="intro">
-          <span>总时长：</span>
-          <span>时间1</span>
-          <span>总距离：</span>
-          <span>公里数1</span>
-       </p>
-      </div>
-      <div class="route" data-index="1">
-        <div class="introduction">耗时少路径</div>
-        <p class="intro">
-          <span>总时长：</span>
-          <span>{{ totalHours }}小时{{ totalMinutes }}分钟</span>
-          <span>总距离：</span>
-          <span>{{ totalDistance }}</span>
-       </p>
-      </div>
-    </ul>
+    <!-- 路线展示 -->
+    <div class="routelist">
+      <ul class="cardlist">
+        <div class="route" data-index="0">
+          <div class="introduction">无眩光路径</div>
+          <p class="intro">
+            <span>总时长：</span>
+            <span>时间1</span>
+            <span>总距离：</span>
+            <span>公里数1</span>
+          </p>
+        </div>
+        <div class="route" data-index="1">
+          <div class="introduction">耗时少路径</div>
+          <p class="intro">
+            <span>总时长：</span>
+            <span>{{ totalHours }}小时{{ totalMinutes }}分钟</span>
+            <span>总距离：</span>
+            <span>{{ totalDistance }}</span>
+          </p>
+        </div>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -110,29 +112,13 @@ import GraphicsLayer from '@geoscene/core/layers/GraphicsLayer'
 import FeatureLayer from '@geoscene/core/layers/FeatureLayer'
 
 import axios from 'axios'
-import { ref } from 'vue'
 
 export default {
   name: 'RouteView',
-  setup () {
-    const searchQueryStart = ref('')
-    const searchQueryEnd = ref('')
-
-    const swap = () => {
-      const temp = searchQueryStart.value
-      searchQueryStart.value = searchQueryEnd.value
-      searchQueryEnd.value = temp
-    }
-
-    return {
-      searchQueryStart,
-      searchQueryEnd,
-      swap
-      // 其他返回的响应式状态...
-    }
-  },
   data () {
     return {
+      searchQueryStart: '',
+      searchQueryEnd: '',
       selectedResultStart: null,
       selectedResultEnd: null,
       searchResults: [],
@@ -176,6 +162,15 @@ export default {
     // 清空搜索框2
     clc2 () {
       this.searchQueryEnd = ''
+    },
+    swap () {
+      const tempQuery = this.searchQueryStart
+      this.searchQueryStart = this.searchQueryEnd
+      this.searchQueryEnd = tempQuery
+      const tempResult = this.selectedResultStart
+      this.selectedResultStart = this.selectedResultEnd
+      this.selectedResultEnd = tempResult
+      this.onSearch()
     },
     // 解析URL参数
     parseUrlParams () {
@@ -270,7 +265,6 @@ export default {
         }
       })
     },
-    // 处理搜索按钮点击事件
     onSearch () {
       // 检查是否两个结果都已选择
       if (this.selectedResultStart && this.selectedResultEnd) {
@@ -286,7 +280,7 @@ export default {
           location: [this.selectedResultEnd.wgs84_longitude, this.selectedResultEnd.wgs84_latitude]
         }
         // 发送请求到后端进行路径规划
-        axios.post('http://127.0.0.1:5000/api/route/plan', { start: startWithLocation, end: endWithLocation })
+        axios.post(`${process.env.VUE_APP_API_URL}/api/route/plan`, { start: startWithLocation, end: endWithLocation })
           .then(response => {
             // 后端返回的路径规划结果ID
             const routePlanId = response.data.id
@@ -304,6 +298,8 @@ export default {
                 id: routePlanId
               }
             })
+            this.drawRoute(startWithLocation, endWithLocation)
+            this.initMap()
           })
           .catch(error => {
             console.error(error)
@@ -317,7 +313,6 @@ export default {
         alert('请确保起点和终点都已选择。')
       }
     },
-
     // 初始化地图
     initMap () {
       const map = new Map({
@@ -381,7 +376,7 @@ export default {
         geometry: startPoint,
         symbol: {
           type: 'simple-marker', // autocasts as new SimpleMarkerSymbol()
-          color: 'green',
+          color: 'red',
           size: '20px'
         },
         // 添加popupTemplate
@@ -438,12 +433,12 @@ export default {
         geometry: endPoint,
         symbol: {
           type: 'simple-marker',
-          color: 'red',
+          color: 'green',
           size: '20px'
         },
         // 添加popupTemplate
         popupTemplate: {
-          title: '起点信息',
+          title: '终点信息',
           content: [
             {
               type: 'fields',
@@ -544,7 +539,7 @@ export default {
             ]
           })
           // 将FeatureLayer图层添加到地图上
-          map.add(geojsonLayer)
+          map.layers.add(geojsonLayer)
           // 计算总时长（小时和分钟）
           this.totalHours = Math.floor(totalCost / 3600)
           this.totalMinutes = Math.floor((totalCost % 3600) / 60)
@@ -627,7 +622,7 @@ export default {
   flex-grow: 1;
   box-sizing: border-box;
   text-indent: 0px; /* 初始文本缩进，保持文本在左侧 */
-  width: 180%; /* 使搜索框填充容器 */
+  width: 200%; /* 使搜索框填充容器 */
   display: flex;
   align-items: center; /* 垂直居中对齐 */
 }
@@ -765,7 +760,6 @@ export default {
   flex-direction: column; /* 垂直排列 */
   left: 8px; /* 侧边栏靠在最左边 */
   top: 130px; /* 根据需要调整垂直位置 */
-  z-index: 10; /* 确保侧边栏在其他元素上方 */
   width: 430px;
   height: auto;
   background-color: #FFFFFF;

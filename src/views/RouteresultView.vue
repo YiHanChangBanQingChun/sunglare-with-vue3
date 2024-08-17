@@ -75,32 +75,27 @@ import Graphic from '@geoscene/core/Graphic'
 import Point from '@geoscene/core/geometry/Point.js'
 import GraphicsLayer from '@geoscene/core/layers/GraphicsLayer'
 import axios from 'axios'
-
 import { ref } from 'vue'
-
+import { useRouter } from 'vue-router'
 export default {
   name: 'RouteresultView',
   setup () {
     const searchQueryStart = ref('')
     const searchQueryEnd = ref('')
-
-    const swap = () => {
-      const temp = searchQueryStart.value
-      searchQueryStart.value = searchQueryEnd.value
-      searchQueryEnd.value = temp
-    }
-
+    const selectedResultStart = ref(null)
+    const selectedResultEnd = ref(null)
+    const router = useRouter()
     return {
       searchQueryStart,
       searchQueryEnd,
-      swap
-      // 其他返回的响应式状态...
+      selectedResultStart,
+      selectedResultEnd,
+      router
     }
   },
   data () {
     return {
-      selectedResultStart: null,
-      selectedResultEnd: null,
+
       searchResults: [],
       searchResultsEnd: [],
       isLoading: false
@@ -127,6 +122,24 @@ export default {
     // 清空搜索框2
     clc2 () {
       this.searchQueryEnd = ''
+    },
+    // 交换起点和终点信息并跳转页面
+    swap () {
+      const tempQuery = this.searchQueryStart
+      this.searchQueryStart = this.searchQueryEnd
+      this.searchQueryEnd = tempQuery
+      // 交换 selectedResultStart 和 selectedResultEnd
+      const tempResult = this.selectedResultStart
+      this.selectedResultStart = this.selectedResultEnd
+      this.selectedResultEnd = tempResult
+      // 跳转到 intermediate-page 页面，并传递交换后的起点和终点信息
+      this.router.push({
+        path: '/lu-jing-gui-hua/Intermediate-page',
+        query: {
+          start: JSON.stringify(this.selectedResultStart),
+          end: JSON.stringify(this.selectedResultEnd)
+        }
+      })
     },
     // 解析URL参数
     parseUrlParams () {
@@ -184,7 +197,6 @@ export default {
         this[searchResultsField] = []
       }
     },
-
     // 处理选择搜索结果事件
     selectResult (result, isStart = true) {
       console.log('用户选择了搜索结果:', result)
@@ -337,7 +349,7 @@ export default {
         geometry: startPoint,
         symbol: {
           type: 'simple-marker', // autocasts as new SimpleMarkerSymbol()
-          color: 'green',
+          color: 'red',
           size: '20px'
         },
         // 添加popupTemplate，用url信息解析而来
@@ -395,7 +407,7 @@ export default {
         geometry: endPoint,
         symbol: {
           type: 'simple-marker',
-          color: 'red',
+          color: 'green',
           size: '20px'
         },
         // 添加popupTemplate
