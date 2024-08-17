@@ -1,57 +1,71 @@
 <template>
-  <!-- 这是输入完起点时的网页画面 -->
-  <div class="lu-jing-gui-hua">
-      <!-- 搜索框 -->
-      <!-- 外层容器 -->
-      <div class="search-containers">
-        <!-- 交换的侧边栏 -->
-      <div class = "revert-containers">
-        <div class="car"><img src = "https://wx3.sinaimg.cn/orj360/008tIcISgy1hsgyr8gzsjj300o00odfl.jpg"></div>
-        <div class="swap-action" title="切换起终点">
-          <button @click="swap"><img src ="https://wx1.sinaimg.cn/orj360/008tIcISgy1hsiz7qtw48j301s01sq2p.jpg" alt="revert" style="width: 22px; height: 25px;"></button>
+  <!-- 输入了起点和终点之后,还没有摁查询路径的画面 -->
+   <div class="lu-jing-gui-hua">
+    <!-- 搜索框 -->
+    <!-- 外层容器 -->
+    <div class="search-containers">
+      <!-- 交换的侧边栏 -->
+      <div class="revert-containers">
+        <div class="car"><img src="https://wx3.sinaimg.cn/orj360/008tIcISgy1hsgyr8gzsjj300o00odfl.jpg"></div>
+        <div class="swap-action">
+          <!-- 绑定 swap 方法到点击事件 -->
+          <button @click="swap" title="切换起终点">
+            <img src="https://wx1.sinaimg.cn/orj360/008tIcISgy1hsiz7qtw48j301s01sq2p.jpg" alt="revert" style="width: 22px; height: 25px;">
+          </button>
         </div>
       </div>
-        <!-- 搜索起点的容器 -->
-        <div class="search-container start">
-          <!-- 图片 -->
-          <div class="search-icon-wrapper">
-            <img src="https://wx1.sinaimg.cn/orj360/008tIcISgy1hsgyr8gv8dj300f00f0oh.jpg" alt="pink">
-          </div>
-          <!-- 输入框 -->
-          <input type="text" v-model="searchQueryStart" @input="onSearchInputChange($event, true)" placeholder="请输入起点" class="search-box search-box-start"/>
-          <!-- 修正后的起点搜索结果展示 -->
-          <div class="search-results" v-if="searchResults.length && searchQueryStart">
-          <ul>
-            <li v-for="(result, index) in searchResults" :key="index" @click="selectResult(result, true)">
-              {{ result.name }}
-            </li>
-          </ul>
-        </div>
-      </div>
-      <!-- 搜索终点的容器 -->
-      <div class="search-container end">
-      <!-- 图片容器 -->
+      <!-- 搜索起点的容器 -->
+      <div class="search-container start">
+        <!-- 图片 -->
         <div class="search-icon-wrapper">
-          <img src="https://wx4.sinaimg.cn/orj360/008tIcISgy1hsgyr8got8j300f00f0o9.jpg" alt="green">
+          <img src="https://wx1.sinaimg.cn/orj360/008tIcISgy1hsgyr8gv8dj300f00f0oh.jpg" alt="pink">
         </div>
-      <!-- 输入框 -->
-    <input type="text" v-model="searchQueryEnd" @input="onSearchInputChange($event, false)" placeholder="请输入终点" class="search-box search-box-end"/>
-      <!-- 修正后的终点搜索结果展示 -->
-      <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd">
+        <!-- 输入框 -->
+        <input type="text" v-model="searchQueryStart" @input="onSearchInputChange($event, true)" placeholder="请输入起点" class="search-box search-box-start"/>
+       <!-- 搜索框内部的删除图片 -->
+        <span class="search-box-img">
+          <div class="delete1" title="清空" @click="clc1">
+            <img src="https://wx2.sinaimg.cn/orj360/008tIcISgy1hsnss2ckv4j300k00k0m1.jpg" alt="delete1">
+          </div>
+        </span>
+        <!-- 修正后的起点搜索结果展示 -->
+        <div class="search-results" v-if="searchResults.length && searchQueryStart">
         <ul>
-          <li v-for="(result, index) in searchResultsEnd" :key="index" @click="selectResult(result, false)">
-          {{ result.name }}
+          <li v-for="(result, index) in searchResults" :key="index" @click="selectResult(result, true)">
+            {{ result.name }}
           </li>
         </ul>
-    </div>
-  </div>
-        <div class="search-action">
-          <button @click="clcSearch">重新选择</button>
-          <button @click="onSearch">查询路径</button>
-        </div>
       </div>
     </div>
-    <div id="viewDiv"></div>
+     <!-- 搜索终点的容器 -->
+    <div class="search-container end">
+    <!-- 图片容器 -->
+      <div class="search-icon-wrapper">
+        <img src="https://wx4.sinaimg.cn/orj360/008tIcISgy1hsgyr8got8j300f00f0o9.jpg" alt="green">
+      </div>
+    <!-- 输入框 -->
+   <input type="text" v-model="searchQueryEnd" @input="onSearchInputChange($event, false)" placeholder="请输入终点" class="search-box search-box-end"/>
+    <!-- 搜索框内部的删除图片 -->
+    <span class="search-box-img">
+          <div class="delete1" title="清空" @click="clc2">
+            <img src="https://wx2.sinaimg.cn/orj360/008tIcISgy1hsnss2ckv4j300k00k0m1.jpg" alt="delete1">
+          </div>
+        </span>
+   <!-- 修正后的终点搜索结果展示 -->
+    <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd">
+      <ul>
+        <li v-for="(result, index) in searchResultsEnd" :key="index" @click="selectResult(result, false)">
+        {{ result.name }}
+        </li>
+      </ul>
+   </div>
+</div>
+      <div class="search-action" @click="onSearch" title="搜索">
+          <img src="https://wx4.sinaimg.cn/mw2000/008tIcISgy1hsq1fw9ob9j300w00w3ya.jpg" alt="search">
+      </div>
+    </div>
+  </div>
+  <div id="viewDiv"></div>
 </template>
 
 <script>
@@ -89,10 +103,14 @@ export default {
     this.parseUrlParams()
   },
   methods: {
-    // 点击重新选择按钮时的处理函数
-    clcSearch () {
-      // 使用Vue Router进行页面跳转
-      this.$router.push('/lu-jing-gui-hua')
+    // 清空搜索框
+    clc1 () {
+      // 清空搜索框1
+      this.searchQueryStart = ''
+    },
+    // 清空搜索框2
+    clc2 () {
+      this.searchQueryEnd = ''
     },
     // 解析URL参数
     parseUrlParams () {
@@ -413,7 +431,6 @@ export default {
   -webkit-backdrop-filter: blur(25px);
   backdrop-filter: blur(25px);
   border: 1px solid rgba(255,255,255,0.45);
-  border-radius: 15px; /* 添加圆角 */
   padding: 20px; /* 内边距 */
   text-align: left /* 文本居中 */
 }
@@ -423,9 +440,11 @@ export default {
   flex-direction: column; /* 保持垂直排列 */
   justify-content: flex-start; /* 从顶部开始排列 */
   align-items: flex-start; /* 子元素沿交叉轴的开始边缘对齐，即顶部对齐 */
-  width: 31%; /* 设置一个固定宽度 */
-  padding: 10px; /* 根据需要调整，确保搜索框周围有足够空间 */
-  padding-left:20px;/*整个搜索框的左边空间*/
+  width: 27%; /* 设置一个固定宽度 */
+  padding-right: 10px; /* 根据需要调整，确保搜索框周围有足够空间 */
+  padding-left:32px;/*整个搜索框的左边空间*/
+  padding-top: 8px;
+  padding-bottom: 10px;
   background: #FFFFFF; /* 应用深色毛玻璃效果 */
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
@@ -442,10 +461,11 @@ export default {
   position: relative; /* 设置相对定位 */
   margin-top: 5px;
   padding-left: 0px; /* 留出图片的空间 */
-  margin-left: 17px; /* 根据侧边栏宽度来设置左边距 */
+  margin-left: 24px; /* 根据侧边栏宽度来设置左边距 */
 }
 
 .search-box {
+  position: relative; /* 允许绝对定位的子元素 */
   padding: 8px 8px; /* 初始内边距 */
   border: 2px solid #ccc;
   border-radius: 10px;
@@ -454,6 +474,8 @@ export default {
   box-sizing: border-box;
   text-indent: 0px; /* 初始文本缩进，保持文本在左侧 */
   width: 180%; /* 使搜索框填充容器 */
+  display: flex;
+  align-items: center; /* 垂直居中对齐 */
 }
 
 /* 鼠标悬停时只改变边框颜色，不改变宽度 */
@@ -477,6 +499,8 @@ export default {
   box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* 可选：添加一些阴影以提升视觉效果 */
   max-height: 160px; /* 限制最大高度，5行大约160px，根据实际行高调整 */
   overflow-y: auto; /* 超出部分显示滚动条 */
+  display: flex;
+  align-items: center; /* 垂直居中对齐 */
 }
 
 .search-results li:hover {
@@ -488,42 +512,19 @@ export default {
 /* 查询按钮的容器样式 */
 .search-action {
   display: flex;
-  flex-direction: column; /* 修改为列布局 */
-  justify-content: flex-end; /* 使按钮靠右对齐 */
-  flex-grow: 1; /* 允许容器扩展填满剩余空间 */
-  align-self: flex-end; /* 使自己靠父容器的右边 */
-  margin-top: auto; /* 推到底部 */
   position: absolute; /* 绝对定位 */
-  right: 10px; /* 与右边界保持一定距离 */
-  bottom: 10px; /* 与底部保持一定距离 */
-}
-
-/* 查询按钮样式 */
-.search-action button {
-  padding: 8px 16px; /* 按钮内边距 */
-  background-color: #007bff; /* 按钮背景颜色 */
-  color: white; /* 文字颜色 */
-  border: none; /* 去除边框 */
-  border-radius: 5px; /* 圆角边框 */
-  cursor: pointer; /* 鼠标悬停时显示指针 */
-  transition: background-color 0.3s; /* 背景颜色过渡效果 */
-  margin-top: 10px; /* 在按钮之间添加一些间距 */
-}
-
-/* 鼠标悬停在按钮上时的样式 */
-.search-action button:hover {
-  background-color: #0056b3; /* 按钮背景颜色变深 */
-}
-
-/* 第一个按钮（重新选择）不需要顶部间距 */
-.search-action button:first-child {
-  margin-top: 0;
+  right: 8px; /* 与右边界保持一定距离 */
+  top: 13px; /* 与底部保持一定距离 */
+  border: 2px solid  #ccc;
+  justify-content: flex-start;
+  border-radius: 10px;
 }
 
 /* 将CSS链接转换为@import语句 */
 @import url("https://js.geoscene.cn/4.27/@geoscene/core/assets/geoscene/themes/light/main.css");
 
 .car{
+  padding-top:3px;
   left:1px;
 }
 .revert-containers{
@@ -552,19 +553,33 @@ export default {
   background-color: white;
   cursor: pointer; /* 鼠标悬停时显示指针 */
 }
-/* 鼠标悬停时的样式 */
-.swap-action button:hover {
-  border: 2px solid #ccc;  /* 鼠标悬停时颜色变成灰色*/
-  border-radius: 3px; /* 所有角的圆角半径为3px */
-  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
-  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
-}
 
 .search-icon-wrapper {
   display: inline-block; /* 或者使用 flex 布局 */
   position: absolute; /* 绝对定位 */
   left: -20px; /* 根据需要调整 */
   top: 50%;
-  transform: translateY(-40%); /* 垂直居中对齐 */
+  transform: translateY(-50%); /* 垂直居中对齐 */
 }
+
+.search-box-img {
+  position: absolute;
+  right: -140px; /* 距离输入框右侧的距离 */
+  top: 50%;
+  transform: translateY(-35%); /* 垂直居中对齐 */
+  z-index: 1; /* 确保图片在输入框之上 */
+  padding-inline-end: 0px;
+}
+
+.delete1 img {
+  pointer-events: none; /* 点击图片时不会影响输入框 （记得改成删除这个框框内容）*/
+}
+
+.search-action img {
+  transform: scale(0.85); /* 将图片缩放到原始尺寸的50% */
+}
+.search-action:hover{
+  border-color: blue;
+}
+
 </style>
