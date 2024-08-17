@@ -28,7 +28,7 @@ from urllib.parse import unquote
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 # CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres1@localhost/postgis_34_sample'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456@localhost/postgis_34_sample'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 初始化扩展
@@ -181,7 +181,7 @@ def search():
 conn_params = {
     "dbname": "postgis_34_sample",
     "user": "postgres",
-    "password": "postgres1",
+    "password": "123456",
     "host": "localhost"
 }
 
@@ -516,5 +516,15 @@ def initialize():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    with app.app_context():
+        db.create_all()
+    # 获取当前文件的目录
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    print(BASE_DIR)
+    temp_dir = os.path.join(BASE_DIR, 'tmp')
+    print(temp_dir)
+    # 检查 tmp 目录是否存在，如果不存在则创建
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+    app.run(debug=True)
 # test codes are as follows, in order to test the database connection and data situation
