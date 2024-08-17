@@ -17,6 +17,10 @@ from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user
 import hmac
 import shutil
+from flask_cors import CORS
+from datetime import datetime, timezone,timedelta
+from pysolar.solar import get_altitude, get_azimuth
+from urllib.parse import unquote
 
 
 
@@ -27,13 +31,31 @@ print("谢谢！")
 
 
 # step 1: create a Flask app
+# 初始化 Flask 应用
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+# CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456@localhost/postgis_34_sample'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# 初始化扩展
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
+
+# 创建数据库表
+with app.app_context():
+    db.create_all()
+
+# 获取当前文件的目录
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+print(BASE_DIR)
+temp_dir = os.path.join(BASE_DIR, 'tmp')
+print(temp_dir)
+
+# 检查 tmp 目录是否存在，如果不存在则创建
+if not os.path.exists(temp_dir):
+    os.makedirs(temp_dir)
 
 # step 2: create a model
 '''
@@ -96,7 +118,7 @@ class Location(db.Model):
     
 # step 3: crate a route
 # step 3.1: add information to the table
-@app.route('/location', methods=['POST'])
+@app.route('/api/location', methods=['POST'])
 def add_point():
     data = request.json
     new_location = Location(name=data['name'], geom=f'SRID=4326;POINT({data["lon"]} {data["lat"]})')  # 使用 Location 类和正确的 geom 字段
@@ -105,13 +127,13 @@ def add_point():
     return jsonify({'message': 'Point added successfully!'}), 201
 
 # step 3.2: get information from the table
-@app.route('/location', methods=['GET'])
+@app.route('/api/location', methods=['GET'])
 def get_points():
     points = Location.query.all()
     return jsonify([{'name': point.name, 'geom': str(point.geom)} for point in points])  # 修改这里
 
 # step 3.3: renew the information to the table
-@app.route('/location/<int:id>', methods=['PUT'])
+@app.route('/api/location/<int:id>', methods=['PUT'])
 def update_point(id):
     point = Location.query.get_or_404(id)
     data = request.json
@@ -122,7 +144,7 @@ def update_point(id):
     return jsonify({'message': 'Point updated successfully!'})
 
 # step 3.4: delete the information from the table
-@app.route('/location/<int:id>', methods=['DELETE'])
+@app.route('/api/location/<int:id>', methods=['DELETE'])
 def delete_point(id):
     point = Location.query.get_or_404(id)
     db.session.delete(point)
@@ -130,7 +152,7 @@ def delete_point(id):
     return jsonify({'message': 'Point deleted successfully!'})
 
 # step 4: search the information of poi from the table
-@app.route('/search', methods=['POST'])
+@app.route('/api/search', methods=['POST'])
 def search():
     data = request.json
     search_query_start = data.get('searchQueryStart', '')
@@ -190,9 +212,17 @@ def route_plan():
         SELECT id FROM whrd7_vertices_pgr
         ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(%s, %s), 4326) LIMIT 1
     )
-    SELECT seq, path_seq, node, edge, cost, agg_cost, ST_AsBinary(geom) AS geom
+    SELECT seq, path_seq, node, edge, cost, agg_cost, ST_AsBinary(geom) AS geom, length
     FROM pgr_astar(
-        'SELECT gid AS id, source, target, length AS cost, reverse_cost, 
+        'SELECT gid AS id, source, target, 
+        CASE 
+            WHEN forward_time = 99999 THEN 99999 
+            ELSE forward_time 
+        END AS cost, 
+        CASE 
+            WHEN reverse_time = 99999 THEN 99999 
+            ELSE reverse_time 
+        END AS reverse_cost, 
         COALESCE(ST_X(ST_StartPoint(geom)), 0) AS x1, COALESCE(ST_Y(ST_StartPoint(geom)), 0) AS y1, 
         COALESCE(ST_X(ST_EndPoint(geom)), 0) AS x2, COALESCE(ST_Y(ST_EndPoint(geom)), 0) AS y2 
         FROM whrd7
@@ -204,37 +234,41 @@ def route_plan():
     
     cur.execute(query, (start[0], start[1], end[0], end[1]))
     route_result = cur.fetchall()
-    # print(route_result)
+    
     # 将查询结果转换为GeoJSON
     features = []
-    # 在循环中处理每一行结果
+    
     for row in route_result:
-        geom_data = row[-1]
-        if isinstance(geom_data, memoryview):  # 如果geom_data是memoryview类型
+        geom_data = row[-2]
+        if isinstance(geom_data, memoryview):
             geom_data = geom_data.tobytes()
-        geom = wkb.loads(geom_data, hex=True)
-        geom_json = mapping(geom)  # 使用mapping函数转换
-        feature = {
-            "type": "Feature",
-            "geometry": geom_json,
-            "properties": {
-                "seq": row[0],
-                "path_seq": row[1],
-                "node": row[2],
-                "edge": row[3],
-                "cost": row[4],
-                "agg_cost": row[5]
-            }
-        }
-        features.append(feature)
-
+        if isinstance(geom_data, bytes):
+            try:
+                geom = wkb.loads(geom_data)
+                geom_json = mapping(geom)
+                feature = {
+                    "type": "Feature",
+                    "geometry": geom_json,
+                    "properties": {
+                        "seq": row[0],
+                        "path_seq": row[1],
+                        "node": row[2],
+                        "edge": row[3],
+                        "cost": row[4],
+                        "agg_cost": row[5],
+                        "length": row[7]
+                    }
+                }
+                features.append(feature)
+            except Exception as e:
+                print(f"Error loading WKB data: {e}")
     
     geojson = {
         "type": "FeatureCollection",
         "features": features
     }
 
-# 使用同一个UUID既作为文件名的一部分，也作为返回给前端的ID
+    # 使用同一个UUID既作为文件名的一部分，也作为返回给前端的ID
     route_plan_id = str(uuid.uuid4())
     temp_file_name = f"route_plan_{route_plan_id}.geojson"
     temp_file_path = os.path.join(temp_dir, temp_file_name)
@@ -248,7 +282,7 @@ def route_plan():
     
     return jsonify({"id": route_plan_id, "tempFilePath": temp_file_path})
 
-@app.route('/get_geojson/<route_id>')
+@app.route('/api/get_geojson/<route_id>')
 def get_geojson(route_id):
     # 根据route_id构造文件路径
     print(route_id)
@@ -270,7 +304,7 @@ class User(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-@app.route('/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
     print("注册请求数据:", data)
@@ -295,7 +329,7 @@ def register():
     db.session.commit()
     return jsonify({'message': 'Registered successfully'}), 201
 
-@app.route('/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
     print("接收到的登录请求数据:", data)
@@ -322,7 +356,7 @@ def login():
         print(f"检查密码哈希时出错: {e}")
         return jsonify({'message': '内部服务器错误'}), 500
 
-@app.route('/user_info', methods=['GET'])
+@app.route('/api/user_info', methods=['GET'])
 def get_user_info():
     username = request.args.get('username')
     user = User.query.filter_by(username=username).first()
@@ -335,7 +369,101 @@ def get_user_info():
         })
     else:
         return jsonify({'message': 'User not found'}), 404
+
+areas = {
+    "武汉市": {"longitude": 114.31, "latitude": 30.52},
+    "蔡甸区": {"longitude": 113.96, "latitude": 30.45},
+    "东西湖区": {"longitude": 114.08, "latitude": 30.69},
+    "汉南区": {"longitude": 113.93, "latitude": 30.33},
+    "汉阳区": {"longitude": 114.21, "latitude": 30.54},
+    "洪山区": {"longitude": 114.42, "latitude": 30.54},
+    "黄陂区": {"longitude": 114.35, "latitude": 30.98},
+    "江岸区": {"longitude": 114.32, "latitude": 30.65},
+    "江汉区": {"longitude": 114.25, "latitude": 30.61},
+    "江夏区": {"longitude": 114.36, "latitude": 30.25},
+    "硚口区": {"longitude": 114.21, "latitude": 30.60},
+    "青山区": {"longitude": 114.43, "latitude": 30.63},
+    "武昌区": {"longitude": 114.34, "latitude": 30.56},
+    "新洲区": {"longitude": 114.75, "latitude": 30.80}
+}
+
+@app.route('/api/solar_angles', methods=['GET'])
+def get_solar_angles():
+    area_name = request.args.get('area_name')
+    area_name = unquote(area_name)  # 解码 URL 参数
+    time_str = request.args.get('time')
     
+    # 检查区域名字是否存在
+    if area_name not in areas:
+        return jsonify({'message': 'Area not found'}), 404
+    
+    # 解析时间参数
+    try:
+        dt = datetime.fromisoformat(time_str)
+    except ValueError:
+        return jsonify({'message': 'Invalid time format'}), 400
+    
+    # 获取区域的经纬度
+    coords = areas[area_name]
+    longitude = coords['longitude']
+    latitude = coords['latitude']
+    
+    # 转换为 UTC 时间
+    dt_utc = dt.astimezone(timezone.utc)
+    azimuth = get_azimuth(latitude, longitude, dt_utc)
+    altitude = get_altitude(latitude, longitude, dt_utc)
+    # 转换方位角为从东开始逆时针
+    converted_azimuth = (450 - azimuth) % 360
+    print(f"太阳方位角: {azimuth}, 转换后的太阳方位角: {converted_azimuth}, 太阳高度角: {altitude}")
+    
+    # 返回计算结果
+    return jsonify({
+        'area_name': area_name,
+        'longitude': longitude,
+        'latitude': latitude,
+        'utc_time': dt_utc.isoformat(),
+        'solar_azimuth': converted_azimuth,
+        'solar_altitude': altitude
+    })
+
+@app.route('/api/solar_angles_day', methods=['GET'])
+def get_solar_angles_day():
+    area_name = request.args.get('area_name')
+    area_name = unquote(area_name)  # 解码 URL 参数
+    date_str = request.args.get('date')
+    
+    # 检查区域名字是否存在
+    if area_name not in areas:
+        return jsonify({'message': 'Area not found'}), 404
+    
+    # 解析日期参数
+    try:
+        date = datetime.fromisoformat(date_str).date()
+    except ValueError:
+        return jsonify({'message': 'Invalid date format'}), 400
+    
+    # 获取区域的经纬度
+    coords = areas[area_name]
+    longitude = coords['longitude']
+    latitude = coords['latitude']
+    
+    # 生成从5点到8点的时间点
+    times = [datetime.combine(date, datetime.min.time()) + timedelta(hours=5) + timedelta(minutes=10 * i) for i in range(90)]
+    
+    solar_angles = []
+    for dt in times:
+        dt_utc = dt.astimezone(timezone.utc)
+        azimuth = get_azimuth(latitude, longitude, dt_utc)
+        altitude = get_altitude(latitude, longitude, dt_utc)
+        if altitude > 0:
+            converted_azimuth = (450 - azimuth) % 360
+            solar_angles.append({
+                'time': dt.isoformat(),
+                'solar_azimuth': converted_azimuth,
+                'solar_altitude': altitude
+            })
+            print(f"时间: {dt}, 太阳方位角: {azimuth}, 太阳高度角: {altitude}")
+    return jsonify(solar_angles)
 
 # 清空 temp 文件夹的函数
 def clear_temp_folder():

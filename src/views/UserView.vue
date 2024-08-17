@@ -33,7 +33,7 @@ export default {
     ...mapActions(['logout']),
     async fetchUserInfo () {
       try {
-        const response = await axios.get('http://localhost:5000/user_info', {
+        const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/user_info`, {
           params: { username: this.username }
         })
         this.userInfo = response.data

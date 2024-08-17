@@ -169,27 +169,38 @@ export default {
       }
 
       try {
-        const response = await fetch('http://localhost:5000/register', {
+        const requestBody = {
+          username: username.value,
+          password: password.value,
+          email: email.value,
+          security_question: securityQuestion.value,
+          security_answer: securityAnswer.value,
+          birthday: birthday.value
+        }
+
+        const apiUrl = `${process.env.VUE_APP_API_URL}/api/register`
+
+        console.log('API URL:', apiUrl)
+        console.log('Request Body:', requestBody)
+
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            username: username.value,
-            password: password.value,
-            email: email.value,
-            security_question: securityQuestion.value,
-            security_answer: securityAnswer.value,
-            birthday: birthday.value
-          })
+          body: JSON.stringify(requestBody)
         })
+
+        console.log('Response Status:', response.status)
         if (response.ok) {
           const data = await response.json()
+          console.log('Response Data:', data)
           alert(data.message)
           showRegisterModal.value = false
           clearRegisterForm() // 清空注册表单
         } else if (response.status === 400) {
           const errorData = await response.json()
+          console.log('Error Data:', errorData)
           if (errorData.message === 'Username already exists') {
             alert('用户名已存在，请重新输入')
           } else {
@@ -197,6 +208,7 @@ export default {
           }
         } else {
           const errorData = await response.json()
+          console.log('Error Data:', errorData)
           alert(errorData.message)
         }
       } catch (error) {
@@ -209,7 +221,7 @@ export default {
     // 登录
     const login = async () => {
       try {
-        const response = await fetch('http://localhost:5000/login', {
+        const response = await fetch(`${process.env.VUE_APP_API_URL}/api/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
