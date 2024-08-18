@@ -35,7 +35,7 @@
             {{ result.name }}
           </li>
         </ul>
-      </div>
+        </div>
     </div>
       <!-- 搜索终点的容器 -->
       <div class="search-container end">
@@ -64,9 +64,10 @@
           <img src="https://wx4.sinaimg.cn/mw2000/008tIcISgy1hsq1fw9ob9j300w00w3ya.jpg" alt="search">
       </div>
     </div>
-    <!-- 地图展示 -->
-    <div id="viewDiv"></div>
   </div>
+  <!-- 地图展示 -->
+  <div id="viewDiv"></div>
+  <!-- 时间选择框和路径展示框 -->
   <div class="main-container">
     <!-- 时间选择框 -->
     <div class="choose-time">
@@ -568,20 +569,10 @@ export default {
 }
 
 .lu-jing-gui-hua {
+  position: fixed; /* 固定定位 */
   display: flex;
   flex-direction: row; /* 使子元素垂直排列,使大框和revert小框水平分布 */
   align-items: flex; /* 水平居中对齐子元素 */
-}
-
-.text {
-  margin-top: 5px; /* 顶部外边距 */
-  margin-bottom: 5px; /* 底部外边距 */
-  background: rgba(109, 72, 72, 0.45);
-  -webkit-backdrop-filter: blur(25px);
-  backdrop-filter: blur(25px);
-  border: 1px solid rgba(255,255,255,0.45);
-  padding: 20px; /* 内边距 */
-  text-align: left /* 文本居中 */
 }
 
 .search-containers {
@@ -589,7 +580,7 @@ export default {
   flex-direction: column; /* 保持垂直排列 */
   justify-content: flex-start; /* 从顶部开始排列 */
   align-items: flex-start; /* 子元素沿交叉轴的开始边缘对齐，即顶部对齐 */
-  width: 27%; /* 设置一个固定宽度 */
+  width: 165px; /* 设置一个固定宽度 */
   padding-right: 10px; /* 根据需要调整，确保搜索框周围有足够空间 */
   padding-left:32px;/*整个搜索框的左边空间*/
   padding-top: 8px;
@@ -611,7 +602,7 @@ export default {
   padding-left: 0px; /* 留出图片的空间 */
   margin-left: 24px; /* 根据侧边栏宽度来设置左边距 */
 }
-
+/* 更改 输入字体的框 的样式 */
 .search-box {
   position: relative; /* 允许绝对定位的子元素 */
   padding: 8px 8px; /* 初始内边距 */
@@ -621,7 +612,7 @@ export default {
   flex-grow: 1;
   box-sizing: border-box;
   text-indent: 0px; /* 初始文本缩进，保持文本在左侧 */
-  width: 200%; /* 使搜索框填充容器 */
+  width: 303px; /* 使搜索框填充容器 */
   display: flex;
   align-items: center; /* 垂直居中对齐 */
 }
@@ -639,16 +630,16 @@ export default {
 
 .search-results {
   position: absolute;
-  top: 100%; /* 确保列表紧贴搜索框的底部 */
+  top: 95%; /* 确保列表紧贴搜索框的底部 */
   left: 0;
   width: 180%; /* 使列表宽度与搜索框相同 */
   background-color: white; /* 或其他背景色，确保列表可见 */
-  z-index: 1000; /* 确保搜索结果列表在其他元素之上 */
   box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* 可选：添加一些阴影以提升视觉效果 */
-  max-height: 160px; /* 限制最大高度，5行大约160px，根据实际行高调整 */
+  max-height: 150px; /* 限制最大高度，5行大约160px，根据实际行高调整 */
   overflow-y: auto; /* 超出部分显示滚动条 */
   display: flex;
   align-items: center; /* 垂直居中对齐 */
+  z-index: 9999 !important;/* !important可以使这个css代码优先执行，让这个框显示为最高层级 */
 }
 
 .search-results li:hover {
@@ -661,7 +652,7 @@ export default {
 .search-action {
   display: flex;
   position: absolute; /* 绝对定位 */
-  right: 8px; /* 与右边界保持一定距离 */
+  margin-left: 328px; /* 与左边界保持一定距离 */
   top: 13px; /* 与底部保持一定距离 */
   border: 2px solid  #ccc;
   justify-content: flex-start;
@@ -682,7 +673,7 @@ export default {
   position: absolute; /* 或使用 fixed，根据需要 */
   left: 0; /* 侧边栏靠在最左边 */
   top: 0; /* 根据需要调整垂直位置 */
-  z-index: 10; /* 确保侧边栏在其他元素上方 */
+  z-index: 1000; /* 确保侧边栏在其他元素上方 */
   width: 30px;
   height:99px;
   padding-left:5px;
@@ -718,10 +709,10 @@ export default {
 .search-box-img {/* 作用：使得 删除logo 在搜索框内 */
   display: flex;
   position: absolute;
-  right: -140px; /* 距离输入框右侧的距离 */
+  left:278px;
   top: 50%;
   transform: translateY(-35%); /* 垂直居中对齐 */
-  z-index: 1; /* 确保图片在输入框之上 */
+  z-index: 1000; /* 确保图片在输入框之上 */
   padding-inline-end: 0px;
 }
 .delete{
@@ -738,13 +729,16 @@ export default {
 .search-action:hover{
   border-color: blue;
 }
+
 /* 选择时间框的样式 */
 .choose-time{
+  overflow-y: auto; /* 超出部分显示滚动条 */
+  z-index: 1000; /* 确保侧边栏在其他元素上方 */
   display: flex;
   flex-direction: column; /* 垂直排列 */
   align-items: center;
   margin-bottom: 10px; /* 根据需要添加外边距 */
-  width: 430px;
+  width: 400px;
   height: auto;
   background-color:#FFFFFF;
   border-radius: 10px; /* 设置圆角 */
@@ -752,6 +746,7 @@ export default {
 .form-group label,
 .form-group input {
   margin-right: 10px; /* 右侧外边距 */
+  margin-top: 100px;/* 控制时间选择框在网页垂直方向的位置 */
 }
 
 /* 路线展示框的样式 */
@@ -759,8 +754,8 @@ export default {
   display: flex;
   flex-direction: column; /* 垂直排列 */
   left: 8px; /* 侧边栏靠在最左边 */
-  top: 130px; /* 根据需要调整垂直位置 */
-  width: 430px;
+  margin-top: 10px; /* 控制路线展示框在网页垂直方向的位置 */
+  width: 400px;
   height: auto;
   background-color: #FFFFFF;
   border-radius: 10px; /* 设置圆角 */
@@ -772,7 +767,7 @@ export default {
 }
 .route{
   left: 8px; /* 距离左侧的距离 */
-  width:378px;
+  width:348px;
   height: auto;
   border-radius: 10px; /* 设置圆角 */
   border: 2px solid #E4E6E7;
