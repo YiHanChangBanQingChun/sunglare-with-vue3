@@ -22,7 +22,7 @@
         </div>
         <!-- 输入框 -->
         <input type="text" v-model="searchQueryStart" @input="onSearchInputChange($event, true)" placeholder="请输入起点" class="search-box search-box-start"/>
-       <!-- 搜索框内部的删除图片 -->
+        <!-- 搜索框内部的删除图片 -->
         <span class="search-box-img">
           <div class="delete" title="清空" @click="clc1">
             <img src="https://wx2.sinaimg.cn/orj360/008tIcISgy1hsnss2ckv4j300k00k0m1.jpg" alt="delete1">
@@ -562,7 +562,7 @@ export default {
   position: fixed; /* 固定定位 */
   top: 0; /* 紧贴网页顶部 */
   height: 100vh; /* 将高度设置为视口高度的100% */
-  width: 100vw; /* 将宽度设置为视口宽度的100% */
+  width: 200vh; /* 将宽度设置为视口宽度的100% */
   z-index: -1; /* 设置较低的z-index值，使其在App.vue的下部分 */
   margin: auto;
 }
@@ -601,7 +601,6 @@ export default {
   border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
   margin-bottom: 10px;
   position: relative; /* 添加相对定位 */
-  top: 0vh;
 }
 
 /* 移除左右外边距 */
@@ -717,6 +716,7 @@ export default {
 
 /* 删除logo的样式 */
 .search-box-img {/* 作用：使得 删除logo 在搜索框内 */
+  display: flex;
   position: absolute;
   right: -140px; /* 距离输入框右侧的距离 */
   top: 50%;

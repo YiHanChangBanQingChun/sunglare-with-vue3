@@ -1,6 +1,6 @@
 <template>
   <!-- 输入了起点和终点之后,还没有摁查询路径的画面 -->
-   <div class="lu-jing-gui-hua">
+  <div class="lu-jing-gui-hua">
     <!-- 搜索框 -->
     <!-- 外层容器 -->
     <div class="search-containers">
@@ -24,7 +24,7 @@
         <input type="text" v-model="searchQueryStart" @input="onSearchInputChange($event, true)" placeholder="请输入起点" class="search-box search-box-start"/>
        <!-- 搜索框内部的删除图片 -->
         <span class="search-box-img">
-          <div class="delete1" title="清空" @click="clc1">
+          <div class="delete" title="清空" @click="clc1">
             <img src="https://wx2.sinaimg.cn/orj360/008tIcISgy1hsnss2ckv4j300k00k0m1.jpg" alt="delete1">
           </div>
         </span>
@@ -37,41 +37,48 @@
         </ul>
       </div>
     </div>
-     <!-- 搜索终点的容器 -->
-    <div class="search-container end">
-    <!-- 图片容器 -->
-      <div class="search-icon-wrapper">
-        <img src="https://wx4.sinaimg.cn/orj360/008tIcISgy1hsgyr8got8j300f00f0o9.jpg" alt="green">
-      </div>
-    <!-- 输入框 -->
-   <input type="text" v-model="searchQueryEnd" @input="onSearchInputChange($event, false)" placeholder="请输入终点" class="search-box search-box-end"/>
-    <!-- 搜索框内部的删除图片 -->
-    <span class="search-box-img">
-          <div class="delete1" title="清空" @click="clc2">
+      <!-- 搜索终点的容器 -->
+      <div class="search-container end">
+        <!-- 图片容器 -->
+        <div class="search-icon-wrapper">
+          <img src="https://wx4.sinaimg.cn/orj360/008tIcISgy1hsgyr8got8j300f00f0o9.jpg" alt="green">
+        </div>
+        <!-- 输入框 -->
+        <input type="text" v-model="searchQueryEnd" @input="onSearchInputChange($event, false)" placeholder="请输入终点" class="search-box search-box-end"/>
+         <!-- 搜索框内部的删除图片 -->
+        <span class="search-box-img">
+          <div class="delete" title="清空" @click="clc2">
             <img src="https://wx2.sinaimg.cn/orj360/008tIcISgy1hsnss2ckv4j300k00k0m1.jpg" alt="delete1">
           </div>
         </span>
-   <!-- 修正后的终点搜索结果展示 -->
-    <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd">
-      <ul>
-        <li v-for="(result, index) in searchResultsEnd" :key="index" @click="selectResult(result, false)">
-        {{ result.name }}
-        </li>
-      </ul>
-   </div>
-</div>
+        <!-- 修正后的终点搜索结果展示 -->
+        <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd">
+          <ul>
+            <li v-for="(result, index) in searchResultsEnd" :key="index" @click="selectResult(result, false)">
+            {{ result.name }}
+            </li>
+          </ul>
+        </div>
+      </div>
       <div class="search-action" @click="onSearch" title="搜索">
           <img src="https://wx4.sinaimg.cn/mw2000/008tIcISgy1hsq1fw9ob9j300w00w3ya.jpg" alt="search">
       </div>
     </div>
-    <div v-if="isLoading" class="loader-overlay">
-      <div class="loader"></div>
-    </div>
-    </div>
-    <!-- 地图容器 -->
+    <!-- 地图展示 -->
     <div id="viewDiv"></div>
+  </div>
+  <div class="main-container">
+    <!-- 时间选择框 -->
+    <div class="choose-time">
+      <div class="form-group">
+        <label for="date-input">选择日期：</label>
+        <input id="date-input" type="date" v-model="selectedDate">
+        <label for="time-input">选择时间：</label>
+        <input id="time-input" type="time" v-model="selectedTime">
+      </div>
+    </div>
+  </div>
 </template>
-
 <script>
 import Map from '@geoscene/core/Map.js'
 import MapView from '@geoscene/core/views/MapView.js'
@@ -102,7 +109,9 @@ export default {
     return {
       searchResults: [],
       searchResultsEnd: [],
-      isLoading: false
+      isLoading: false,
+      selectedDate: '', // 用户选择的日期
+      selectedTime: ''// 用户选择的时间
     }
   },
   // 在组件挂载时初始化地图
@@ -119,8 +128,21 @@ export default {
     }
     // 解析URL参数
     this.parseUrlParams()
+    this.selectedDate = new Date().toISOString().substring(0, 10)
+    this.selectedTime = new Date().toISOString().substring(11, 16)
+    // 更新时间选择器为当前时间
+    this.updateTime()
+
+    // 设置定时器，每隔1分钟更新时间
+    setInterval(() => { this.updateTime() }, 60000)
   },
+
   methods: {
+    // 更新时间，日期
+    updateTime () {
+      const now = new Date()
+      this.selectedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    },
     // 清空搜索框
     clc1 () {
       // 清空搜索框1
@@ -505,7 +527,6 @@ export default {
   border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
   margin-bottom: 10px;
   position: relative; /* 添加相对定位 */
-  top: 0vh;
 }
 
 /* 移除左右外边距 */
@@ -665,7 +686,8 @@ export default {
   transform: translateY(-50%); /* 垂直居中对齐 */
 }
 
-.search-box-img {
+/* 删除logo的样式 */
+.search-box-img {/* 作用：使得 删除logo 在搜索框内 */
   position: absolute;
   right: -140px; /* 距离输入框右侧的距离 */
   top: 50%;
@@ -673,16 +695,35 @@ export default {
   z-index: 1; /* 确保图片在输入框之上 */
   padding-inline-end: 0px;
 }
-
-.delete1 img {
+.delete{
+  cursor: pointer; /* 鼠标悬停时显示指针 */
+}
+.delete img {
   pointer-events: none; /* 点击图片时不会影响输入框 （记得改成删除这个框框内容）*/
 }
 
+/* 搜索logo的样式 */
 .search-action img {
   transform: scale(0.85); /* 将图片缩放到原始尺寸的50% */
 }
 .search-action:hover{
   border-color: blue;
+}
+
+/* 选择时间框的样式 */
+.choose-time{
+  display: flex;
+  flex-direction: column; /* 垂直排列 */
+  align-items: center;
+  margin-bottom: 10px; /* 根据需要添加外边距 */
+  width: 430px;
+  height: auto;
+  background-color:#FFFFFF;
+  border-radius: 10px; /* 设置圆角 */
+}
+.form-group label,
+.form-group input {
+  margin-right: 10px; /* 右侧外边距 */
 }
 
 </style>
