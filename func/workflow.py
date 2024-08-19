@@ -6,7 +6,7 @@ from PIL import Image, ImageDraw
 import numpy as np
 import os, os.path
 import math
-import cv2
+# import cv2
 import pandas as pd
 from datetime import datetime, timedelta, timezone
 from pysolar.solar import *
@@ -143,96 +143,96 @@ def update_yaw_with_e_angle(point_shp_path, line_shp_path, output_shp_path):
     points_gdf.to_file(output_shp_path, encoding='utf-8', driver='ESRI Shapefile')
 
 # 5. 生成鱼眼图像，北对齐
-def cylinder2fisheyeImage (panoImg,yaw,outputImgFile='fisheye.jpg'):
-    '''
-    将全景图像转换为鱼眼图像
-    '''
-    # 读取输入全景图的尺寸信息
-    dims = panoImg.shape
-    Hs = dims[0]
-    Ws = dims[1]
-    panoImg2 = panoImg[0:int(Hs/2),:]
-    del panoImg
-    # 旋转角的定义
-    rotateAng = 360 - float(yaw)
-    # 得到鱼眼的半径
-    R1 = 0
-    R2 = int(2*Ws/(2*np.pi) - R1 +0.5)
-    R22 = Hs + R1
-    # 估计球体或鱼眼图像的大小
-    Hd = int(Ws/np.pi)+2
-    Wd = int(Ws/np.pi)+2
-    # 创建空矩阵来存储仿射参数
-    xmap = np.zeros((Hd,Wd),np.float32)
-    ymap = np.zeros((Hd,Wd),np.float32)
-    # 目标图像或球体图像的中心
-    CSx = int(0.5*Wd)
-    CSy = int(0.5*Hd)
-    # 将球体图像分成四个部分，并为每个部分重新投影全景
-    for yD in range(Hd):
-        for xD in range(CSx):
-            r = math.sqrt((yD - CSy)**2 + (xD - CSx)**2)
-            theta = 0.5*np.pi + math.atan((yD - CSy)/(xD - CSx+0.0000001)) 
-            xS = theta/(2*np.pi)*Ws
-            yS = (r - R1)/(R2 - R1)*Hs
-            xmap.itemset((yD,xD),xS)
-            ymap.itemset((yD,xD),yS)
-        for xD in range(CSx,Wd):
-            r = math.sqrt((yD - CSy)**2 + (xD - CSx)**2)            
-            theta = 1.5*np.pi + math.atan((yD - CSy)/(xD - CSx+0.0000001))
-            xS = theta/(2*np.pi)*Ws
-            yS = (r - R1)/(R2 - R1)*Hs 
-            xmap.itemset((yD,xD),xS)
-            ymap.itemset((yD,xD),yS)
-    # 利用仿射生成新的半球形图像
-    outputImg = cv2.remap(panoImg2,xmap,ymap,cv2.INTER_CUBIC)
-    del xmap,ymap,panoImg2    
-    # 去掉底部中心栏的黑线
-    if len(dims) > 2:
-        outputImg[int(CSy):,CSx,:] = outputImg[int(CSy):,CSx - 1,:]
-        outputImg[int(CSy):,int(CSx + 0.5),:] = outputImg[CSy:,int(CSx + 0.5) + 1,:]
-    else:
-        outputImg[int(CSy):,CSx] = outputImg[int(CSy):,CSx - 1]
-        outputImg[int(CSy):,int(CSx + 0.5)] = outputImg[CSy:,int(CSx + 0.5) + 1]
-    dims = outputImg.shape
-    rows = dims[0]
-    cols = dims[1]
-    M = cv2.getRotationMatrix2D((cols/2,rows/2),rotateAng,1)
-    rotatedFisheyeImg = cv2.warpAffine(outputImg,M,(cols,rows))
-    img = Image.fromarray(rotatedFisheyeImg)
-    del outputImg
-    img.save(outputImgFile)
-    del img
-    return rotatedFisheyeImg
+# def cylinder2fisheyeImage (panoImg,yaw,outputImgFile='fisheye.jpg'):
+#     '''
+#     将全景图像转换为鱼眼图像
+#     '''
+#     # 读取输入全景图的尺寸信息
+#     dims = panoImg.shape
+#     Hs = dims[0]
+#     Ws = dims[1]
+#     panoImg2 = panoImg[0:int(Hs/2),:]
+#     del panoImg
+#     # 旋转角的定义
+#     rotateAng = 360 - float(yaw)
+#     # 得到鱼眼的半径
+#     R1 = 0
+#     R2 = int(2*Ws/(2*np.pi) - R1 +0.5)
+#     R22 = Hs + R1
+#     # 估计球体或鱼眼图像的大小
+#     Hd = int(Ws/np.pi)+2
+#     Wd = int(Ws/np.pi)+2
+#     # 创建空矩阵来存储仿射参数
+#     xmap = np.zeros((Hd,Wd),np.float32)
+#     ymap = np.zeros((Hd,Wd),np.float32)
+#     # 目标图像或球体图像的中心
+#     CSx = int(0.5*Wd)
+#     CSy = int(0.5*Hd)
+#     # 将球体图像分成四个部分，并为每个部分重新投影全景
+#     for yD in range(Hd):
+#         for xD in range(CSx):
+#             r = math.sqrt((yD - CSy)**2 + (xD - CSx)**2)
+#             theta = 0.5*np.pi + math.atan((yD - CSy)/(xD - CSx+0.0000001)) 
+#             xS = theta/(2*np.pi)*Ws
+#             yS = (r - R1)/(R2 - R1)*Hs
+#             xmap.itemset((yD,xD),xS)
+#             ymap.itemset((yD,xD),yS)
+#         for xD in range(CSx,Wd):
+#             r = math.sqrt((yD - CSy)**2 + (xD - CSx)**2)            
+#             theta = 1.5*np.pi + math.atan((yD - CSy)/(xD - CSx+0.0000001))
+#             xS = theta/(2*np.pi)*Ws
+#             yS = (r - R1)/(R2 - R1)*Hs 
+#             xmap.itemset((yD,xD),xS)
+#             ymap.itemset((yD,xD),yS)
+#     # 利用仿射生成新的半球形图像
+#     outputImg = cv2.remap(panoImg2,xmap,ymap,cv2.INTER_CUBIC)
+#     del xmap,ymap,panoImg2    
+#     # 去掉底部中心栏的黑线
+#     if len(dims) > 2:
+#         outputImg[int(CSy):,CSx,:] = outputImg[int(CSy):,CSx - 1,:]
+#         outputImg[int(CSy):,int(CSx + 0.5),:] = outputImg[CSy:,int(CSx + 0.5) + 1,:]
+#     else:
+#         outputImg[int(CSy):,CSx] = outputImg[int(CSy):,CSx - 1]
+#         outputImg[int(CSy):,int(CSx + 0.5)] = outputImg[CSy:,int(CSx + 0.5) + 1]
+#     dims = outputImg.shape
+#     rows = dims[0]
+#     cols = dims[1]
+#     M = cv2.getRotationMatrix2D((cols/2,rows/2),rotateAng,1)
+#     rotatedFisheyeImg = cv2.warpAffine(outputImg,M,(cols,rows))
+#     img = Image.fromarray(rotatedFisheyeImg)
+#     del outputImg
+#     img.save(outputImgFile)
+#     del img
+#     return rotatedFisheyeImg
 
-def generate_fisheye_images(shp_file, image_folder, output_folder):
-    '''
-    适应文件夹系统的生成鱼眼图像流程函数
-    '''
-    # 读取点shp文件
-    gdf = gpd.read_file(shp_file)
-    # 过滤掉pid为-1的行
-    gdf = gdf[gdf['pid'] != -1]
-    # 初始化进度条
-    with tqdm(total=len(gdf)) as pbar:
-        # 遍历shapefile中过滤的行
-        for index, row in gdf.iterrows():
-            pid = row['pid']
-            yaw = row['yaw']
-            # 在image文件夹中找到相应的PNG文件
-            file_name = f"{pid}.png"
-            file_path = os.path.join(image_folder, file_name)
-            if os.path.exists(file_path):
-                # 读取PNG图像并转换为numpy数组
-                with Image.open(file_path) as img:
-                    panoImg = np.array(img)
-                    # 调用该函数转换为鱼眼图像
-                    hemi_img = cylinder2fisheyeImage(panoImg, yaw)
-                    output_file = os.path.join(output_folder, f"{pid}.png")
-                    # 将hemi_img保存到指定的输出文件位置
-                    Image.fromarray(hemi_img).save(output_file)
-            # Update the progress bar
-            pbar.update(1)
+# def generate_fisheye_images(shp_file, image_folder, output_folder):
+#     '''
+#     适应文件夹系统的生成鱼眼图像流程函数
+#     '''
+#     # 读取点shp文件
+#     gdf = gpd.read_file(shp_file)
+#     # 过滤掉pid为-1的行
+#     gdf = gdf[gdf['pid'] != -1]
+#     # 初始化进度条
+#     with tqdm(total=len(gdf)) as pbar:
+#         # 遍历shapefile中过滤的行
+#         for index, row in gdf.iterrows():
+#             pid = row['pid']
+#             yaw = row['yaw']
+#             # 在image文件夹中找到相应的PNG文件
+#             file_name = f"{pid}.png"
+#             file_path = os.path.join(image_folder, file_name)
+#             if os.path.exists(file_path):
+#                 # 读取PNG图像并转换为numpy数组
+#                 with Image.open(file_path) as img:
+#                     panoImg = np.array(img)
+#                     # 调用该函数转换为鱼眼图像
+#                     hemi_img = cylinder2fisheyeImage(panoImg, yaw)
+#                     output_file = os.path.join(output_folder, f"{pid}.png")
+#                     # 将hemi_img保存到指定的输出文件位置
+#                     Image.fromarray(hemi_img).save(output_file)
+#             # Update the progress bar
+#             pbar.update(1)
 
 # 6.优化csv文件
 def get_better_csv(input_file, output_file):
@@ -416,49 +416,49 @@ def initialize_csv(csv_file):
             file.write("pid,result\n")
     return pd.read_csv(csv_file)
 
-def get_sun_glare_situation_from_hemi_pano_and_date(csv_file, hemi_place_test, year, month, day, second, interval_minutes):
-    # 生成文件名
-    result_filename = f"result_{year}_{month:02d}_{day:02d}_interval_{interval_minutes}min.csv"
-    result_df = initialize_csv(result_filename)
-    df = pd.read_csv(csv_file)
-    for index, row in tqdm(df.iterrows(), total=len(df), desc="Processing"):
-        pid = row['pid']
-        lon, lat = row['lon'], row['lat']
-        yaw = row['yaw']
-        image_file = f"{pid}.png"
-        image_path = os.path.join(hemi_place_test, image_file)
-        totaltime = 0
-        if not os.path.exists(image_path):
-            print(f"Image file {image_file} not found, skipping...")
-            continue
-        hemiimg_pil = Image.open(image_path)
-        print(image_file)
-        hemiimg = np.array(hemiimg_pil)
-        hemiimg_gray = cv2.cvtColor(hemiimg, cv2.COLOR_RGB2GRAY)
-        start_time = datetime(year, month, day, 6, 0, second)
-        end_time = datetime(year, month, day, 18, 59, second)
-        current_time = start_time
-        while current_time <= end_time:
-            date = current_time.strftime("%Y-%m-%d %H:%M:%S")
-            if date not in result_df.columns:
-                result_df[date] = 0
-            sunele = date_to_sun_elevation(date, lon, lat)
-            if sunele <= 0:
-                current_time += timedelta(minutes=interval_minutes)
-                continue
-            azimuth = azimuth_angle_calculator(lat, lon, date)
-            zhedang = Sun_judgement_noaa(hemiimg_gray, 5, azimuth, sunele)
-            xuanguangtiaojian = sun_glare_calculator(date, lon, lat, vision_form_slope_angle=0, vision_form_east_angle=yaw)
-            if xuanguangtiaojian == 1 and zhedang == 0:
-                totaltime += interval_minutes
-                now = 1
-                print(date, "YES", pid)
-            else:
-                now = 0
-            result_df.loc[result_df['pid'] == pid, date] = now
-            current_time += timedelta(minutes=interval_minutes)
-        result_df.loc[result_df['pid'] == pid, 'result'] = totaltime
-    result_df.to_csv('result_{year}_{month:02d}_{day:02d}_interval_{interval_minutes}min.csv', index=False)
+# def get_sun_glare_situation_from_hemi_pano_and_date(csv_file, hemi_place_test, year, month, day, second, interval_minutes):
+#     # 生成文件名
+#     result_filename = f"result_{year}_{month:02d}_{day:02d}_interval_{interval_minutes}min.csv"
+#     result_df = initialize_csv(result_filename)
+#     df = pd.read_csv(csv_file)
+#     for index, row in tqdm(df.iterrows(), total=len(df), desc="Processing"):
+#         pid = row['pid']
+#         lon, lat = row['lon'], row['lat']
+#         yaw = row['yaw']
+#         image_file = f"{pid}.png"
+#         image_path = os.path.join(hemi_place_test, image_file)
+#         totaltime = 0
+#         if not os.path.exists(image_path):
+#             print(f"Image file {image_file} not found, skipping...")
+#             continue
+#         hemiimg_pil = Image.open(image_path)
+#         print(image_file)
+#         hemiimg = np.array(hemiimg_pil)
+#         hemiimg_gray = cv2.cvtColor(hemiimg, cv2.COLOR_RGB2GRAY)
+#         start_time = datetime(year, month, day, 6, 0, second)
+#         end_time = datetime(year, month, day, 18, 59, second)
+#         current_time = start_time
+#         while current_time <= end_time:
+#             date = current_time.strftime("%Y-%m-%d %H:%M:%S")
+#             if date not in result_df.columns:
+#                 result_df[date] = 0
+#             sunele = date_to_sun_elevation(date, lon, lat)
+#             if sunele <= 0:
+#                 current_time += timedelta(minutes=interval_minutes)
+#                 continue
+#             azimuth = azimuth_angle_calculator(lat, lon, date)
+#             zhedang = Sun_judgement_noaa(hemiimg_gray, 5, azimuth, sunele)
+#             xuanguangtiaojian = sun_glare_calculator(date, lon, lat, vision_form_slope_angle=0, vision_form_east_angle=yaw)
+#             if xuanguangtiaojian == 1 and zhedang == 0:
+#                 totaltime += interval_minutes
+#                 now = 1
+#                 print(date, "YES", pid)
+#             else:
+#                 now = 0
+#             result_df.loc[result_df['pid'] == pid, date] = now
+#             current_time += timedelta(minutes=interval_minutes)
+#         result_df.loc[result_df['pid'] == pid, 'result'] = totaltime
+#     result_df.to_csv('result_{year}_{month:02d}_{day:02d}_interval_{interval_minutes}min.csv', index=False)
 
 # 7.1使用多线程运行的方式
 '''
@@ -979,6 +979,131 @@ def import_csv_to_postgresql(csv_file, dbname, user, password, host, port, table
     cursor.close()
     conn.close()
 
+# 12.根据区打散街景点数据
+def save_points_by_district(point_csv, polygon_shp, output_folder):
+    # 读取点数据
+    points_df = pd.read_csv(point_csv)
+    points_gdf = gpd.GeoDataFrame(points_df, geometry=gpd.points_from_xy(points_df['50lon'], points_df['50lat']), crs="EPSG:4326")
+    
+    # 读取面数据
+    polygons_gdf = gpd.read_file(polygon_shp)
+    
+    # 确保面数据的坐标系为WGS84
+    polygons_gdf = polygons_gdf.to_crs(epsg=4326)
+    
+    # 空间连接，找到每个点所在的区
+    joined_gdf = gpd.sjoin(points_gdf, polygons_gdf, how="left", predicate="within")
+    
+    # 创建输出文件夹
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    # 初始化总的 GeoDataFrame 来保存所有点数据
+    all_points_gdf = gpd.GeoDataFrame(columns=joined_gdf.columns, crs=joined_gdf.crs)
+    
+    # 遍历每个区，保存各区的点数据到单独的Shapefile文件
+    for district_name, group in joined_gdf.groupby('县区name'):
+        district_points_gdf = gpd.GeoDataFrame(group, geometry='geometry')
+        
+        # 将 Shape_Area 字段转换为字符串
+        if 'Shape_Area' in district_points_gdf.columns:
+            district_points_gdf['Shape_Area'] = district_points_gdf['Shape_Area'].astype(str)
+        
+        # 重命名字段，确保字段名长度不超过10个字符
+        district_points_gdf = district_points_gdf.rename(columns=lambda x: x[:10])
+        
+        # 创建区文件夹
+        district_folder = os.path.join(output_folder, district_name)
+        if not os.path.exists(district_folder):
+            os.makedirs(district_folder)
+        
+        output_path = os.path.join(district_folder, f"{district_name}.shp")
+        district_points_gdf.to_file(output_path, encoding='utf-8')
+        print(f"Saved {district_name} points to {output_path}")
+        
+        # 删除重复的列名
+        district_points_gdf = district_points_gdf.loc[:, ~district_points_gdf.columns.duplicated()]
+        
+        # 将当前区的点数据添加到总的 GeoDataFrame 中
+        all_points_gdf = pd.concat([all_points_gdf, district_points_gdf], ignore_index=True)
+        
+        # 删除总的 GeoDataFrame 中的重复列名
+        all_points_gdf = all_points_gdf.loc[:, ~all_points_gdf.columns.duplicated()]
+    
+    # 重命名总的 GeoDataFrame 的字段，确保字段名长度不超过10个字符
+    all_points_gdf = all_points_gdf.rename(columns=lambda x: x[:10])
+    
+    # 保存总的点数据到一个 Shapefile 文件
+    wuhan_folder = os.path.join(output_folder, "武汉市")
+    if not os.path.exists(wuhan_folder):
+        os.makedirs(wuhan_folder)
+    
+    wuhan_output_path = os.path.join(wuhan_folder, "武汉市.shp")
+    all_points_gdf.to_file(wuhan_output_path, encoding='utf-8')
+    print(f"Saved all points to {wuhan_output_path}")
+
+# 12.根据区打散街景点数据
+def save_points_by_district(point_csv, polygon_shp, output_folder):
+    # 读取点数据
+    points_df = pd.read_csv(point_csv)
+    points_gdf = gpd.GeoDataFrame(points_df, geometry=gpd.points_from_xy(points_df['50lon'], points_df['50lat']), crs="EPSG:4326")
+    
+    # 读取面数据
+    polygons_gdf = gpd.read_file(polygon_shp)
+    
+    # 确保面数据的坐标系为WGS84
+    polygons_gdf = polygons_gdf.to_crs(epsg=4326)
+    
+    # 空间连接，找到每个点所在的区
+    joined_gdf = gpd.sjoin(points_gdf, polygons_gdf, how="left", predicate="within")
+    
+    # 创建输出文件夹
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    # 初始化总的 GeoDataFrame 来保存所有点数据
+    all_points_gdf = gpd.GeoDataFrame(columns=joined_gdf.columns, crs=joined_gdf.crs)
+    
+    # 遍历每个区，保存各区的点数据到单独的Shapefile文件
+    for district_name, group in joined_gdf.groupby('县区name'):
+        district_points_gdf = gpd.GeoDataFrame(group, geometry='geometry')
+        
+        # 将 Shape_Area 字段转换为字符串
+        if 'Shape_Area' in district_points_gdf.columns:
+            district_points_gdf['Shape_Area'] = district_points_gdf['Shape_Area'].astype(str)
+        
+        # 重命名字段，确保字段名长度不超过10个字符
+        district_points_gdf = district_points_gdf.rename(columns=lambda x: x[:10])
+        
+        # 创建区文件夹
+        district_folder = os.path.join(output_folder, district_name)
+        if not os.path.exists(district_folder):
+            os.makedirs(district_folder)
+        
+        output_path = os.path.join(district_folder, f"{district_name}.shp")
+        district_points_gdf.to_file(output_path, encoding='utf-8')
+        print(f"Saved {district_name} points to {output_path}")
+        
+        # 删除重复的列名
+        district_points_gdf = district_points_gdf.loc[:, ~district_points_gdf.columns.duplicated()]
+        
+        # 将当前区的点数据添加到总的 GeoDataFrame 中
+        all_points_gdf = pd.concat([all_points_gdf, district_points_gdf], ignore_index=True)
+        
+        # 删除总的 GeoDataFrame 中的重复列名
+        all_points_gdf = all_points_gdf.loc[:, ~all_points_gdf.columns.duplicated()]
+    
+    # 重命名总的 GeoDataFrame 的字段，确保字段名长度不超过10个字符
+    all_points_gdf = all_points_gdf.rename(columns=lambda x: x[:10])
+    
+    # 保存总的点数据到一个 Shapefile 文件
+    wuhan_folder = os.path.join(output_folder, "武汉市")
+    if not os.path.exists(wuhan_folder):
+        os.makedirs(wuhan_folder)
+    
+    wuhan_output_path = os.path.join(wuhan_folder, "武汉市.shp")
+    all_points_gdf.to_file(wuhan_output_path, encoding='utf-8')
+    print(f"Saved all points to {wuhan_output_path}")
 
 
 if __name__ == "__main__":
@@ -1046,12 +1171,15 @@ if __name__ == "__main__":
     # count_time_intervals_in_districts(polygon_shp, monthly_files, time_intervals_file)
 
     # 11.将统计数据存入数据库
-    import_csv_to_postgresql(
-        csv_file= time_intervals_file,
-        dbname='postgis_34_sample',
-        user='postgres',
-        password='postgres1',
-        host='localhost',
-        port='5432',
-        table_name='time_statistics'
-    )
+    # import_csv_to_postgresql(
+    #     csv_file= time_intervals_file,
+    #     dbname='postgis_34_sample',
+    #     user='postgres',
+    #     password='postgres1',
+    #     host='localhost',
+    #     port='5432',
+    #     table_name='time_statistics'
+    # )
+
+    # 12.根据区打散街景点数据
+    save_points_by_district(clean_pano_csv_file, polygon_shp, r'E:\webgislocation\各区街景点shp')
