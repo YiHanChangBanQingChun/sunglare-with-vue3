@@ -28,8 +28,16 @@ from urllib.parse import unquote
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 # CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456@localhost/postgis_34_sample'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres1@localhost/postgis_34_sample'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# 数据库连接参数
+conn_params = {
+    "dbname": "postgis_34_sample",
+    "user": "postgres",
+    "password": "postgres1",
+    "host": "localhost"
+}
 
 # 初始化扩展
 db = SQLAlchemy(app)
@@ -177,104 +185,290 @@ def search():
     } for location in results]
     return jsonify(locations)
 
-# 数据库连接参数
-conn_params = {
-    "dbname": "postgis_34_sample",
-    "user": "postgres",
-    "password": "123456",
-    "host": "localhost"
-}
+def get_closest_table_name(month, day, hour, minute):
+    print(f"Finding closest table for month: {month:02d}, day: {day:02d}, hour: {hour:02d}, minute: {minute:02d}")
+    try:
+        conn = psycopg2.connect(**conn_params)
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_name LIKE 'whrd7_%_t%_%_%'
+        """)
+        tables = cur.fetchall()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error connecting to database: {e}")
+        return None
+
+    closest_table = None
+    closest_time_diff = timedelta.max
+
+    for table in tables:
+        table_name = table[0]
+        try:
+            parts = table_name.split('_')
+            if len(parts) < 4:
+                print(f"Skipping table with unexpected format: {table_name}")
+                continue  # Skip tables that don't follow the expected format
+
+            # 提取月份部分
+            table_month = int(parts[1])
+            # print(f"Table month: {table_month}")
+            # 检查时间部分是否以 't' 开头，并且包含 '_'
+            if not parts[2].startswith('t'):
+                # print(f"Skipping table with unexpected time format: {table_name}")
+                continue  # Skip if the time part does not follow expected format
+            
+            # 提取时间部分并进行分割
+            table_hour = int(parts[2][1:])  # Get the part after 't'
+            table_minute = int(parts[3])
+            table_second = int(parts[4])
+            # print(f"Table time: {table_hour:02d}:{table_minute:02d}:{table_second:02d}")
+            # 计算时间差
+            table_time = datetime(2023, table_month, 15, table_hour, table_minute, table_second)
+            input_time = datetime(2023, month, day, hour, minute)
+            time_diff = abs(table_time - input_time)
+            
+            # 更新最接近的表
+            if time_diff < closest_time_diff:
+                closest_time_diff = time_diff
+                closest_table = table_name
+            
+            # print(f"Table {table_name}: {table_month:02d}/{table_hour:02d}:{table_minute:02d}, time diff: {time_diff}")
+        except (ValueError, IndexError) as e:
+            print(f"Error parsing table name {table_name}: {e}")
+        except Exception as e:
+            print(f"Unexpected error parsing table name {table_name}: {e}")
+
+    print(f"Closest table for {month:02d}/{day:02d} {hour:02d}:{minute:02d} is {closest_table}")
+    return closest_table
+
+def execute_route_plan(start, end, table_name):
+    print(f"Executing route plan for table: {table_name}, start: {start}, end: {end}")
+    try:
+        conn = psycopg2.connect(**conn_params)
+        cur = conn.cursor()
+        
+        query = f"""
+        WITH start_vertex AS (
+            SELECT id FROM whrd7_vertices_pgr
+            ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(%s, %s), 4326) LIMIT 1
+        ), end_vertex AS (
+            SELECT id FROM whrd7_vertices_pgr
+            ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(%s, %s), 4326) LIMIT 1
+        )
+        SELECT seq, path_seq, node, edge, cost, agg_cost, ST_AsBinary(geom) AS geom, length
+        FROM pgr_astar(
+            'SELECT gid AS id, source, target, 
+            forward_time AS cost, 
+            reverse_time AS reverse_cost, 
+            COALESCE(ST_X(ST_StartPoint(geom)), 0) AS x1, COALESCE(ST_Y(ST_StartPoint(geom)), 0) AS y1, 
+            COALESCE(ST_X(ST_EndPoint(geom)), 0) AS x2, COALESCE(ST_Y(ST_EndPoint(geom)), 0) AS y2 
+            FROM {table_name}
+            WHERE geom IS NOT NULL AND (ST_GeometryType(geom) = ''ST_LineString'' OR ST_GeometryType(geom) = ''ST_MultiLineString'')',
+            (SELECT id FROM start_vertex), (SELECT id FROM end_vertex), directed := true
+        ) AS route
+        JOIN {table_name} ON route.edge = {table_name}.gid;
+        """
+        
+        cur.execute(query, (start[0], start[1], end[0], end[1]))
+        route_result = cur.fetchall()
+    
+        features = []
+
+        for row in route_result:
+            geom_data = row[-2]
+            if isinstance(geom_data, memoryview):
+                geom_data = geom_data.tobytes()
+            if isinstance(geom_data, bytes):
+                try:
+                    geom = wkb.loads(geom_data)
+                    geom_json = mapping(geom)
+                    feature = {
+                        "type": "Feature",
+                        "geometry": geom_json,
+                        "properties": {
+                            "seq": row[0],
+                            "path_seq": row[1],
+                            "node": row[2],
+                            "edge": row[3],
+                            "cost": row[4],
+                            "agg_cost": row[5],
+                            "length": row[7]
+                        }
+                    }
+                    features.append(feature)
+                except Exception as e:
+                    print(f"Error loading WKB data: {e}")
+        
+        geojson = {
+            "type": "FeatureCollection",
+            "features": features
+        }
+
+        route_plan_id = str(uuid.uuid4())
+        temp_file_name = f"route_plan_{route_plan_id}.geojson"
+        temp_file_path = os.path.join(temp_dir, temp_file_name)
+
+        with open(temp_file_path, "w") as tmp:
+            json.dump(geojson, tmp)
+
+        cur.close()
+        conn.close()
+
+        print(f"Route plan executed successfully, route_plan_id: {route_plan_id}, temp_file_path: {temp_file_path}")
+        return route_plan_id, temp_file_path
+    except Exception as e:
+        print(f"Error executing route plan: {e}")
+        return None, None
 
 @app.route('/api/route/plan', methods=['POST'])
 def route_plan():
     data = request.json
     start = data['start']['location']
     end = data['end']['location']
+    date = data.get('date')
+    time = data.get('time')
     
-    # 连接数据库
-    conn = psycopg2.connect(**conn_params)
-    cur = conn.cursor()
+    print(f"Received route plan request: start={start}, end={end}, date={date}, time={time}")
     
-    # 执行路径规划查询
-    query = """
-    WITH start_vertex AS (
-        SELECT id FROM whrd7_vertices_pgr
-        ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(%s, %s), 4326) LIMIT 1
-    ), end_vertex AS (
-        SELECT id FROM whrd7_vertices_pgr
-        ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(%s, %s), 4326) LIMIT 1
-    )
-    SELECT seq, path_seq, node, edge, cost, agg_cost, ST_AsBinary(geom) AS geom, length
-    FROM pgr_astar(
-        'SELECT gid AS id, source, target, 
-        forward_time AS cost, 
-        reverse_time AS reverse_cost, 
-        COALESCE(ST_X(ST_StartPoint(geom)), 0) AS x1, COALESCE(ST_Y(ST_StartPoint(geom)), 0) AS y1, 
-        COALESCE(ST_X(ST_EndPoint(geom)), 0) AS x2, COALESCE(ST_Y(ST_EndPoint(geom)), 0) AS y2 
-        FROM whrd7
-        WHERE geom IS NOT NULL AND (ST_GeometryType(geom) = ''ST_LineString'' OR ST_GeometryType(geom) = ''ST_MultiLineString'')',
-        (SELECT id FROM start_vertex), (SELECT id FROM end_vertex), directed := true
-    ) AS route
-    JOIN whrd7 ON route.edge = whrd7.gid;
-    """
+    # 默认路径规划
+    default_table_name = "whrd7"
+    default_route_plan_id, default_temp_file_path = execute_route_plan(start, end, default_table_name)
     
-    cur.execute(query, (start[0], start[1], end[0], end[1]))
-    route_result = cur.fetchall()
-    
-    # 将查询结果转换为GeoJSON
-    features = []
-    
-    for row in route_result:
-        geom_data = row[-2]
-        if isinstance(geom_data, memoryview):
-            geom_data = geom_data.tobytes()
-        if isinstance(geom_data, bytes):
-            try:
-                geom = wkb.loads(geom_data)
-                geom_json = mapping(geom)
-                feature = {
-                    "type": "Feature",
-                    "geometry": geom_json,
-                    "properties": {
-                        "seq": row[0],
-                        "path_seq": row[1],
-                        "node": row[2],
-                        "edge": row[3],
-                        "cost": row[4],
-                        "agg_cost": row[5],
-                        "length": row[7]
-                    }
-                }
-                features.append(feature)
-            except Exception as e:
-                print(f"Error loading WKB data: {e}")
-    
-    geojson = {
-        "type": "FeatureCollection",
-        "features": features
-    }
+    # 基于时间的路径规划
+    if date and time:
+        try:
+            date_obj = datetime.strptime(date, '%Y-%m-%d')
+            time_obj = datetime.strptime(time, '%H:%M:%S')
+            month = date_obj.month
+            day = date_obj.day
+            hour = time_obj.hour
+            minute = time_obj.minute
+            print(f"Parsed date and time: month={month}, day={day}, hour={hour}, minute={minute}")
+            closest_table_name = get_closest_table_name(month, day, hour, minute)
+        except Exception as e:
+            print(f"Error parsing date/time: {e}")
+            closest_table_name = None
+    else:
+        closest_table_name = None
 
-    # 使用同一个UUID既作为文件名的一部分，也作为返回给前端的ID
-    route_plan_id = str(uuid.uuid4())
-    temp_file_name = f"route_plan_{route_plan_id}.geojson"
-    temp_file_path = os.path.join(temp_dir, temp_file_name)
+    if closest_table_name:
+        time_based_route_plan_id, time_based_temp_file_path = execute_route_plan(start, end, closest_table_name)
+    else:
+        time_based_route_plan_id = None
+        time_based_temp_file_path = None
 
-    with open(temp_file_path, "w") as tmp:
-        json.dump(geojson, tmp)
+    print(f"Route plan response: default_id={default_route_plan_id}, time_based_id={time_based_route_plan_id}")
+    return jsonify({
+        "default_id": default_route_plan_id,
+        "default_temp_file_path": default_temp_file_path,
+        "time_based_id": time_based_route_plan_id,
+        "time_based_temp_file_path": time_based_temp_file_path
+    })
 
-    # 关闭数据库连接
-    cur.close()
-    conn.close()
-    
-    return jsonify({"id": route_plan_id, "tempFilePath": temp_file_path})
 
 @app.route('/api/get_geojson/<route_id>')
 def get_geojson(route_id):
-    # 根据route_id构造文件路径
-    print(route_id)
-    file_path = os.path.join(BASE_DIR, 'tmp', f'route_plan_{route_id}.geojson')
-    # 返回文件内容
-    return send_file(file_path, mimetype='application/json')
+    file_path = os.path.join(temp_dir, f'route_plan_{route_id}.geojson')
+    if os.path.exists(file_path):
+        return send_file(file_path, mimetype='application/json')
+    else:
+        return jsonify({"error": "File not found"}), 404
+
+# 以下是单一路径规划（已弃用）
+# @app.route('/api/route/plan', methods=['POST'])
+# def route_plan():
+#     data = request.json
+#     start = data['start']['location']
+#     end = data['end']['location']
+    
+#     # 连接数据库
+#     conn = psycopg2.connect(**conn_params)
+#     cur = conn.cursor()
+    
+#     # 执行路径规划查询
+#     query = """
+#     WITH start_vertex AS (
+#         SELECT id FROM whrd7_vertices_pgr
+#         ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(%s, %s), 4326) LIMIT 1
+#     ), end_vertex AS (
+#         SELECT id FROM whrd7_vertices_pgr
+#         ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(%s, %s), 4326) LIMIT 1
+#     )
+#     SELECT seq, path_seq, node, edge, cost, agg_cost, ST_AsBinary(geom) AS geom, length
+#     FROM pgr_astar(
+#         'SELECT gid AS id, source, target, 
+#         forward_time AS cost, 
+#         reverse_time AS reverse_cost, 
+#         COALESCE(ST_X(ST_StartPoint(geom)), 0) AS x1, COALESCE(ST_Y(ST_StartPoint(geom)), 0) AS y1, 
+#         COALESCE(ST_X(ST_EndPoint(geom)), 0) AS x2, COALESCE(ST_Y(ST_EndPoint(geom)), 0) AS y2 
+#         FROM whrd7
+#         WHERE geom IS NOT NULL AND (ST_GeometryType(geom) = ''ST_LineString'' OR ST_GeometryType(geom) = ''ST_MultiLineString'')',
+#         (SELECT id FROM start_vertex), (SELECT id FROM end_vertex), directed := true
+#     ) AS route
+#     JOIN whrd7 ON route.edge = whrd7.gid;
+#     """
+    
+#     cur.execute(query, (start[0], start[1], end[0], end[1]))
+#     route_result = cur.fetchall()
+    
+#     # 将查询结果转换为GeoJSON
+#     features = []
+    
+#     for row in route_result:
+#         geom_data = row[-2]
+#         if isinstance(geom_data, memoryview):
+#             geom_data = geom_data.tobytes()
+#         if isinstance(geom_data, bytes):
+#             try:
+#                 geom = wkb.loads(geom_data)
+#                 geom_json = mapping(geom)
+#                 feature = {
+#                     "type": "Feature",
+#                     "geometry": geom_json,
+#                     "properties": {
+#                         "seq": row[0],
+#                         "path_seq": row[1],
+#                         "node": row[2],
+#                         "edge": row[3],
+#                         "cost": row[4],
+#                         "agg_cost": row[5],
+#                         "length": row[7]
+#                     }
+#                 }
+#                 features.append(feature)
+#             except Exception as e:
+#                 print(f"Error loading WKB data: {e}")
+    
+#     geojson = {
+#         "type": "FeatureCollection",
+#         "features": features
+#     }
+
+#     # 使用同一个UUID既作为文件名的一部分，也作为返回给前端的ID
+#     route_plan_id = str(uuid.uuid4())
+#     temp_file_name = f"route_plan_{route_plan_id}.geojson"
+#     temp_file_path = os.path.join(temp_dir, temp_file_name)
+
+#     with open(temp_file_path, "w") as tmp:
+#         json.dump(geojson, tmp)
+
+#     # 关闭数据库连接
+#     cur.close()
+#     conn.close()
+    
+#     return jsonify({"id": route_plan_id, "tempFilePath": temp_file_path})
+
+# @app.route('/api/get_geojson/<route_id>')
+# def get_geojson(route_id):
+#     # 根据route_id构造文件路径
+#     print(route_id)
+#     file_path = os.path.join(BASE_DIR, 'tmp', f'route_plan_{route_id}.geojson')
+#     # 返回文件内容
+#     return send_file(file_path, mimetype='application/json')
 
 @login_manager.user_loader
 def load_user(user_id):

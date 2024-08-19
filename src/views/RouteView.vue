@@ -29,11 +29,11 @@
           </div>
         </span>
         <!-- 修正后的起点搜索结果展示 -->
-        <div class="search-results" v-if="searchResults.length && searchQueryStart">
-        <ul>
-          <li v-for="(result, index) in searchResults" :key="index" @click="selectResult(result, true)">
-            {{ result.name }}
-          </li>
+        <div class="search-results" v-if="searchResults.length && searchQueryStart" ref="searchResultsStart">
+    <ul>
+      <li v-for="(result, index) in searchResults" :key="index" :class="{ 'highlighted': index === highlightedIndex }" @click="selectResult(result, true)">
+        {{ result.name }}
+      </li>
         </ul>
         </div>
     </div>
@@ -52,16 +52,21 @@
           </div>
         </span>
         <!-- 修正后的终点搜索结果展示 -->
-        <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd">
-          <ul>
-            <li v-for="(result, index) in searchResultsEnd" :key="index" @click="selectResult(result, false)">
-            {{ result.name }}
-            </li>
+        <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd" ref="searchResultsEnd">
+    <ul>
+      <li v-for="(result, index) in searchResultsEnd" :key="index" :class="{ 'highlighted': index === highlightedIndex }" @click="selectResult(result, false)">
+        {{ result.name }}
+      </li>
           </ul>
         </div>
       </div>
       <div class="search-action" @click="onSearch" title="搜索">
           <img src="https://wx4.sinaimg.cn/mw2000/008tIcISgy1hsq1fw9ob9j300w00w3ya.jpg" alt="search">
+      </div>
+                <!-- 新的覆盖层容器 -->
+                <div v-if="isLoading" class="loader-overlay">
+      <div class="loader">
+      </div>
       </div>
     </div>
   </div>
@@ -73,25 +78,25 @@
     <div class="choose-time">
       <div class="form-group">
         <label for="date-input">选择日期：</label>
-        <input id="date-input" type="date" v-model="selectedDate">
+        <input id="date-input" type="date" v-model="selectedDate" :min="minDate" :max="maxDate" :class="{ 'invalid-date': isDateDisabled(selectedDate) }" @change="handleDateChange">
         <label for="time-input">选择时间：</label>
-        <input id="time-input" type="time" v-model="selectedTime">
+        <input id="time-input" type="time" v-model="formattedTime" @input="onTimeInputChange" step="600"> <!-- 600秒 = 10分钟 -->
       </div>
     </div>
     <!-- 路线展示 -->
     <div class="routelist">
       <ul class="cardlist">
         <div class="route" data-index="0">
-          <div class="introduction">无眩光路径</div>
+          <div class="introduction" :style="{ color: getColor(0) }">无眩光路径</div>
           <p class="intro">
             <span>总时长：</span>
-            <span>时间1</span>
+            <span>{{ noGlareTotalHours }}小时{{ noGlareTotalMinutes }}分钟</span>
             <span>总距离：</span>
-            <span>公里数1</span>
+            <span>{{ noGlareTotalDistance }}</span>
           </p>
         </div>
         <div class="route" data-index="1">
-          <div class="introduction">耗时少路径</div>
+          <div class="introduction" :style="{ color: getColor(1) }">常规路径</div>
           <p class="intro">
             <span>总时长：</span>
             <span>{{ totalHours }}小时{{ totalMinutes }}分钟</span>
@@ -111,9 +116,9 @@ import Graphic from '@geoscene/core/Graphic'
 import Point from '@geoscene/core/geometry/Point.js'
 import GraphicsLayer from '@geoscene/core/layers/GraphicsLayer'
 import FeatureLayer from '@geoscene/core/layers/FeatureLayer'
-
+import Extent from '@geoscene/core/geometry/Extent'
 import axios from 'axios'
-
+import { nextTick } from 'vue'
 export default {
   name: 'RouteView',
   data () {
@@ -129,7 +134,11 @@ export default {
       totalMinutes: 0,
       totalDistance: '0千米',
       selectedDate: '', // 用户选择的日期
-      selectedTime: ''// 用户选择的时间
+      selectedTime: '', // 用户选择的时间
+      noGlareTotalHours: 0, // 无眩光路径的总时长（小时）
+      noGlareTotalMinutes: 0, // 无眩光路径的总时长（分钟）
+      highlightedIndex: -1, // 高亮的搜索结果索引
+      noGlareTotalDistance: '0千米' // 无眩光路径的总距离
     }
   },
   // 在组件挂载时初始化地图
@@ -140,21 +149,120 @@ export default {
       this.selectedResultEnd = JSON.parse(this.$route.query.end)
     }
     this.parseUrlParams()
-    this.selectedDate = new Date().toISOString().substring(0, 10)
-    this.selectedTime = new Date().toISOString().substring(11, 16)
-    // 更新时间选择器为当前时间
-    this.updateTime()
-
     // 设置定时器，每隔1分钟更新时间
-    setInterval(() => { this.updateTime() }, 60000)
+    window.addEventListener('keydown', this.handleKeydown)
   },
-
-  // 在路由参数变化时重新绘制地图
+  beforeUnmount () {
+    window.removeEventListener('keydown', this.handleKeydown)
+  },
+  computed: {
+    minDate () {
+      return '2024-01-01'
+    },
+    maxDate () {
+      return '2024-12-31'
+    },
+    formattedTime () {
+      // 格式化时间为10分钟间隔
+      if (!this.selectedTime) return ''
+      const [hours, minutes] = this.selectedTime.split(':').map(Number)
+      const roundedMinutes = Math.floor(minutes / 10) * 10
+      return `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`
+    }
+  },
   methods: {
+    getColor (index) {
+      if (index === 0) {
+        return 'rgb(25, 202, 173)' // 绿色，无眩光路径
+      } else if (index === 1) {
+        return 'rgb(244, 96, 108)' // 红色，耗时少路径
+      }
+      return 'black' // 默认颜色
+    },
+    onTimeInputChange (event) {
+      const value = event.target.value
+      const [hours, minutes] = value.split(':').map(Number)
+      const roundedMinutes = Math.floor(minutes / 10) * 10
+      this.selectedTime = `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`
+    },
+    isDateDisabled (date) {
+      if (!date) return false
+      const selected = new Date(date)
+      const month = selected.getMonth() + 1 // 月份从0开始
+      const day = selected.getDate()
+
+      if (month >= 1 && month <= 7 && day !== 15) {
+        return true
+      }
+      if (month === 8 && day <= 20) {
+        return true
+      }
+      if (month >= 10 && month <= 12 && day !== 15) {
+        return true
+      }
+      return false
+    },
+    handleDateChange (event) {
+      const date = event.target.value
+      if (this.isDateDisabled(date)) {
+        alert('选择的日期未进行模拟，请选择其他日期。可选日期为，1-7月的15日，8月20日-9月30日，10-12月的15日。')
+        this.selectedDate = ''
+      }
+    },
+    handleKeydown (event) {
+      if (this.searchResults.length && this.searchQueryStart) {
+        switch (event.key) {
+          case 'Escape':
+            this.searchResults = []
+            break
+          case 'Tab':
+            event.preventDefault()
+            this.highlightedIndex = (this.highlightedIndex + 1) % this.searchResults.length
+            nextTick(() => {
+              const highlightedElement = this.$refs.searchResultsStart.querySelector('li.highlighted')
+              if (highlightedElement) {
+                highlightedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+              }
+            })
+            break
+          case 'Enter':
+            if (this.highlightedIndex >= 0 && this.highlightedIndex < this.searchResults.length) {
+              this.selectResult(this.searchResults[this.highlightedIndex], true)
+            }
+            break
+        }
+      } else if (this.searchResultsEnd.length && this.searchQueryEnd) {
+        switch (event.key) {
+          case 'Escape':
+            this.searchResultsEnd = []
+            break
+          case 'Tab':
+            event.preventDefault()
+            this.highlightedIndex = (this.highlightedIndex + 1) % this.searchResultsEnd.length
+            nextTick(() => {
+              const highlightedElement = this.$refs.searchResultsEnd.querySelector('li.highlighted')
+              if (highlightedElement) {
+                highlightedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+              }
+            })
+            break
+          case 'Enter':
+            if (this.highlightedIndex >= 0 && this.highlightedIndex < this.searchResultsEnd.length) {
+              this.selectResult(this.searchResultsEnd[this.highlightedIndex], false)
+            }
+            break
+        }
+      }
+    },
     // 更新时间，日期
     updateTime () {
       const now = new Date()
-      this.selectedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+      // 只有当 selectedTime 是当前时间时，才更新
+      if (!this.isTimeFromUrl || this.selectedTime === currentTime) {
+        this.selectedTime = currentTime
+        this.isTimeFromUrl = false // 重置标志位
+      }
     },
     // 清空搜索框
     clc1 () {
@@ -166,19 +274,28 @@ export default {
       this.searchQueryEnd = ''
     },
     swap () {
+      this.isSwapping = true // 设置标志位
       const tempQuery = this.searchQueryStart
       this.searchQueryStart = this.searchQueryEnd
       this.searchQueryEnd = tempQuery
       const tempResult = this.selectedResultStart
       this.selectedResultStart = this.selectedResultEnd
       this.selectedResultEnd = tempResult
-      this.onSearch()
+      this.onSearch().then(() => {
+        this.parseUrlParams()
+        this.initMap()
+        this.isSwapping = false // 设置标志位
+      })
     },
     // 解析URL参数
     parseUrlParams () {
       const urlParams = new URLSearchParams(window.location.search)
       const startParam = urlParams.get('start')
       const endParam = urlParams.get('end')
+      const dateParam = urlParams.get('date')
+      const timeParam = urlParams.get('time')
+      const defaultRouteIdParam = urlParams.get('default_id')
+      const timeBasedRouteIdParam = urlParams.get('time_based_id')
       if (startParam) {
         try {
           const startObj = JSON.parse(decodeURIComponent(startParam))
@@ -198,6 +315,23 @@ export default {
         } catch (e) {
           console.error('Error parsing end parameter:', e)
         }
+      }
+      // 如果有日期参数，进行解析
+      if (dateParam) {
+        this.selectedDate = dateParam
+      }
+      // 如果有时间参数，进行解析
+      if (timeParam) {
+        this.selectedTime = timeParam
+        this.isTimeFromUrl = true // 设置标志位
+      }
+      // 如果有默认路径ID参数，进行解析
+      if (defaultRouteIdParam) {
+        this.defaultRouteId = defaultRouteIdParam
+      }
+      // 如果有基于时间的路径ID参数，进行解析
+      if (timeBasedRouteIdParam) {
+        this.timeBasedRouteId = timeBasedRouteIdParam
       }
     },
     // 处理搜索框输入变化事件
@@ -263,69 +397,84 @@ export default {
         query: {
           start: currentStart,
           end: currentEnd,
-          t: Date.now() // 添加时间戳
+          date: this.selectedDate,
+          time: this.selectedTime
         }
       })
     },
     onSearch () {
-      // 检查是否两个结果都已选择
-      if (this.selectedResultStart && this.selectedResultEnd) {
-        // 显示加载动画
-        this.isLoading = true
-        // 构造包含location属性的起点和终点对象
-        const startWithLocation = {
-          ...this.selectedResultStart,
-          location: [this.selectedResultStart.wgs84_longitude, this.selectedResultStart.wgs84_latitude]
-        }
-        const endWithLocation = {
-          ...this.selectedResultEnd,
-          location: [this.selectedResultEnd.wgs84_longitude, this.selectedResultEnd.wgs84_latitude]
-        }
-        // 发送请求到后端进行路径规划
-        axios.post(`${process.env.VUE_APP_API_URL}/api/route/plan`, { start: startWithLocation, end: endWithLocation })
-          .then(response => {
-            // 后端返回的路径规划结果ID
-            const routePlanId = response.data.id
-            console.log('路径规划结果ID:', routePlanId)
-
-            // 隐藏加载动画
-            this.isLoading = false
-
-            // 使用Vue Router跳转到结果页面，并传递路径规划结果ID
-            this.$router.push({
-              path: '/lu-jing-gui-hua/route',
-              query: {
-                start: JSON.stringify(startWithLocation),
-                end: JSON.stringify(endWithLocation),
-                id: routePlanId
+      return new Promise((resolve, reject) => {
+        // 检查是否两个结果都已选择
+        if (this.selectedResultStart && this.selectedResultEnd) {
+          // 显示加载动画
+          this.isLoading = true
+          // 构造包含location属性的起点和终点对象
+          const startWithLocation = {
+            ...this.selectedResultStart,
+            location: [this.selectedResultStart.wgs84_longitude, this.selectedResultStart.wgs84_latitude]
+          }
+          const endWithLocation = {
+            ...this.selectedResultEnd,
+            location: [this.selectedResultEnd.wgs84_longitude, this.selectedResultEnd.wgs84_latitude]
+          }
+          const formattedTime = this.selectedTime.length === 5 ? `${this.selectedTime}:00` : this.selectedTime
+          console.log('Formatted Time:', formattedTime) // 打印时间参数
+          // 发送请求到后端进行路径规划
+          axios.post(`${process.env.VUE_APP_API_URL}/api/route/plan`, { start: startWithLocation, end: endWithLocation, date: this.selectedDate, time: formattedTime })
+            .then(response => {
+              // 后端返回的路径规划结果ID
+              const defaultRoutePlanId = response.data.default_id
+              const timeBasedRoutePlanId = response.data.time_based_id
+              console.log('默认路径规划结果ID:', defaultRoutePlanId)
+              console.log('基于时间的路径规划结果ID:', timeBasedRoutePlanId)
+              console.log('路径规划成功，时间日期是:', this.selectedDate, this.selectedTime)
+              // 隐藏加载动画
+              this.isLoading = false
+              // 使用Vue Router跳转到结果页面，并传递路径规划结果ID
+              this.$router.push({
+                path: '/lu-jing-gui-hua/route',
+                query: {
+                  start: JSON.stringify(startWithLocation),
+                  end: JSON.stringify(endWithLocation),
+                  default_id: defaultRoutePlanId,
+                  time_based_id: timeBasedRoutePlanId,
+                  date: this.selectedDate,
+                  time: formattedTime
+                }
+              })
+              if (!this.isSwapping) { // 如果不是交换操作，更新搜索框的值
+                this.searchQueryStart = startWithLocation.name
+                this.searchQueryEnd = endWithLocation.name
               }
+              resolve()
             })
-            this.drawRoute(startWithLocation, endWithLocation)
-            this.initMap()
-          })
-          .catch(error => {
-            console.error(error)
-            // 隐藏加载动画
-            this.isLoading = false
-            // 错误处理，例如显示提示信息
-            alert('路径规划失败，请稍后再试。')
-          })
-      } else {
-        // 如果起点或终点未选择，显示提示信息
-        alert('请确保起点和终点都已选择。')
-      }
+            .catch(error => {
+              console.error(error)
+              // 隐藏加载动画
+              this.isLoading = false
+              // 错误处理，例如显示提示信息
+              alert('路径规划失败，请稍后再试。')
+              reject(error)
+            })
+        } else {
+          // 如果起点或终点未选择，显示提示信息
+          alert('请确保起点和终点都已选择。')
+          reject(new Error('请确保起点和终点都已选择。'))
+        }
+      })
     },
     // 初始化地图
     initMap () {
       const map = new Map({
         basemap: 'tianditu-vector' // 使用适合的底图
       })
-      // 创建MapView实例
+      this.map = map
+
       this.view = new MapView({
         container: 'viewDiv', // 使用正确的容器ID
         map: map,
-        center: [114.3, 30.7], // 使用中心点坐标
-        zoom: 4,
+        center: [114.3, 30.7], // 默认中心点坐标
+        zoom: 4, // 默认缩放级别
         constraints: {
           geometry: {
             type: 'extent',
@@ -344,12 +493,45 @@ export default {
       })
       // 移动缩放控件到左下角
       this.view.ui.move('zoom', 'bottom-left')
-      // 创建GraphicsLayer实例
+      // 创建一个新的GraphicsLayer实例，以便在地图上绘制点
       const graphicsLayer = new GraphicsLayer()
       map.add(graphicsLayer)
-      // 绘制起点和终点，绘制路径
-      this.drawPoints(graphicsLayer)
-      this.drawRoute(map)
+      this.view.when(() => {
+        this.drawPoints(graphicsLayer)
+        this.adjustView()
+        this.drawRoutes(map)
+      }).catch((err) => {
+        console.error('MapView initialization error:', err)
+      })
+    },
+    // 调整视图以适应起点和终点
+    adjustView () {
+      if (this.selectedResultStart && this.selectedResultEnd) {
+        const padding = 0.01 // 调整这个值以增加或减少边界的放宽程度
+        const extent = new Extent({
+          xmin: Math.min(this.selectedResultStart.location[0], this.selectedResultEnd.location[0]) - 10 * padding,
+          ymin: Math.min(this.selectedResultStart.location[1], this.selectedResultEnd.location[1]) - 10 * padding,
+          xmax: Math.max(this.selectedResultStart.location[0], this.selectedResultEnd.location[0]) + 10 * padding,
+          ymax: Math.max(this.selectedResultStart.location[1], this.selectedResultEnd.location[1]) + 10 * padding
+        })
+        this.view.goTo(extent).catch((err) => {
+          console.error('Error adjusting view:', err)
+        })
+      } else if (this.selectedResultStart) {
+        this.view.goTo({
+          center: [this.selectedResultStart.location[0], this.selectedResultStart.location[1]],
+          zoom: 10
+        }).catch((err) => {
+          console.error('Error adjusting view:', err)
+        })
+      } else if (this.selectedResultEnd) {
+        this.view.goTo({
+          center: [this.selectedResultEnd.location[0], this.selectedResultEnd.location[1]],
+          zoom: 10
+        }).catch((err) => {
+          console.error('Error adjusting view:', err)
+        })
+      }
     },
     // 绘制起点和终点
     drawPoints (graphicsLayer) {
@@ -491,14 +673,26 @@ export default {
       // 将起点和终点添加到图形图层
       graphicsLayer.addMany([startGraphic, endGraphic])
     },
-    // 绘制路径
-    drawRoute (map) {
-      const routeId = this.$route.query.id // 从URL获取路线ID
-      if (!routeId) {
-        console.error('Route ID is undefined.')
+    drawRoutes (map) {
+      const defaultRouteId = this.$route.query.default_id // 从URL获取默认路线ID
+      const timeBasedRouteId = this.$route.query.time_based_id // 从URL获取基于时间的路线ID
+
+      if (!defaultRouteId && !timeBasedRouteId) {
+        console.error('Route IDs are undefined.')
         return
       }
-      // 修改为后端提供的接口URL，需要准备数据库，后端代码以及部署后端服务
+
+      // 获取并绘制默认路径
+      if (defaultRouteId) {
+        this.fetchAndDrawRoute(map, defaultRouteId, [25, 202, 173], true) // 绿色，无眩光路径
+      }
+
+      // 获取并绘制基于时间的路径
+      if (timeBasedRouteId) {
+        this.fetchAndDrawRoute(map, timeBasedRouteId, [244, 96, 108]) // 红色，耗时少路径
+      }
+    },
+    fetchAndDrawRoute (map, routeId, color, isNoGlareRoute = false) {
       const geojsonUrl = `${process.env.VUE_APP_API_URL}/api/get_geojson/${routeId}`
       fetch(geojsonUrl) // 使用fetch API获取GeoJSON文件
         .then(response => response.json()) // 将响应转换为JSON
@@ -524,8 +718,8 @@ export default {
               type: 'simple', // 使用简单渲染器
               symbol: {
                 type: 'simple-line', // 使用简单线符号
-                color: [0, 0, 255], // 蓝色
-                width: 3 // 宽度为3像素
+                color: color, // 使用传入的颜色
+                width: isNoGlareRoute ? 5 : 3 // 根据是否为无眩光路径设置宽度
               }
             },
             objectIdField: 'id', // 必须指定一个唯一的字段作为ObjectId
@@ -543,13 +737,24 @@ export default {
           // 将FeatureLayer图层添加到地图上
           map.layers.add(geojsonLayer)
           // 计算总时长（小时和分钟）
-          this.totalHours = Math.floor(totalCost / 3600)
-          this.totalMinutes = Math.floor((totalCost % 3600) / 60)
+          const hours = Math.floor(totalCost / 3600)
+          const minutes = Math.floor((totalCost % 3600) / 60)
           // 计算总距离（米或千米）
+          let distance
           if (totalLength < 1000) {
-            this.totalDistance = `${totalLength.toFixed(2)}米`
+            distance = `${totalLength.toFixed(2)}米`
           } else {
-            this.totalDistance = `${(totalLength / 1000).toFixed(2)}千米`
+            distance = `${(totalLength / 1000).toFixed(2)}千米`
+          }
+          // 根据是否为无眩光路径来存储结果
+          if (isNoGlareRoute) {
+            this.noGlareTotalHours = hours
+            this.noGlareTotalMinutes = minutes
+            this.noGlareTotalDistance = distance
+          } else {
+            this.totalHours = hours
+            this.totalMinutes = minutes
+            this.totalDistance = distance
           }
         })
         .catch(error => console.error('Error loading the geojson file:', error))
@@ -634,16 +839,16 @@ export default {
 
 .search-results {
   position: absolute;
-  z-index: 9999 !important;/* !important可以使这个css代码优先执行，让这个框显示为最高层级 */
-  top: 100%; /* 确保列表紧贴搜索框的底部 */
+  z-index: 9999 !important; /* !important可以使这个css代码优先执行，让这个框显示为最高层级 */
+  top: 105%; /* 确保列表紧贴搜索框的底部 */
   left: 0;
-  width: 140%; /* 使列表宽度与搜索框相同 */
+  width: 100%; /* 使列表宽度与搜索框相同 */
   background-color: white; /* 或其他背景色，确保列表可见 */
   box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* 可选：添加一些阴影以提升视觉效果 */
-  max-height: 150px; /* 限制最大高度，5行大约160px，根据实际行高调整 */
+  max-height: 200px; /* 限制最大高度，5行大约160px，根据实际行高调整 */
   overflow-y: auto; /* 超出部分显示滚动条 */
   display: flex;
-  align-items: center; /* 垂直居中对齐 */
+  border-radius: 10px; /* 添加圆角 */
 }
 
 .search-results li:hover {
@@ -798,4 +1003,51 @@ export default {
   margin-right: 10px; /* 右侧外边距 */
 }
 
+/* 新的覆盖层容器样式 */
+.loader-overlay {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 45%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.8); /* 可选：添加半透明背景 */
+  transform: translateX(-50%);
+  z-index: 10; /* 确保覆盖层在最上层 */
+}
+
+/* 加载动画的样式 */
+.loader {
+  display: inline-grid;
+  width: 90px;
+  aspect-ratio: 1;
+  animation: l3-0 5s steps(10) infinite;
+}
+.loader:before,
+.loader:after {
+  content:"";
+  grid-area: 1/1;
+}
+.loader:before {
+  clip-path: polygon(100% 50%,90.45% 79.39%,65.45% 97.55%,34.55% 97.55%,9.55% 79.39%,0% 50%,9.55% 20.61%,34.55% 2.45%,65.45% 2.45%,90.45% 20.61%,100% 50%,85.6% 24.14%,63.6% 8.15%,36.4% 8.15%,14.4% 24.14%,6% 50%,14.4% 75.86%,36.4% 91.85%,63.6% 91.85%,85.6% 75.86%,94% 50%,85.6% 24.14%);
+  background: #574951;
+}
+.loader:after {
+  background: #83988E;
+  clip-path: polygon(100% 50%,65.45% 97.55%,9.55% 79.39%,9.55% 20.61%,65.45% 2.45%);
+  margin: 27%;
+  translate: 46% 0;
+  transform-origin: right;
+  animation: l3-1 .5s linear infinite;
+}
+@keyframes l3-0 {to{rotate: 1turn}}
+@keyframes l3-1 {
+  0%{rotate:  18deg}
+  to{rotate: -18deg}
+}
+.search-results li.highlighted {
+  background-color: #f0f0f0; /* 高亮背景颜色 */
+}
 </style>

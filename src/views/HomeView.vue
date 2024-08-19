@@ -140,12 +140,15 @@ export default {
 
 <style scoped>
 #viewDiv {
-  position: fixed; /* 固定定位 */
+  position: absolute; /* 固定定位 */
   top: 0; /* 紧贴网页顶部 */
-  height: 100vh; /* 将高度设置为视口高度的100% */
-  width: 100vw; /* 将宽度设置为视口宽度的100% */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height:100%; /* 将高度设置为视口高度的100% */
+  width: 100%; /* 将宽度设置为视口宽度的100% */
   z-index: -1; /* 设置较低的z-index值，使其在App.vue的下部分 */
-  /*margin: auto;*/
+  margin: auto;
 }
 
 .lu-jing-gui-hua {

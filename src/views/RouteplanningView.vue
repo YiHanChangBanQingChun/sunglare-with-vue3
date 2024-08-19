@@ -29,11 +29,11 @@
           </div>
         </span>
         <!-- 修正后的起点搜索结果展示 -->
-        <div class="search-results" v-if="searchResults.length && searchQueryStart">
-        <ul>
-          <li v-for="(result, index) in searchResults" :key="index" @click="selectResult(result, true)">
-            {{ result.name }}
-          </li>
+        <div class="search-results" v-if="searchResults.length && searchQueryStart" ref="searchResultsStart">
+    <ul>
+      <li v-for="(result, index) in searchResults" :key="index" :class="{ 'highlighted': index === highlightedIndex }" @click="selectResult(result, true)">
+        {{ result.name }}
+      </li>
         </ul>
       </div>
     </div>
@@ -52,11 +52,11 @@
           </div>
         </span>
         <!-- 修正后的终点搜索结果展示 -->
-        <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd">
-          <ul>
-            <li v-for="(result, index) in searchResultsEnd" :key="index" @click="selectResult(result, false)">
-            {{ result.name }}
-            </li>
+        <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd" ref="searchResultsEnd">
+    <ul>
+      <li v-for="(result, index) in searchResultsEnd" :key="index" :class="{ 'highlighted': index === highlightedIndex }" @click="selectResult(result, false)">
+        {{ result.name }}
+      </li>
           </ul>
         </div>
       </div>
@@ -73,9 +73,9 @@
     <div class="choose-time">
       <div class="form-group">
         <label for="date-input">选择日期：</label>
-        <input id="date-input" type="date" v-model="selectedDate">
+        <input id="date-input" type="date" v-model="selectedDate" :min="minDate" :max="maxDate" :class="{ 'invalid-date': isDateDisabled(selectedDate) }" @change="handleDateChange">
         <label for="time-input">选择时间：</label>
-        <input id="time-input" type="time" v-model="selectedTime">
+        <input id="time-input" type="time" v-model="formattedTime" @input="onTimeInputChange" step="600"> <!-- 600秒 = 10分钟 -->
       </div>
     </div>
   </div>
@@ -115,7 +115,7 @@ import SpatialReference from '@geoscene/core/geometry/SpatialReference.js'
 // import Point from '@geoscene/core/geometry/Point.js'
 import TileInfo from '@geoscene/core/layers/support/TileInfo.js'
 // import { search } from 'core-js/fn/symbol'
-
+import { nextTick } from 'vue'
 // @ is an alias to /src
 export default {
   name: 'RouteplanningView',
@@ -123,10 +123,11 @@ export default {
     return {
       searchQueryStart: '',
       searchQueryEnd: '',
+      highlightedIndex: -1,
       searchResults: [],
       searchResultsEnd: [],
-      selectedResultStart: null, // 添加这行
-      selectedResultEnd: null, // 添加这行
+      selectedResultStart: null,
+      selectedResultEnd: null,
       selectedDate: '', // 用户选择的日期
       selectedTime: ''// 用户选择的时间
     }
@@ -140,10 +141,102 @@ export default {
 
     // 设置定时器，每隔1分钟更新时间
     setInterval(() => { this.updateTime() }, 60000)
+    window.addEventListener('keydown', this.handleKeydown)
   },
-
+  beforeUnmount () {
+    window.removeEventListener('keydown', this.handleKeydown)
+  },
+  computed: {
+    minDate () {
+      return '2024-01-01'
+    },
+    maxDate () {
+      return '2024-12-31'
+    },
+    formattedTime () {
+      // 格式化时间为10分钟间隔
+      if (!this.selectedTime) return ''
+      const [hours, minutes] = this.selectedTime.split(':').map(Number)
+      const roundedMinutes = Math.floor(minutes / 10) * 10
+      return `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`
+    }
+  },
   methods: {
-    // 更新时间，日期
+    onTimeInputChange (event) {
+      const value = event.target.value
+      const [hours, minutes] = value.split(':').map(Number)
+      const roundedMinutes = Math.floor(minutes / 10) * 10
+      this.selectedTime = `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`
+    },
+    isDateDisabled (date) {
+      if (!date) return false
+      const selected = new Date(date)
+      const month = selected.getMonth() + 1 // 月份从0开始
+      const day = selected.getDate()
+
+      if (month >= 1 && month <= 7 && day !== 15) {
+        return true
+      }
+      if (month === 8 && day <= 20) {
+        return true
+      }
+      if (month >= 10 && month <= 12 && day !== 15) {
+        return true
+      }
+      return false
+    },
+    handleDateChange (event) {
+      const date = event.target.value
+      if (this.isDateDisabled(date)) {
+        alert('选择的日期未进行模拟，请选择其他日期。可选日期为，1-7月的15日，8月20日-9月30日，10-12月的15日。')
+        this.selectedDate = ''
+      }
+    },
+    handleKeydown (event) {
+      if (this.searchResults.length && this.searchQueryStart) {
+        switch (event.key) {
+          case 'Escape':
+            this.searchResults = []
+            break
+          case 'Tab':
+            event.preventDefault()
+            this.highlightedIndex = (this.highlightedIndex + 1) % this.searchResults.length
+            nextTick(() => {
+              const highlightedElement = this.$refs.searchResultsStart.querySelector('li.highlighted')
+              if (highlightedElement) {
+                highlightedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+              }
+            })
+            break
+          case 'Enter':
+            if (this.highlightedIndex >= 0 && this.highlightedIndex < this.searchResults.length) {
+              this.selectResult(this.searchResults[this.highlightedIndex], true)
+            }
+            break
+        }
+      } else if (this.searchResultsEnd.length && this.searchQueryEnd) {
+        switch (event.key) {
+          case 'Escape':
+            this.searchResultsEnd = []
+            break
+          case 'Tab':
+            event.preventDefault()
+            this.highlightedIndex = (this.highlightedIndex + 1) % this.searchResultsEnd.length
+            nextTick(() => {
+              const highlightedElement = this.$refs.searchResultsEnd.querySelector('li.highlighted')
+              if (highlightedElement) {
+                highlightedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+              }
+            })
+            break
+          case 'Enter':
+            if (this.highlightedIndex >= 0 && this.highlightedIndex < this.searchResultsEnd.length) {
+              this.selectResult(this.searchResultsEnd[this.highlightedIndex], false)
+            }
+            break
+        }
+      }
+    },
     updateTime () {
       const now = new Date()
       this.selectedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
@@ -198,19 +291,6 @@ export default {
         this[searchResultsField] = []
       }
     },
-    // selectResult (result, isStart = true) {
-    //   console.log('用户选择了搜索结果:', result)
-    //   if (isStart) {
-    //     this.selectedResultStart = result // 修正这行
-    //     this.searchQueryStart = result.name
-    //     this.searchResults = []
-    //   } else {
-    //     this.selectedResultEnd = result // 这行已经正确
-    //     this.searchQueryEnd = result.name
-    //     this.searchResultsEnd = []
-    //   }
-    // },
-    // 处理用户选择搜索结果的事件
     selectResult (result, isStart = true) {
       console.log('用户选择了搜索结果:', result)
       const simplifiedResult = {
@@ -234,7 +314,9 @@ export default {
         this.$router.push({
           path: '/lu-jing-gui-hua/intermediate-page',
           query: {
-            start: JSON.stringify(simplifiedResult)
+            start: JSON.stringify(simplifiedResult),
+            date: this.selectedDate,
+            time: this.selectedTime
           }
         })
       } else {
@@ -245,7 +327,9 @@ export default {
         this.$router.push({
           path: '/lu-jing-gui-hua/intermediate-page',
           query: {
-            end: JSON.stringify(simplifiedResult)
+            end: JSON.stringify(simplifiedResult),
+            date: this.selectedDate,
+            time: this.selectedTime
           }
         })
       }
@@ -268,7 +352,9 @@ export default {
           path: '/lu-jing-gui-hua/result',
           query: {
             start: JSON.stringify(startWithLocation),
-            end: JSON.stringify(endWithLocation)
+            end: JSON.stringify(endWithLocation),
+            date: this.selectedDate,
+            time: this.selectedTime
           }
         })
       } else {
@@ -382,16 +468,16 @@ export default {
 
 .search-results {
   position: absolute;
-  z-index: 9999 !important;/* !important可以使这个css代码优先执行，让这个框显示为最高层级 */
-  top: 100%; /* 确保列表紧贴搜索框的底部 */
+  z-index: 9999 !important; /* !important可以使这个css代码优先执行，让这个框显示为最高层级 */
+  top: 105%; /* 确保列表紧贴搜索框的底部 */
   left: 0;
-  width: 140%; /* 使列表宽度与搜索框相同 */
+  width: 100%; /* 使列表宽度与搜索框相同 */
   background-color: white; /* 或其他背景色，确保列表可见 */
   box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* 可选：添加一些阴影以提升视觉效果 */
-  max-height: 150px; /* 限制最大高度，5行大约160px，根据实际行高调整 */
+  max-height: 200px; /* 限制最大高度，5行大约160px，根据实际行高调整 */
   overflow-y: auto; /* 超出部分显示滚动条 */
   display: flex;
-  align-items: center; /* 垂直居中对齐 */
+  border-radius: 10px; /* 添加圆角 */
 }
 
 .search-results li:hover {
@@ -509,4 +595,7 @@ export default {
   margin-right: 10px; /* 右侧外边距 */
 }
 
+.search-results li.highlighted {
+  background-color: #f0f0f0; /* 高亮背景颜色 */
+}
 </style>
