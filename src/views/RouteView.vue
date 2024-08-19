@@ -148,6 +148,7 @@ export default {
     // 设置定时器，每隔1分钟更新时间
     setInterval(() => { this.updateTime() }, 60000)
   },
+
   // 在路由参数变化时重新绘制地图
   methods: {
     // 更新时间，日期
@@ -560,10 +561,13 @@ export default {
 <style>
 /*之后要自己调样式的大小，这个仅作参考*/
 #viewDiv {
-  position: fixed; /* 固定定位 */
+  position: absolute; /* 固定定位 */
   top: 0; /* 紧贴网页顶部 */
-  height: 100vh; /* 将高度设置为视口高度的100% */
-  width: 200vh; /* 将宽度设置为视口宽度的100% */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height:100%; /* 将高度设置为视口高度的100% */
+  width: 100%; /* 将宽度设置为视口宽度的100% */
   z-index: -1; /* 设置较低的z-index值，使其在App.vue的下部分 */
   margin: auto;
 }
@@ -571,8 +575,8 @@ export default {
 .lu-jing-gui-hua {
   position: fixed; /* 固定定位 */
   display: flex;
-  flex-direction: row; /* 使子元素垂直排列,使大框和revert小框水平分布 */
-  align-items: flex; /* 水平居中对齐子元素 */
+  flex-direction: column; /* 使子元素垂直排列,使大框和revert小框水平分布 */
+  z-index: 2;
 }
 
 .search-containers {
@@ -580,18 +584,18 @@ export default {
   flex-direction: column; /* 保持垂直排列 */
   justify-content: flex-start; /* 从顶部开始排列 */
   align-items: flex-start; /* 子元素沿交叉轴的开始边缘对齐，即顶部对齐 */
-  width: 165px; /* 设置一个固定宽度 */
+  width: 357px; /* 设置一个固定宽度 */
+  height:85px;
   padding-right: 10px; /* 根据需要调整，确保搜索框周围有足够空间 */
   padding-left:32px;/*整个搜索框的左边空间*/
-  padding-top: 8px;
-  padding-bottom: 10px;
+  padding-top: 6px;
   background: #FFFFFF; /* 应用深色毛玻璃效果 */
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
-  border-radius: 10px; /* 设置圆角 */
+  border-top-left-radius: 10px; /* 设置圆角 */
+  border-top-right-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
-  margin-bottom: 10px;
-  position: relative; /* 添加相对定位 */
+  position: absolute; /* 添加相对定位 */
 }
 
 /* 移除左右外边距 */
@@ -630,16 +634,16 @@ export default {
 
 .search-results {
   position: absolute;
-  top: 95%; /* 确保列表紧贴搜索框的底部 */
+  z-index: 9999 !important;/* !important可以使这个css代码优先执行，让这个框显示为最高层级 */
+  top: 100%; /* 确保列表紧贴搜索框的底部 */
   left: 0;
-  width: 180%; /* 使列表宽度与搜索框相同 */
+  width: 140%; /* 使列表宽度与搜索框相同 */
   background-color: white; /* 或其他背景色，确保列表可见 */
   box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* 可选：添加一些阴影以提升视觉效果 */
   max-height: 150px; /* 限制最大高度，5行大约160px，根据实际行高调整 */
   overflow-y: auto; /* 超出部分显示滚动条 */
   display: flex;
   align-items: center; /* 垂直居中对齐 */
-  z-index: 9999 !important;/* !important可以使这个css代码优先执行，让这个框显示为最高层级 */
 }
 
 .search-results li:hover {
@@ -673,9 +677,8 @@ export default {
   position: absolute; /* 或使用 fixed，根据需要 */
   left: 0; /* 侧边栏靠在最左边 */
   top: 0; /* 根据需要调整垂直位置 */
-  z-index: 1000; /* 确保侧边栏在其他元素上方 */
-  width: 30px;
-  height:99px;
+  width: 20px;
+  height:85px;
   padding-left:5px;
   background-color: #FFFFFF;
   border-radius: 10px; /* 设置圆角 */
@@ -712,7 +715,6 @@ export default {
   left:278px;
   top: 50%;
   transform: translateY(-35%); /* 垂直居中对齐 */
-  z-index: 1000; /* 确保图片在输入框之上 */
   padding-inline-end: 0px;
 }
 .delete{
@@ -730,31 +732,42 @@ export default {
   border-color: blue;
 }
 
+.main-container{
+  position: fixed;
+  z-index: 1;
+}
+
+.main-container{
+  position: absolute;
+  z-index: 1;
+}
+
 /* 选择时间框的样式 */
 .choose-time{
-  overflow-y: auto; /* 超出部分显示滚动条 */
-  z-index: 1000; /* 确保侧边栏在其他元素上方 */
-  display: flex;
-  flex-direction: column; /* 垂直排列 */
-  align-items: center;
-  margin-bottom: 10px; /* 根据需要添加外边距 */
-  width: 400px;
-  height: auto;
+  transform: none;
+  position: absolute;
+  display: block;
+  width: 390px;
+  height: 30px;
+  border-bottom-left-radius: 10px; /* 设置圆角 */
+  border-bottom-right-radius: 10px;
   background-color:#FFFFFF;
-  border-radius: 10px; /* 设置圆角 */
+  margin-top: 90px;/* 控制时间选择框在网页垂直方向的位置 */
+  padding-left: 10px;
+  padding-top: 3px;
 }
 .form-group label,
 .form-group input {
   margin-right: 10px; /* 右侧外边距 */
-  margin-top: 100px;/* 控制时间选择框在网页垂直方向的位置 */
 }
 
 /* 路线展示框的样式 */
 .routelist{
+  position: fixed;
   display: flex;
   flex-direction: column; /* 垂直排列 */
   left: 8px; /* 侧边栏靠在最左边 */
-  margin-top: 10px; /* 控制路线展示框在网页垂直方向的位置 */
+  margin-top: 135px; /* 控制路线展示框在网页垂直方向的位置 */
   width: 400px;
   height: auto;
   background-color: #FFFFFF;
@@ -763,7 +776,7 @@ export default {
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
 }
 .cardlist{
-  padding:8px;
+  padding:5px;
 }
 .route{
   left: 8px; /* 距离左侧的距离 */
