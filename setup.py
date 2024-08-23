@@ -97,7 +97,7 @@ try:
         df_stats = pd.read_csv(csv_file_path, delimiter='\t', names=[
             'name', 'count', 't01', 't02', 't03', 't04', 't05', 't06', 't07', 't08', 't09', 't10', 't11', 't12'
         ])
-
+        
         # 创建 statistics 表
         create_table_query = """
         CREATE TABLE IF NOT EXISTS statistics (
