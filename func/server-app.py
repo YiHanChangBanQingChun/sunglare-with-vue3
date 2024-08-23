@@ -21,7 +21,7 @@ import shutil
 # step 1: create a Flask app
 app = Flask(__name__)
 CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres1@localhost/postgis_34_sample'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:200307@localhost/postgis_34_sample'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -159,7 +159,7 @@ def search():
 conn_params = {
     "dbname": "postgis_34_sample",
     "user": "postgres",
-    "password": "postgres1",
+    "password": "200307",
     "host": "localhost"
 }
 
@@ -228,7 +228,7 @@ def route_plan():
 
     # 使用同一个UUID既作为文件名的一部分，也作为返回给前端的ID
     route_plan_id = str(uuid.uuid4())
-    temp_dir = r"E:\webgislocation\sun-glare-project\func\tmp"
+    temp_dir = r"D:\tmp"
     temp_file_name = f"route_plan_{route_plan_id}.geojson"
     temp_file_path = os.path.join(temp_dir, temp_file_name)
 
@@ -245,7 +245,7 @@ def route_plan():
 def get_geojson(route_id):
     # 根据route_id构造文件路径
     print(route_id)
-    file_path = f'E:/webgislocation/sun-glare-project/func/tmp/route_plan_{route_id}.geojson'
+    file_path = f'D:/tmp/route_plan_{route_id}.geojson'
     # 返回文件内容
     return send_file(file_path, mimetype='application/json')
 
@@ -332,7 +332,7 @@ def get_user_info():
 
 # 清空 temp 文件夹的函数
 def clear_temp_folder():
-    temp_dir = r"E:\webgislocation\sun-glare-project\func\tmp"
+    temp_dir = r"D:\tmp"
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
     os.makedirs(temp_dir)

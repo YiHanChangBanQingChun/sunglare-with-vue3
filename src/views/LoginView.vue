@@ -3,11 +3,26 @@
       <!-- <div class="text">
         <h1>欢迎登录</h1>
       </div> -->
+      <div class="parent">
       <div class="login-container">
-        <div class="image-container">
-          <img src="/login.png" alt="Login Image">
-        </div>
-      <div class="login-box">
+            <div class="login-box">
+               <!-- 头像容器 -->
+          <div class="avatar-container">
+            <img :src="loggedInUser.avatarUrl || require('@/assets/touxiang.png')" alt="" class="avatar">
+            <!-- 用户自定义头像按钮 -->
+          </div>
+          <!-- 头像上传模态框 -->
+  <div v-if="showAvatarModal" class="avatar-modal">
+    <div class="modal-content">
+      <h2>上传头像</h2>
+      <!-- 头像文件输入 -->
+      <input type="file" @change="handleAvatarUpload" />
+      <!-- 取消按钮 -->
+      <button @click="closeAvatarUploadModal">取消</button>
+      <!-- 确认上传按钮 -->
+      <button @click="uploadAvatar">确认上传</button>
+    </div>
+  </div>
         <div class="form-container">
         <div class="form-group">
           <label for="username">用户名:</label>
@@ -18,11 +33,27 @@
           <label for="password">密码:</label>
           <input type="password" id="password" v-model="loginPassword">
       </div>
+      <div class="login-button"><button @click="login">登  录</button>
+      </div>
       <div class="button-group">
         <button @click="showRegisterModal = true">没有账号，注册一个？</button>
-        <button @click="resetPassword">忘记密码？</button>
-        <button @click="login">登录</button>
+        <button @click="showResetPasswordModal = true">忘记密码？</button>
       </div>
+      </div>
+    </div>
+  </div>
+  </div>
+    <!-- 忘记密码模态窗口 -->
+  <div v-if="showResetPasswordModal" class="modal-overlay">
+    <div class="modal">
+      <h2>忘记密码</h2>
+      <div class="reset-form-group">
+        <label for="reset-password-answer">请输入您的安全问题的答案：</label>
+        <input type="text" id="reset-password-answer" v-model="resetPasswordAnswer">
+      </div>
+      <div class="button-group">
+        <button @click="showResetPasswordModal = false">取消</button>
+        <button @click="submitResetPassword">提交</button>
       </div>
     </div>
   </div>
@@ -88,6 +119,29 @@ export default {
     const store = useStore()
     const router = useRouter()
 
+    // 添加新的状态来控制忘记密码模态框的显示和用户输入
+    const showResetPasswordModal = ref(false)
+    const resetPasswordAnswer = ref('')
+    const securityQuestionText = ref('')
+
+    // 定义 openResetPasswordModal 函数
+    const openResetPasswordModal = () => {
+      console.log('忘记密码按钮被点击')
+      openResetPasswordModal.value = true
+    }
+
+    const submitResetPassword = async () => {
+      if (!resetPasswordAnswer.value) {
+        alert('请输入您的安全问题答案')
+      }
+    }
+    const loggedInUser = computed(() => {
+      const user = store.state.user || {} // 确保 user 是一个对象，即使是空对象
+      return {
+        ...user,
+        avatarUrl: require('@/assets/touxiang.png')// 提供默认头像
+      }
+    })
     // 清空注册表单，注册时调用
     const clearRegisterForm = () => {
       username.value = ''
@@ -241,9 +295,6 @@ export default {
       }
     }
 
-    // 计算属性，用于获取登录用户的信息
-    const loggedInUser = computed(() => store.state.user)
-
     return {
       // 用户信息
       username,
@@ -277,13 +328,26 @@ export default {
       login,
 
       // 登录用户信息
-      loggedInUser
+      loggedInUser,
+
+      showResetPasswordModal,
+      resetPasswordAnswer,
+      securityQuestionText,
+      openResetPasswordModal,
+      submitResetPassword
     }
   }
 }
 </script>
 
 <style>
+body {
+  background-image: url('~@/assets/bg2.jpg'); /* 替换为你的图片路径 */
+  background-size: cover; /* 背景图片覆盖整个元素 */
+  background-repeat: no-repeat; /* 防止背景图片重复 */
+  background-attachment: fixed; /* 背景图片固定，不随页面滚动 */
+  background-position: center center; /* 背景图片居中显示 */
+}
 
 .modal-overlay {
   position: fixed;
@@ -291,14 +355,17 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.1);
+  background-image: url('~@/assets/bg4.jpg'); /* 替换为你的图片路径 */
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .modal {
-  background: rgba(109, 72, 72, 0.65); /* 应用深色毛玻璃效果 */
+  background-image: radial-gradient(circle, #fce3688e, #33b5fc76); /* 渐变 */;
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   border-radius: 10px; /* 添加圆角边框 */
@@ -333,7 +400,7 @@ export default {
 }
 
 .login-container {
-  display: flex;
+   display: flex;
   justify-content: space-between;
   align-items: center;
 }
@@ -373,19 +440,27 @@ export default {
 }
 
 .login-box {
-  width: 33.33%; /* 设置宽度为页面的三分之一 */
-  max-width: 400px; /* 设置一个最大宽度以避免在大屏幕上过宽 */
-  margin: 5px auto; /* 顶部和底部外边距为5px，水平居中 */
+  width: 90%; /* 设置宽度为页面的三分之一 */
+  max-width: 600px; /* 设置一个最大宽度以避免在大屏幕上过宽 */
   padding: 20px; /* 内边距，根据需要调整 */
   display: flex;
   flex-direction: column;
   align-items: center; /* 子元素居中对齐 */
-  background: rgba(109, 72, 72, 0.65);
+  background-image: linear-gradient( #fce3688e, #33b5fc76); /* 渐变 */;
   -webkit-backdrop-filter: blur(25px);
   backdrop-filter: blur(25px);
   border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 15px; /* 添加圆角 */
   text-align: left; /* 文本左对齐 */
+  margin: 10px auto; /* 水平居中，注意这里只影响左右方向 */
+}
+
+/* 增加以下样式到包裹.login-box的父元素 */
+.parent {
+  display: flex;
+  justify-content: center; /* 水平居中 */
+  align-items: center; /* 垂直居中 */
+  min-height: 100vh; /* 确保父容器至少为视窗高度 */
 }
 
 .form-container {
@@ -400,17 +475,21 @@ export default {
   display: flex;
   flex-direction: column;
   width: 100%;
+  border-radius: 10px;
 }
 
 .form-group label {
   margin-bottom: 5px;
-  color:rgba(255, 255, 255, 1);
+  color:rgb(255, 255, 255);
+  font-size: 16px;         /* 增大字体大小 */
+  font-weight: bold;        /* 字体加粗 */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 1); /* 给文字添加阴影效果 */
 }
 
 .form-group input {
   padding: 8px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
+  border-radius: 10px;
+  border: 1.5px solid #a8a7a7;
 }
 
 button {
@@ -419,7 +498,7 @@ button {
   cursor: pointer;
   border: none;
   background-color: #007bff;
-  color: white;
+  color: rgb(44, 47, 50);
 }
 
 .button-group {
@@ -430,14 +509,29 @@ button {
 }
 
 .button-group button {
-  padding: 10px 20px;
+  background-color: #fdfcd45d; /* 设置背景色为透明 */
+  font-weight: bold;              /* 字体加粗 */
+  color: #ffffff;                  /* 设置字体颜色，这里假设为白色，您可以根据需要调整 */
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 1); /* 添加字体阴影效果 */
+  border: 1px solid transparent;  /* 设置边框为透明，如有需要可以设置边框颜色 */
+  padding: 10px 20px;             /* 设置按钮内边距 */
+  border-radius: 5px;              /* 设置圆角边框 */
+  cursor: pointer;                 /* 鼠标悬停时显示指针 */
+  transition: all 0.3s ease;      /* 平滑过渡效果 */
+  margin: 0 10px;                 /* 设置按钮外边距，根据需要调整 */
+  font-size: 14px;
 }
 
+.button-group button:hover {
+  background-color: rgba(234, 201, 69, 0.667); /* 鼠标悬浮时添加轻微的背景色 */
+  color: #ffffff;                  /* 鼠标悬浮时的字体颜色 */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 1); /* 鼠标悬浮时的字体阴影效果增强 */
+}
 .form-group input {
   padding: 10px 20px; /* 调整内边距以匹配按钮 */
-  border-radius: 5px; /* 圆角边框，与按钮一致 */
+  border-radius: 25px; /* 圆角边框，与按钮一致 */
   /* border: none; 去除边框 */
-  background-color: #f0f0f0; /* 背景颜色，可以根据需要调整 */
+  background-color: #ffffff2d; /* 背景颜色，可以根据需要调整 */
   color: #333; /* 文字颜色，可以根据需要调整 */
   margin-bottom: 10px; /* 在输入框之间添加一些间距，可根据需要调整 */
   width: 90%;
@@ -446,7 +540,7 @@ button {
 /* 调整按钮样式以匹配提供的样式 */
 button {
   padding: 10px 20px; /* 按钮内边距 */
-  background-color: #007bff; /* 按钮背景颜色 */
+  background-color: #57b6f6; /* 按钮背景颜色 */
   color: white; /* 文字颜色 */
   border: none; /* 去除边框 */
   border-radius: 5px; /* 圆角边框 */
@@ -454,7 +548,6 @@ button {
   transition: background-color 0.3s; /* 背景颜色过渡效果 */
   margin-top: 10px; /* 在按钮之间添加一些间距 */
 }
-
 /* 鼠标悬停在按钮上时的样式 */
 button:hover {
   background-color: #0056b3; /* 按钮背景颜色变深 */
@@ -485,6 +578,70 @@ button:hover {
 
 .modal h2 {
   text-align: center;
-  color: white; /* 设置文本颜色为白色 */
+  color: rgb(255, 255, 255); /* 设置文本颜色为白色 */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 1); /* 给文字添加阴影效果 */
+}
+
+.avatar-container {
+  display: flex;          /* 使用flex布局 */
+  justify-content: center; /* 水平居中头像 */
+  align-items: center;     /* 垂直居中头像 */
+  /* 可以根据需要添加其他样式，如边距等 */
+  margin-bottom: 20px;     /* 头像和下方内容的距离 */
+}
+
+/* 添加或更新头像图片的样式 */
+.avatar {
+  width: 100px;    /* 设置头像的宽度 */
+  height: 100px;   /* 设置头像的高度，保持宽高比 */
+  object-fit: cover;/* 确保图片覆盖整个区域，不被拉伸变形 */
+  border-radius: 50%; /* 设置圆形头像 */
+  border: 4px solid #fff; /* 添加白色边框，根据需要调整宽度和颜色 */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
+}
+.login-button {
+  display: flex;          /* 使用flex布局 */
+  justify-content: center; /* 水平居中 */
+  align-items: center;     /* 垂直居中 */
+  gap: 10px;              /* 如果有多个按钮或元素，设置间距 */
+  text-align: center; /* 文本居中 */
+  padding-top: 20px; /* 根据需要调整内边距 */
+}
+
+/* 按钮样式 */
+.login-button button {
+  width: 350px;
+  padding: 15px 30px;      /* 增加内边距，使按钮变大 */
+  font-size: 18px;         /* 增大字体大小 */
+  font-weight: bold;        /* 字体加粗 */
+  background-image: linear-gradient(45deg, #57b6f6, #f8a602); /* 45度角的线性渐变 */
+  color: white;            /* 字体颜色 */
+  border: none;            /* 去除边框 */
+  border-radius: 25px;       /* 圆角边框 */
+  cursor: pointer;          /* 鼠标悬停时显示指针 */
+  transition: background-color 0.3s; /* 背景颜色过渡效果 */
+}
+
+/* 鼠标悬停在按钮上时的样式 */
+.login-button button:hover {
+  background-color: #0056b3; /* 按钮背景颜色变深 */
+}
+
+.reset-form-group{
+  margin-bottom: 5px;
+  color:rgb(255, 255, 255);
+  font-size: 16px;         /* 增大字体大小 */
+  font-weight: bold;        /* 字体加粗 */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 1); /* 给文字添加阴影效果 */
+}
+.reset-form-group input{
+  padding: 10px 20px; /* 调整内边距以匹配按钮 */
+  border-radius: 25px; /* 圆角边框，与按钮一致 */
+  /* border: none; 去除边框 */
+  background-color: #ffffff2d; /* 背景颜色，可以根据需要调整 */
+  color: #333; /* 文字颜色，可以根据需要调整 */
+  margin-bottom: 10px; /* 在输入框之间添加一些间距，可根据需要调整 */
+  margin-top: 30px;
+  width: 90%;
 }
 </style>
