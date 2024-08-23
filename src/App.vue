@@ -11,9 +11,9 @@
         <h3><router-link to="/guan-yu">关于</router-link></h3>|
         <h3>
           <router-link v-if="!isLoggedIn" to="/deng-lu">请登录</router-link>
-          <router-link v-else to="/yong-hu-zhong-xin">已登录</router-link>
+          <router-link v-else to="/yong-hu-zhong-xin">个人中心</router-link>
         </h3>
-        <div class="avatar"></div>
+        <div class="avatar1"></div>
       </nav>
     </div>
     <router-view/>
@@ -99,7 +99,6 @@ nav a {
   height: 40px;
   border-radius: 50%;
   background-color: #ccc; /* 这里可以设置默认头像的背景颜色 */
-  background-image: url('../public/icon.png'); /* 设置默认头像 */
   background-size: cover; /* 使图片覆盖整个容器 */
   background-position: center; /* 使图片居中 */
   display: inline-block;
