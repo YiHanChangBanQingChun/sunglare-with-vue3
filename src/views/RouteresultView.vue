@@ -96,6 +96,9 @@ import Extent from '@geoscene/core/geometry/Extent'
 import axios from 'axios'
 import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import BasemapGallery from '@geoscene/core/widgets/BasemapGallery.js'
+import FeatureLayer from '@geoscene/core/layers/FeatureLayer.js'
+import Compass from '@geoscene/core/widgets/Compass.js'
 export default {
   name: 'RouteresultView',
   setup () {
@@ -453,16 +456,56 @@ export default {
           minScale: 500,
           maxScale: 2000000,
           rotationEnabled: false,
-          // 假设tileInfo.lods已经在某处定义，否则这里需要调整
-          // lods: tileInfo.lods,
           snapToZoom: false
         }
       })
+      // 创建 BasemapGallery 实例
+      const basemapGallery = new BasemapGallery({
+        view: this.view,
+        source: {
+          query: {
+            title: '"Basemaps for Developers" AND owner:geoscenedev'
+          }
+        }
+      })
+      const compass = new Compass({
+        view: this.view
+      })
+      // 将 BasemapGallery 添加到地图视图的右上角
+      this.view.ui.add(basemapGallery, 'bottom-right')
       // 移动缩放控件到左下角
       this.view.ui.move('zoom', 'bottom-left')
+      // 将指南针添加到地图视图的左下角
+      this.view.ui.add(compass, 'bottom-left')
       // 创建一个新的GraphicsLayer实例，以便在地图上绘制点
       const graphicsLayer = new GraphicsLayer()
       map.add(graphicsLayer)
+      // 创建 FeatureLayer 实例
+      const featureLayer = new FeatureLayer({
+        url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/wuhan_village/FeatureServer',
+        renderer: {
+          type: 'simple', // 使用简单渲染器
+          symbol: {
+            type: 'simple-fill', // 使用简单填充符号
+            color: [0, 0, 0, 0], // 填充颜色透明
+            outline: {
+              color: [0, 0, 0, 1], // 轮廓颜色红色
+              width: 1
+            }
+          }
+        },
+        popupTemplate: {
+          content: [{
+            type: 'fields',
+            fieldInfos: [{
+              fieldName: '县区name',
+              label: '县区名称'
+            }]
+          }]
+        }
+      })
+      // 将 FeatureLayer 添加到地图
+      map.add(featureLayer)
       this.view.when(() => {
         this.drawPoints(graphicsLayer)
         this.adjustView()

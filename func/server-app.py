@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify,send_file
+from flask import Flask, request, jsonify,send_file,Response
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash,generate_password_hash
 from geoalchemy2 import Geometry
@@ -21,6 +21,7 @@ from flask_cors import CORS
 from datetime import datetime, timezone,timedelta
 from pysolar.solar import get_altitude, get_azimuth
 from urllib.parse import unquote
+import requests
 
 
 # step 1: create a Flask app
@@ -84,6 +85,7 @@ class User(db.Model):
     security_question = db.Column(db.String(100), nullable=False)
     security_answer = db.Column(db.String(100), nullable=False)
     birthday = db.Column(db.Date, nullable=False)
+    avatar = db.Column(db.String(200), nullable=True)  # 头像文件位置
 
 areas = {
     "武汉市": {"longitude": 114.31, "latitude": 30.52},
@@ -202,14 +204,14 @@ def get_closest_table_name(month, day, hour, minute):
         print(f"Error connecting to database: {e}")
         return None
 
-    closest_table = None
+    closest_table = "whrd7"  # Default to the base table
     closest_time_diff = timedelta.max
 
     for table in tables:
         table_name = table[0]
         try:
             parts = table_name.split('_')
-            if len(parts) < 4:
+            if len(parts) < 5:
                 print(f"Skipping table with unexpected format: {table_name}")
                 continue  # Skip tables that don't follow the expected format
 
@@ -225,9 +227,14 @@ def get_closest_table_name(month, day, hour, minute):
             table_hour = int(parts[2][1:])  # Get the part after 't'
             table_minute = int(parts[3])
             table_second = int(parts[4])
+            # 如果是9月，提取天数部分
+            if month == 9 and len(parts) > 5:
+                table_day = int(parts[5])
+            else:
+                table_day = 15  # 默认值
             # print(f"Table time: {table_hour:02d}:{table_minute:02d}:{table_second:02d}")
             # 计算时间差
-            table_time = datetime(2023, table_month, 15, table_hour, table_minute, table_second)
+            table_time = datetime(2023, table_month,table_day, table_hour, table_minute, table_second)
             input_time = datetime(2023, month, day, hour, minute)
             time_diff = abs(table_time - input_time)
             
@@ -241,6 +248,10 @@ def get_closest_table_name(month, day, hour, minute):
             print(f"Error parsing table name {table_name}: {e}")
         except Exception as e:
             print(f"Unexpected error parsing table name {table_name}: {e}")
+
+        # 如果最接近的表的时间差超过1小时（忽略日期差别），则使用默认表
+    if closest_time_diff.total_seconds() % 86400 > 3600:  # 86400秒 = 24小时, 3600秒 = 1小时
+        closest_table = "whrd7"
 
     print(f"Closest table for {month:02d}/{day:02d} {hour:02d}:{minute:02d} is {closest_table}")
     return closest_table
@@ -355,7 +366,7 @@ def route_plan():
     else:
         closest_table_name = None
 
-    if closest_table_name:
+    if closest_table_name and closest_table_name != "whrd7":
         time_based_route_plan_id, time_based_temp_file_path = execute_route_plan(start, end, closest_table_name)
     else:
         time_based_route_plan_id = None
@@ -377,98 +388,6 @@ def get_geojson(route_id):
         return send_file(file_path, mimetype='application/json')
     else:
         return jsonify({"error": "File not found"}), 404
-
-# 以下是单一路径规划（已弃用）
-# @app.route('/api/route/plan', methods=['POST'])
-# def route_plan():
-#     data = request.json
-#     start = data['start']['location']
-#     end = data['end']['location']
-    
-#     # 连接数据库
-#     conn = psycopg2.connect(**conn_params)
-#     cur = conn.cursor()
-    
-#     # 执行路径规划查询
-#     query = """
-#     WITH start_vertex AS (
-#         SELECT id FROM whrd7_vertices_pgr
-#         ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(%s, %s), 4326) LIMIT 1
-#     ), end_vertex AS (
-#         SELECT id FROM whrd7_vertices_pgr
-#         ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(%s, %s), 4326) LIMIT 1
-#     )
-#     SELECT seq, path_seq, node, edge, cost, agg_cost, ST_AsBinary(geom) AS geom, length
-#     FROM pgr_astar(
-#         'SELECT gid AS id, source, target, 
-#         forward_time AS cost, 
-#         reverse_time AS reverse_cost, 
-#         COALESCE(ST_X(ST_StartPoint(geom)), 0) AS x1, COALESCE(ST_Y(ST_StartPoint(geom)), 0) AS y1, 
-#         COALESCE(ST_X(ST_EndPoint(geom)), 0) AS x2, COALESCE(ST_Y(ST_EndPoint(geom)), 0) AS y2 
-#         FROM whrd7
-#         WHERE geom IS NOT NULL AND (ST_GeometryType(geom) = ''ST_LineString'' OR ST_GeometryType(geom) = ''ST_MultiLineString'')',
-#         (SELECT id FROM start_vertex), (SELECT id FROM end_vertex), directed := true
-#     ) AS route
-#     JOIN whrd7 ON route.edge = whrd7.gid;
-#     """
-    
-#     cur.execute(query, (start[0], start[1], end[0], end[1]))
-#     route_result = cur.fetchall()
-    
-#     # 将查询结果转换为GeoJSON
-#     features = []
-    
-#     for row in route_result:
-#         geom_data = row[-2]
-#         if isinstance(geom_data, memoryview):
-#             geom_data = geom_data.tobytes()
-#         if isinstance(geom_data, bytes):
-#             try:
-#                 geom = wkb.loads(geom_data)
-#                 geom_json = mapping(geom)
-#                 feature = {
-#                     "type": "Feature",
-#                     "geometry": geom_json,
-#                     "properties": {
-#                         "seq": row[0],
-#                         "path_seq": row[1],
-#                         "node": row[2],
-#                         "edge": row[3],
-#                         "cost": row[4],
-#                         "agg_cost": row[5],
-#                         "length": row[7]
-#                     }
-#                 }
-#                 features.append(feature)
-#             except Exception as e:
-#                 print(f"Error loading WKB data: {e}")
-    
-#     geojson = {
-#         "type": "FeatureCollection",
-#         "features": features
-#     }
-
-#     # 使用同一个UUID既作为文件名的一部分，也作为返回给前端的ID
-#     route_plan_id = str(uuid.uuid4())
-#     temp_file_name = f"route_plan_{route_plan_id}.geojson"
-#     temp_file_path = os.path.join(temp_dir, temp_file_name)
-
-#     with open(temp_file_path, "w") as tmp:
-#         json.dump(geojson, tmp)
-
-#     # 关闭数据库连接
-#     cur.close()
-#     conn.close()
-    
-#     return jsonify({"id": route_plan_id, "tempFilePath": temp_file_path})
-
-# @app.route('/api/get_geojson/<route_id>')
-# def get_geojson(route_id):
-#     # 根据route_id构造文件路径
-#     print(route_id)
-#     file_path = os.path.join(BASE_DIR, 'tmp', f'route_plan_{route_id}.geojson')
-#     # 返回文件内容
-#     return send_file(file_path, mimetype='application/json')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -535,7 +454,8 @@ def get_user_info():
             'username': user.username,
             'email': user.email,
             'security_question': user.security_question,
-            'birthday': user.birthday.strftime('%Y-%m-%d')
+            'birthday': user.birthday.strftime('%Y-%m-%d'),
+            'avatar': user.avatar  # 添加头像文件位置
         })
     else:
         return jsonify({'message': 'User not found'}), 404
@@ -708,7 +628,32 @@ def initialize():
         clear_temp_folder()
         temp_folder_cleared = True
 
-
+@app.route('/api/getapp', methods=['GET'])
+def getapp():
+    url_list = [
+        {"date": "2024-09-01", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=a29dc123ec1e46e5a391e62cb43ac095"},
+        {"date": "2024-09-05", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=64e61674326e4a87954f9b790bcbeb1b"},
+        {"date": "2024-09-10", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=700280f37e0449fc9701e22103d88de4"},
+        {"date": "2024-09-15", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=957ed46de859472595081c1dfbeb72a0"},
+        {"date": "2024-09-20", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=c14dc9f9965f4e9e858e7afdd46cb75e"},
+        {"date": "2024-09-25", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=97fb5c3168814345ba994d2080315dca"},
+        {"date": "2024-09-30", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=21896e400b9e470b8d8e6325ae1b84d3"}
+    ]
+    current_date = datetime.now().date()
+    
+    closest_date = None
+    closest_url = None
+    for entry in url_list:
+        entry_date = datetime.strptime(entry["date"], "%Y-%m-%d").date()
+        if closest_date is None or abs((entry_date - current_date).days) < abs((closest_date - current_date).days):
+            closest_date = entry_date
+            closest_url = entry["url"]
+    print(f"Closest URL: {closest_url}")
+    if closest_url:
+        return jsonify({'url': closest_url})
+    else:
+        return jsonify({'message': 'No URL found'}), 404
+    
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

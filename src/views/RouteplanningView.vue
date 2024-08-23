@@ -79,32 +79,6 @@
       </div>
     </div>
   </div>
-  <!-- 分别显示起点和终点选中结果的代码 -->
-   <!-- 这个是初始调试用的，这个界面不跳转时是可以用的，目前已经荒废
-  <div v-if="selectedResultStart" class="selected-result-start">
-    <h2>起点搜索结果:</h2>
-    <p>地址: {{ selectedResultStart.address }}</p>
-    <p>百度索引: {{ selectedResultStart.baidu_index }}</p>
-    <p>百度纬度: {{ selectedResultStart.baidu_latitude }}</p>
-    <p>百度经度: {{ selectedResultStart.baidu_longitude }}</p>
-    <p>ID: {{ selectedResultStart.id }}</p>
-    <p>标签: {{ selectedResultStart.label }}</p>
-    <p>名称: {{ selectedResultStart.name }}</p>
-    <p>WGS84纬度: {{ selectedResultStart.wgs84_latitude }}</p>
-    <p>WGS84经度: {{ selectedResultStart.wgs84_longitude }}</p>
-  </div>
-  <div v-if="selectedResultEnd" class="selected-result-end">
-    <h2>终点搜索结果:</h2>
-    <p>地址: {{ selectedResultEnd.address }}</p>
-    <p>百度索引: {{ selectedResultEnd.baidu_index }}</p>
-    <p>百度纬度: {{ selectedResultEnd.baidu_latitude }}</p>
-    <p>百度经度: {{ selectedResultEnd.baidu_longitude }}</p>
-    <p>ID: {{ selectedResultEnd.id }}</p>
-    <p>标签: {{ selectedResultEnd.label }}</p>
-    <p>名称: {{ selectedResultEnd.name }}</p>
-    <p>WGS84纬度: {{ selectedResultEnd.wgs84_latitude }}</p>
-    <p>WGS84经度: {{ selectedResultEnd.wgs84_longitude }}</p>
-  </div> -->
 </template>
 
 <script>
@@ -112,8 +86,11 @@
 import Map from '@geoscene/core/Map.js'
 import MapView from '@geoscene/core/views/MapView.js' // 确保这个路径正确，或者检查是否正确安装了相关npm包
 import SpatialReference from '@geoscene/core/geometry/SpatialReference.js'
+import FeatureLayer from '@geoscene/core/layers/FeatureLayer.js'
 // import Point from '@geoscene/core/geometry/Point.js'
 import TileInfo from '@geoscene/core/layers/support/TileInfo.js'
+import BasemapGallery from '@geoscene/core/widgets/BasemapGallery.js'
+import Compass from '@geoscene/core/widgets/Compass.js'
 // import { search } from 'core-js/fn/symbol'
 import { nextTick } from 'vue'
 // @ is an alias to /src
@@ -362,9 +339,35 @@ export default {
         alert('请确保起点和终点都已选择。')
       }
     },
-
     // 创建地图视图
     createMapView (map, tileInfo) {
+      // 创建 FeatureLayer 实例
+      const featureLayer = new FeatureLayer({
+        url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/wuhan_village/FeatureServer',
+        renderer: {
+          type: 'simple', // 使用简单渲染器
+          symbol: {
+            type: 'simple-fill', // 使用简单填充符号
+            color: [0, 0, 0, 0], // 填充颜色透明
+            outline: {
+              color: [0, 0, 0, 1], // 轮廓颜色红色
+              width: 1
+            }
+          }
+        },
+        popupTemplate: {
+          content: [{
+            type: 'fields',
+            fieldInfos: [{
+              fieldName: '县区name',
+              label: '县区名称'
+            }]
+          }]
+        }
+      })
+      // 将 FeatureLayer 添加到地图
+      map.add(featureLayer)
+      // 创建 MapView 实例
       const mapView = new MapView({
         map: map,
         center: [114.3, 30.7], // 使用中心点坐标
@@ -385,7 +388,24 @@ export default {
           snapToZoom: false
         }
       })
-      mapView.ui.move('zoom', 'bottom-left') // 移动缩放控件到左下角
+      // 创建 BasemapGallery 实例
+      const basemapGallery = new BasemapGallery({
+        view: mapView,
+        source: {
+          query: {
+            title: '"Basemaps for Developers" AND owner:geoscenedev'
+          }
+        }
+      })
+      const compass = new Compass({
+        view: mapView
+      })
+      // 将 BasemapGallery 添加到地图视图的右上角
+      mapView.ui.add(basemapGallery, 'bottom-right')
+      // 移动缩放控件到左下角
+      mapView.ui.move('zoom', 'bottom-left')
+      // 将指南针添加到地图视图的左下角
+      mapView.ui.add(compass, 'bottom-left')
       return mapView
     }
   }

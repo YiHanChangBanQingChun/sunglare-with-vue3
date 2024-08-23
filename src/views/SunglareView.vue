@@ -1,58 +1,24 @@
 <template>
-  <div class="xuan-guang-qing-kuang">
-    <!-- <div class="text">
-      <h1>这里放眩光的信息图表</h1>
-    </div> -->
-  </div>
-  <div class="select-container">
-    <select v-model="selectedDistrict" @change="handleDistrictChange">
-    <option v-for="district in districts" :key="district.code" :value="district.code">
-      {{ district.name }}
-    </option>
-  </select>
-  </div>
-  <div class="echarts-wrapper">
-    <!-- 这里放echarts的图 -->
-    <div ref="zhuzhuangtu" class="echarts-container">
+  <div class="container">
+    <div class="select-container">
+      <select v-model="selectedDistrict" @change="handleDistrictChange">
+        <option v-for="district in districts" :key="district.code" :value="district.code">
+          {{ district.name }}
+        </option>
+      </select>
     </div>
-    <div class="echarts-container" id="yibiaopan">
+    <div class="content-wrapper">
+      <div class="echarts-wrapper">
+        <!-- 这里放echarts的图 -->
+        <div ref="zhuzhuangtu" class="echarts-container"></div>
+        <div class="echarts-container" id="yibiaopan"></div>
+        <div ref="polarChart" class="echarts-container"></div>
+      </div>
+      <div class="geoscene-wrapper">
+        <iframe :src="iframeSrc" frameborder="0" class="geoscene-iframe"></iframe>
+      </div>
     </div>
-    <div ref="polarChart" class="echarts-container">
-    </div>
   </div>
-  <!-- 画了个表格出来 -->
-  <!-- <div class="weather">
-  <h3>武汉市天气信息</h3>
-  <div v-if="weatherInfos.length > 0">
-    <table>
-      <thead>
-        <tr>
-          <th>区域代码</th>
-          <th>天气现象</th>
-          <th>实时气温</th>
-          <th>风向</th>
-          <th>风力</th>
-          <th>空气湿度</th>
-          <th>数据发布时间</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="(info, index) in weatherInfos" :key="index">
-          <td>{{ info.city }}</td>
-          <td>{{ info.weather }}</td>
-          <td>{{ info.temperature }}°C</td>
-          <td>{{ info.winddirection }}</td>
-          <td>{{ info.windpower }}级</td>
-          <td>{{ info.humidity }}</td>
-          <td>{{ info.reporttime }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <div v-else>
-    <p>加载天气信息中...</p>
-  </div>
-</div> -->
 </template>
 
 <script>
@@ -92,7 +58,8 @@ export default {
   name: 'SunglareView',
   data () {
     return {
-      // weatherInfo: null,
+      iframeSrc: '',
+      selectedDistrict: 420100,
       intervalid: null,
       // 定时器 ID
       weatherInfos: [], // 存储多个区域的天气信息
@@ -112,7 +79,6 @@ export default {
         { code: '420116', name: '黄陂区' },
         { code: '420117', name: '新洲区' }
       ],
-      selectedDistrict: null,
       currentTemperature: null,
       polarChart: null, // 极坐标图
       solarData: [], // 当前时间的太阳位置数据
@@ -120,8 +86,17 @@ export default {
       barChart: null // 柱状图
     }
   },
+  watch: {
+    selectedDistrict (newVal) {
+      const district = this.districts.find(d => d.code === newVal)
+      if (district) {
+        this.inityibiaopan(district.name)
+      }
+    }
+  },
   async mounted () {
     this.initzhuzhuangtu()
+    await this.fetchIframeUrl()
     console.log('Echarts is mounted')
     await this.fetchWeatherInfo(this.selectedDistrict) // 默认加载武汉市的天气信息
     this.intervalid = setInterval(() => {
@@ -140,6 +115,25 @@ export default {
     }
   },
   methods: {
+    async fetchIframeUrl () {
+      try {
+        const response = await fetch(`${process.env.VUE_APP_API_URL}/api/getapp`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        const data = await response.json()
+        if (data.url) {
+          this.iframeSrc = data.url
+          console.log('获取到的iframe URL:', this.iframeSrc)
+        } else {
+          console.error('URL not found in response')
+        }
+      } catch (error) {
+        console.error('Error fetching iframe URL:', error)
+      }
+    },
     handleDistrictChange () {
       clearInterval(this.intervalid)
       console.log('选择的区域:', this.selectedDistrict)
@@ -153,18 +147,30 @@ export default {
       this.barChart = echarts.init(this.$refs.zhuzhuangtu)
       this.barChart.setOption({
         title: {
-          text: '眩光占比',
+          text: '街景眩光占比',
           left: 'center'
         },
-        tooltip: {},
+        tooltip: {
+          formatter: function (params) {
+            if (params.seriesName === '百分比') {
+              return `${params.name}: ${params.value} %`
+            } else {
+              return `${params.name}: ${params.value} 张`
+            }
+          }
+        },
+        grid: {
+          left: '15%', // 向右移动
+          top: '28%' // 向下移动
+        },
         xAxis: {
           type: 'category',
-          data: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+          data: [] // 默认设置为空
         },
         yAxis: {
           type: 'value',
           axisLabel: {
-            formatter: '{value} %'
+            formatter: '{value}'
           }
         },
         series: [{
@@ -173,6 +179,8 @@ export default {
           data: []
         }]
       })
+      // 初始化时加载静态数据
+      this.updateStaticChart()
     },
     updatezhuzhuangtu (data, currentMonth) {
       const xAxisData = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
@@ -188,17 +196,79 @@ export default {
         }))
       }).flat()
       this.barChart.setOption({
+        title: {
+          text: '眩光占比',
+          left: 'center'
+        },
+        tooltip: {
+          formatter: function (params) {
+            return `${params.name}: ${params.value} %`
+          }
+        },
         xAxis: { data: xAxisData },
+        yAxis: {
+          type: 'value',
+          axisLabel: {
+            formatter: '{value} %'
+          }
+        },
         series: [{ data: seriesData }]
+      })
+    },
+    updateStaticChart () {
+      const staticData = [
+        { name: '东西湖区', count: 11107 },
+        { name: '新洲区', count: 5825 },
+        { name: '武昌区', count: 12242 },
+        { name: '汉南区', count: 1800 },
+        { name: '汉阳区', count: 13977 },
+        { name: '江夏区', count: 22063 },
+        { name: '江岸区', count: 11125 },
+        { name: '江汉区', count: 6207 },
+        { name: '洪山区', count: 37107 },
+        { name: '硚口区', count: 7510 },
+        { name: '蔡甸区', count: 14146 },
+        { name: '青山区', count: 3176 },
+        { name: '黄陂区', count: 5073 }
+      ]
+      const xAxisData = staticData.map(item => item.name)
+      const seriesData = staticData.map(item => item.count)
+      this.barChart.setOption({
+        title: {
+          text: '各区街景图片数',
+          left: 'center'
+        },
+        tooltip: {
+          formatter: function (params) {
+            return `${params.name}: ${params.value} 张`
+          }
+        },
+        xAxis: {
+          data: xAxisData,
+          axisLabel: {
+            rotate: 45, // 旋转45度
+            interval: 0 // 显示所有标签
+          }
+        },
+        yAxis: {
+          type: 'value',
+          axisLabel: {
+            formatter: '{value}'
+          }
+        },
+        series: [{ data: seriesData, type: 'bar' }]
       })
     },
     async fetchStatistics (district = null) {
       try {
+        if (!district || district === '420100') {
+          this.updateStaticChart()
+          return
+        }
         const url = new URL(`${process.env.VUE_APP_API_URL}/api/statistics`)
         if (district) {
           url.searchParams.append('district', district)
         }
-
         const response = await fetch(url, {
           method: 'GET',
           headers: {
@@ -232,7 +302,7 @@ export default {
           }
         },
         tooltip: {
-          formatter: function (params) {
+          formatter: (params) => {
             return `城市: ${areaName}<br/>${params.seriesName}: ${params.value}°C `
           }
         },
@@ -240,14 +310,14 @@ export default {
           {
             name: '温度',
             type: 'gauge',
-            center: ['50%', '60%'],
+            center: ['50%', '68%'],
             startAngle: 200,
             endAngle: -20,
             min: -5,
             max: 40,
             splitNumber: 9,
             itemStyle: {
-              color: 'greeen'
+              color: 'green'
             },
             progress: {
               show: true,
@@ -291,7 +361,7 @@ export default {
             title: {
               show: true,
               offsetCenter: [0, '70%'],
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: 'bolder',
               color: '#333',
               left: 'center',
@@ -458,7 +528,7 @@ export default {
       const option = {
         title: {
           text: `${areaName}太阳高度角和方位角`,
-          fontSize: 16,
+          fontSize: 14,
           left: 'center',
           top: 'top'
         },
@@ -583,99 +653,80 @@ export default {
 
 </script>
 
-<style>
-.xuan-guang-qing-kuang {
+<style scoped>
+.container {
   display: flex;
-  flex-direction: column; /* 使子元素垂直排列 */
-  align-items: center; /* 水平居中对齐子元素 */
-}
-
-.text > h1 {
-  text-align: center; /* 文本居中 */
-  background: -webkit-linear-gradient(rgba(238,174,202,1), rgba(148,187,233,1));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  color: transparent; /* 对于非WebKit浏览器的兼容 */
-}
-
-.text {
-  margin-top: 5px; /* 顶部外边距 */
-  margin-bottom: 5px; /* 底部外边距 */
-  background: rgba(255, 255, 255, 0.65);
-  -webkit-backdrop-filter: blur(25px);
-  backdrop-filter: blur(25px);
-  border: 1px solid rgba(255,255,255,0.45);
-  border-radius: 15px; /* 添加圆角 */
-  padding: 20px; /* 内边距 */
-  text-align: left; /* 文本居中 */
-  width: 98%; /* 使容器宽度充满父容器 */
-}
-
-.echarts-container {
-  width: 90%; /* 每个图表占据90%的宽度 */
-  height: 30vh; /* 每个图表占据30%的高度 */
-  margin: 5px 5px; /* 添加垂直方向的外边距 */
-  display: flex;
-  justify-content: center; /* 水平居中对齐 */
-  align-items: center; /* 垂直居中对齐 */
-  background: rgba(255, 255, 255, 0.65); /* 毛玻璃效果 */
-  -webkit-backdrop-filter: blur(25px); /* 毛玻璃效果 */
-  backdrop-filter: blur(25px); /* 毛玻璃效果 */
-  border-radius: 10px; /* 添加圆角边框 */
-}
-
-.weather {
-  display: flex; /* 使用Flexbox布局 */
-  justify-content: center; /* 在主轴（水平方向）上居中 */
-  align-items: center; /* 在交叉轴（垂直方向）上居中 */
-  flex-direction: column; /* 子元素垂直排列 */
-  width: 100%; /* 使容器宽度充满父容器 */
-  text-align: center; /* 文本居中，影响到所有的表格单元 */
-  background: rgba(255, 255, 255, 0.65); /* 应用深色毛玻璃效果 */
-  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
-  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
-  border-radius: 10px; /* 添加圆角边框 */
-}
-
-.weather th, .weather td {
-  text-align: center; /* 单独确保表头和单元格文本居中 */
-}
-
-.weather h3 {
-  text-align: center; /* 标题文本居中 */
-}
-
-/* 新增echarts父容器样式 */
-.echarts-wrapper {
-  display: flex;
-  flex-direction: column; /* 确保子元素垂直排列 */
-  justify-content: flex-start; /* 子元素在主轴上靠左对齐 */
-  align-items: center; /* 子元素在交叉轴上居中对齐 */
-  width: 30%; /* 父容器占据30%的宽度 */
-  height: 100vh; /* 父容器占据整个视口高度 */
-  margin-top: 7vh; /* 向下移动20px，可以根据需要调整这个值 */
+  flex-direction: column;
+  align-items: center;
 }
 
 .select-container {
-  display: flex; /* 使用Flexbox布局 */
-  justify-content: flex-start; /* 水平靠左 */
-  align-items: flex-start; /* 垂直靠上 */
-  position: absolute; /* 绝对定位 */
-  top: 0; /* 距离顶部0 */
-  left: 0; /* 距离左侧0 */
-  margin: 20px; /* 添加一些外边距 */
-  width: 30% ;
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 20px;
+  width: 30%;
 }
 
 select {
-  width: 50%; /* 增加宽度 */
-  padding: 10px; /* 增加内边距，使其更好点击 */
-  border: 1px solid #ccc; /* 设置边框颜色 */
-  border-radius: 5px; /* 边框圆角 */
-  background-color: white; /* 背景色 */
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 添加一些阴影效果 */
-  font-size: 16px; /* 文字大小 */
+  width: 50%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  font-size: 16px;
 }
 
+.content-wrapper {
+  display: flex;
+  width: 100%;
+  height: 89vh;
+  margin-top: 9vh;
+}
+
+.echarts-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 25%;
+  height: 100%;
+}
+
+.echarts-container {
+  width: 95%;
+  height: 30vh;
+  margin: 5px 5px;
+  display: flex;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.65);
+  -webkit-backdrop-filter: blur(25px);
+  backdrop-filter: blur(25px);
+  border-radius: 6px;
+}
+
+.geoscene-wrapper {
+  width: 80%; /* 调整宽度以占据右侧区域 */
+  height: 86vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0vh;
+  background: rgba(255, 255, 255, 0.65); /* 添加磨砂白色背景 */
+  -webkit-backdrop-filter: blur(25px); /* 添加磨砂效果 */
+  backdrop-filter: blur(25px); /* 添加磨砂效果 */
+  border-radius: 10px; /* 添加圆角 */
+  padding: 10px; /* 添加内边距 */
+}
+
+.geoscene-iframe {
+  width: 100%;
+  height: 100%; /* 调整高度以占据整个父容器 */
+  border-radius: 10px; /* 添加圆角 */
+  overflow: hidden; /* 确保圆角效果 */
+}
 </style>

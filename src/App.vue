@@ -5,7 +5,7 @@
     </div>
     <div class="gong-neng-lan">
       <nav>
-        <h3><router-link to="/">主页</router-link></h3> |
+        <!--  <h3><router-link to="/">主页</router-link></h3> |-->
         <h3><router-link to="/lu-jing-gui-hua">路径规划</router-link></h3>|
         <h3><router-link to="/xuan-guang-qing-kuang">眩光状况</router-link></h3>|
         <h3><router-link to="/guan-yu">关于</router-link></h3>|

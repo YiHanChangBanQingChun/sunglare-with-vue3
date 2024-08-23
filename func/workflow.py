@@ -15,7 +15,7 @@ from pyproj import Transformer
 import matplotlib.pyplot as plt
 import psycopg2
 from psycopg2 import sql
-
+import re
 # 1. 将多线转换为单线
 def split_line(line, row):
     """
@@ -141,7 +141,9 @@ def update_yaw_with_e_angle(point_shp_path, line_shp_path, output_shp_path):
             points_gdf.at[idx, 'yaw'] = line_angle_dict[near_fid]
     # 保存更新后的点数据到新的shapefile
     points_gdf.to_file(output_shp_path, encoding='utf-8', driver='ESRI Shapefile')
+'''
 
+'''
 # 5. 生成鱼眼图像，北对齐
 # def cylinder2fisheyeImage (panoImg,yaw,outputImgFile='fisheye.jpg'):
 #     '''
@@ -399,7 +401,6 @@ def azimuth_angle_calculator_north_to_east(lat,lon,date):
         azimuth_angle_east += 360
     return azimuth_angle_east
 
-#坡度情况也不知道，假设知道为0。
 def vertical_glare_calculatior(date,lon,lat,vision_form_slope_angle = 0):
     '''
     坡度默认为0,因为街景图象获取的时候都是平视角获取的
@@ -723,7 +724,7 @@ def csv_to_shp(csv_file, shp_file, lon_col='50lon', lat_col='50lat', epsg=32648)
     # 保存为 Shapefile，确保保存为中文
     gdf.to_file(shp_file, encoding='utf-8')
 
-def update_whrd7_tables(date_csv_folder, db_params):
+def update_whrd7_tables_noday(date_csv_folder, db_params):
     # 获取 date_csv_folder 文件夹中的所有 CSV 文件
     date_csv_files = [f for f in os.listdir(date_csv_folder) if f.endswith('.csv')]
     
@@ -766,6 +767,52 @@ def update_whrd7_tables(date_csv_folder, db_params):
     cur.close()
     conn.close()
 
+def update_whrd7_tables(date_csv_folder, db_params):
+    # 获取 date_csv_folder 文件夹中的所有 CSV 文件
+    date_csv_files = [f for f in os.listdir(date_csv_folder) if f.endswith('.csv')]
+    
+    # 连接数据库
+    conn = psycopg2.connect(**db_params)
+    cur = conn.cursor()
+    
+    # 循环处理每个 CSV 文件，并显示进度条
+    for date_csv_file in tqdm(date_csv_files, desc="处理CSV文件进度"):
+        date_csv_path = os.path.join(date_csv_folder, date_csv_file)
+        
+        # 读取 date_csv_path 文件
+        date_df = pd.read_csv(date_csv_path)
+        
+        # 获取月份和天数
+        parts = date_csv_file.split('_')
+        month = parts[2]
+        day = parts[3]
+        print(f"Processing{day}...")
+        
+        # 获取所有时间列
+        time_columns = [col for col in date_df.columns if col.startswith('t')]
+        
+        for time_col in time_columns:
+            # 创建专属的 whrd7 表
+            sanitized_time_col = time_col.replace(':', '_')
+            whrd7_table_name = f"whrd7_{month}_{sanitized_time_col}_{day}"
+            cur.execute(f"CREATE TABLE {whrd7_table_name} AS TABLE whrd7")
+            
+            # 获取需要更新的 near_fid 列表
+            near_fids = date_df.loc[date_df[time_col] == 1, 'near_fid'].tolist()
+            print(f"Updating {len(near_fids)} records in {whrd7_table_name}...")
+            # 更新 whrd7 表中的 forward_time 和 reverse_time
+            update_query = f"""
+            UPDATE {whrd7_table_name}
+            SET forward_time = 99999, reverse_time = 99999
+            WHERE id = ANY(%s)
+            """
+            cur.execute(update_query, (near_fids,))
+    
+    # 提交更改并关闭数据库连接
+    conn.commit()
+    cur.close()
+    conn.close()
+
 # 数据库连接参数
 db_params = {
     "dbname": "postgis_34_sample",
@@ -774,7 +821,7 @@ db_params = {
     "host": "localhost"
 }
 
-
+# 画图函数
 def plot_solar_angles():
     # 设置中文字体
     plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
@@ -930,7 +977,6 @@ def count_time_intervals_in_districts(polygon_shp, monthly_files, output_csv):
     all_time_counts.to_csv(output_csv, index=False, encoding='utf-8-sig')
 
 # 11.统计各区街景点数据，存入数据库
-
 def import_csv_to_postgresql(csv_file, dbname, user, password, host, port, table_name):
     # 读取 CSV 文件
     df = pd.read_csv(csv_file)
@@ -1160,10 +1206,10 @@ if __name__ == "__main__":
 
     # 8. 合并csv
     # merge_csv_files_in_chunks(clean_pano_csv_file,r"E:\webgislocation\time",r"E:\webgislocation\time_merge")
-    # csv_to_shp(merge_csv_file, shp_date_file)
+    # # csv_to_shp(merge_csv_file, shp_date_file)
 
     # 9. 更新 whrd7 表
-    # update_whrd7_tables(r"E:\webgislocation\time_merge", db_params)
+    update_whrd7_tables(r"E:\webgislocation\time_merge_9", db_params)
 
     # 10.统计数据
     # count_points_in_districts(clean_pano_csv_file, polygon_shp, statistics_file)
@@ -1182,4 +1228,4 @@ if __name__ == "__main__":
     # )
 
     # 12.根据区打散街景点数据
-    save_points_by_district(clean_pano_csv_file, polygon_shp, r'E:\webgislocation\各区街景点shp')
+    # save_points_by_district(clean_pano_csv_file, polygon_shp, r'E:\webgislocation\各区街景点shp')

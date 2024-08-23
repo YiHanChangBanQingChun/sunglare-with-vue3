@@ -45,7 +45,7 @@ export default {
       this.logout()
       alert('退出成功')
       setTimeout(() => {
-        this.$router.push({ name: 'home' })
+        this.$router.push({ name: 'lu-jing-gui-hua' })
       }, 3000)
     }
   },
