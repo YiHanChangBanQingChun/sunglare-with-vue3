@@ -2,15 +2,31 @@
   <div class="yong-hu-zhong-xin">
     <div class="text">
       <div class="avatar-container">
-        <img :src="userInfo.avatarUrl || require('@/assets/touxiang1.png')" alt="" class="avatar">
+        <img :src="previewAvatarUrl || avatarUrl" alt="" class="avatar">
         <button class="avatar-change-button" @click="toggleAvatarModal">更换头像</button>
       </div>
       <!-- 用户信息显示 -->
-      <p>用户名: {{ userInfo.username }}</p>
-      <p>邮箱: {{ userInfo.email }}</p>
-      <p>安全问题: {{ userInfo.security_question }}</p>
-      <p>生日: {{ userInfo.birthday }}</p>
-            <div class="button-div">
+      <p @mouseover="showTooltip('username')" @mouseleave="hideTooltip" @click="editField('username')">
+        用户名: <span v-if="editingField !== 'username'">{{ userInfo.username }}</span>
+        <input v-else type="text" v-model="editForm.username" @blur="saveField('username')" />
+        <span v-if="tooltipVisible && tooltipField === 'username'" class="tooltip">点击修改用户名</span>
+      </p>
+      <p @mouseover="showTooltip('email')" @mouseleave="hideTooltip" @click="editField('email')">
+        邮箱: <span v-if="editingField !== 'email'">{{ userInfo.email }}</span>
+        <input v-else type="email" v-model="editForm.email" @blur="saveField('email')" />
+        <span v-if="tooltipVisible && tooltipField === 'email'" class="tooltip">点击修改邮箱</span>
+      </p>
+      <p @mouseover="showTooltip('security_question')" @mouseleave="hideTooltip" @click="editField('security_question')">
+        安全问题: <span v-if="editingField !== 'security_question'">{{ userInfo.security_question }}</span>
+        <input v-else type="text" v-model="editForm.security_question" @blur="saveField('security_question')" />
+        <span v-if="tooltipVisible && tooltipField === 'security_question'" class="tooltip">点击修改安全问题</span>
+      </p>
+      <p @mouseover="showTooltip('birthday')" @mouseleave="hideTooltip" @click="editField('birthday')">
+        生日: <span v-if="editingField !== 'birthday'">{{ userInfo.birthday }}</span>
+        <input v-else type="date" v-model="editForm.birthday" @blur="saveField('birthday')" />
+        <span v-if="tooltipVisible && tooltipField === 'birthday'" class="tooltip">点击修改生日</span>
+      </p>
+      <div class="button-div">
       <!-- 添加修改密码按钮 -->
       <button @click="showPasswordModal">修改密码</button>
       <!-- 退出登录按钮 -->
@@ -21,35 +37,42 @@
         <div v-if="passwordModalVisible" class="modal-overlay">
         <div class="modal">
           <h2>修改密码</h2>
-          <div class="form-group">
+          <div class="form-group-user">
             <label for="currentPassword">当前密码：</label>
-            <input type="password" id="currentPassword" v-model="passwordForm.currentPassword" :class="{'invalid-input': passwordErrors.currentPassword}">
+            <input type="password" id="currentPassword" v-model="passwordForm.currentPassword" @input="checkCurrentPassword" :class="{'invalid-input': passwordErrors.currentPassword}">
           </div>
-          <div class="form-group">
+          <div class="form-group-user">
             <label for="newPassword">新密码：</label>
-            <input type="password" id="newPassword" v-model="passwordForm.newPassword" :class="{'invalid-input': passwordErrors.newPassword}">
+            <input type="password" id="newPassword" v-model="passwordForm.newPassword" @input="validateNewPassword" :class="{'invalid-input': passwordErrors.newPassword}">
+            <span class="note">注意：密码需要使用包含英文和数字的6到10字符数。</span>
           </div>
-          <div class="form-group">
+          <div class="form-group-user">
             <label for="confirmPassword">确认新密码：</label>
-            <input type="password" id="confirmPassword" v-model="passwordForm.confirmPassword" :class="{'invalid-input': passwordErrors.confirmPassword}">
+            <input type="password" id="confirmPassword" v-model="passwordForm.confirmPassword" @input="validateConfirmPassword" :class="{'invalid-input': passwordErrors.confirmPassword}">
+            <span class="note">注意：请输入和新密码相同的密码。</span>
           </div>
           <div class="button-group">
-            <button @click="passwordModalVisible = false">取消</button>
+            <button @click="cancelPasswordChange">取消</button>
             <button @click="handleSubmitPassword">提交</button>
           </div>
         </div>
       </div>
-      <!-- 头像上传模态框 -->
-      <div v-if="showAvatarModal" class="modal-overlay">
-          <div class="avatar-modal">
-            <div class="modal-content">
-              <h2>请上传新头像</h2>
-              <input type="file" @change="handleAvatarUpload" />
-              <button class="avatar-change-button" @click="showAvatarModal = false">取消</button>
-              <button class="avatar-change-button" @click="uploadAvatar">确认上传</button>
-            </div>
+    <!-- 头像上传模态框 -->
+    <div v-if="showAvatarModal" class="modal-overlay">
+      <div class="avatar-modal">
+        <div class="modal-content">
+          <h2>请上传新头像</h2>
+          <div class="avatar-preview">
+            <img :src="previewAvatarUrl || avatarUrl" alt="预览头像" class="avatar-preview-img">
+          </div>
+          <input type="file" @change="handleAvatarUpload" />
+          <div class="button-group">
+            <button class="avatar-change-button" @click="showAvatarModal = false">取消</button>
+            <button class="avatar-change-button" @click="uploadAvatar">确认上传</button>
           </div>
         </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -65,7 +88,6 @@ export default {
       showAvatarModal: false,
       // 用户信息，包括头像UR,
       userInfo: {
-        avatarUrl: require('@/assets/touxiang1.png'), // 默认头像
         username: '', // 假设这些属性来自异步获取的用户信息
         email: '',
         security_question: '',
@@ -77,12 +99,27 @@ export default {
         newPassword: '',
         confirmPassword: ''
       },
-      // 表单验证结果
       passwordErrors: {
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      }
+        currentPassword: false,
+        newPassword: false,
+        confirmPassword: false
+      },
+      isPasswordValid: false,
+      avatarUrl: require('@/assets/touxiang1.png'), // 默认头像URL
+      previewAvatarUrl: null, // 预览头像URL
+      selectedFile: null, // 选中的文件
+      editingField: null, // 当前正在编辑的字段
+      editForm: {
+        username: '',
+        email: '',
+        security_question: '',
+        security_answer: '',
+        birthday: ''
+      },
+      tooltipVisible: false, // 控制提示信息的显示
+      tooltipField: '', // 当前显示提示信息的字段
+      currentUsername: '',
+      originalUsername: null // 用于保存旧用户名
     }
   },
   computed: {
@@ -91,33 +128,128 @@ export default {
     })
   },
   methods: {
-    ...mapActions(['logout']),
-    async fetchUserInfo () { // 修正：添加了分号
+    ...mapActions(['logout', 'updateUsername']),
+    async fetchUserInfo () {
       try {
         const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/user_info`, {
-          params: { username: this.username }
+          params: { username: this.username } // 确保使用当前用户名
         })
         this.userInfo = response.data
+        this.originalUsername = this.userInfo.username // 保存初始用户名
+        this.updateCurrentUsername(this.userInfo.username) // 更新当前用户名
+        if (this.userInfo.avatar) {
+          this.avatarUrl = `${process.env.VUE_APP_API_URL}/api/avatar/${this.userInfo.avatar}`
+        }
       } catch (error) {
         console.error('获取用户信息失败:', error)
       }
     },
+    updateCurrentUsername (username) {
+      this.currentUsername = username // 更新当前用户名
+    },
+    editField (field) {
+      this.editingField = field
+      this.editForm[field] = this.userInfo[field]
+      if (field === 'username') {
+        this.originalUsername = this.userInfo.username // 在点击编辑时保存旧用户名
+      }
+    },
+    cancelEdit () {
+      this.editingField = null
+    },
+    async saveField (field) {
+      try {
+        // 确保 originalUsername 被正确保存
+        const originalUsername = this.originalUsername
+        console.log('旧用户名:', originalUsername) // 添加日志
+
+        let updateData
+
+        // 如果更新的是用户名，创建包含旧用户名和新用户名的更新数据对象
+        if (field === 'username') {
+          updateData = {
+            username: originalUsername, // 使用旧用户名进行更新
+            new_username: this.editForm.username // 传递新的用户名
+          }
+        } else {
+          // 创建更新数据对象
+          updateData = {
+            username: originalUsername, // 使用旧用户名进行更新
+            [field]: this.editForm[field]
+          }
+        }
+
+        console.log('更新用户信息请求数据:', updateData) // 添加日志
+
+        // 发送更新请求
+        await axios.post(`${process.env.VUE_APP_API_URL}/api/update_user_info`, updateData)
+
+        // 如果更新的是用户名，更新 Vuex 状态和当前组件中的用户名
+        if (field === 'username') {
+          this.updateUsername(this.editForm.username) // 更新 Vuex 状态中的用户名
+          this.username = this.editForm.username // 更新当前组件中的用户名
+        }
+
+        // 保存成功后刷新用户信息
+        await this.fetchUserInfo()
+        this.editingField = null // 退出编辑状态
+
+        console.log(`Field ${field} saved successfully and editing state exited.`)
+      } catch (error) {
+        console.error('更新用户信息失败:', error)
+      }
+    },
+    showTooltip (field) {
+      this.tooltipVisible = true
+      this.tooltipField = field
+    },
+    hideTooltip () {
+      this.tooltipVisible = false
+      this.tooltipField = ''
+    },
+    // 重置密码表单
+    resetPasswordForm () {
+      this.passwordForm.currentPassword = ''
+      this.passwordForm.newPassword = ''
+      this.passwordForm.confirmPassword = ''
+      this.passwordErrors.currentPassword = false
+      this.passwordErrors.newPassword = false
+      this.passwordErrors.confirmPassword = false
+    },
     handleAvatarUpload (event) {
       const file = event.target.files[0]
       if (file) {
-      // 这里可以添加代码来处理文件，例如使用FormData上传
+        this.selectedFile = file
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.previewAvatarUrl = e.target.result
+        }
+        reader.readAsDataURL(file)
       }
     },
     uploadAvatar () {
-      // 这里添加上传头像的逻辑
-      // 上传成功后，更新userInfo.avatarUrl
+      if (this.selectedFile) {
+        const formData = new FormData()
+        formData.append('avatar', this.selectedFile)
+        formData.append('username', this.username)
+        axios.post(`${process.env.VUE_APP_API_URL}/api/upload_avatar`, formData)
+          .then(response => {
+            this.avatarUrl = `${process.env.VUE_APP_API_URL}/api/avatar/${response.data.avatar}`
+            this.showAvatarModal = false
+            this.previewAvatarUrl = null
+            this.selectedFile = null
+          })
+          .catch(error => {
+            console.error('上传头像失败:', error)
+          })
+      }
     },
     handleLogout () {
       this.logout()
       alert('退出成功')
       setTimeout(() => {
         this.$router.push({ name: 'lu-jing-gui-hua' })
-      }, 3000)
+      }, 1000)
     },
     toggleAvatarModal () {
       this.showAvatarModal = !this.showAvatarModal // 切换模态框的显示状态
@@ -126,37 +258,58 @@ export default {
       // 显示模态框
       this.passwordModalVisible = true
     },
-    // 验证密码
-    validatePassword () {
-      // 这里可以添加密码验证逻辑，例如检查密码强度等
-      // 如果有错误，设置错误信息
-      // 例如：
-      // if (this.passwordForm.newPassword.length < 8) {
-      //   this.passwordErrors.newPassword = '密码长度至少为8位';
-      // }
+    // 验证新密码
+    validateNewPassword () {
+      const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,10}$/
+      this.passwordErrors.newPassword = !regex.test(this.passwordForm.newPassword)
+    },
+    // 验证确认密码
+    validateConfirmPassword () {
+      this.passwordErrors.confirmPassword = this.passwordForm.newPassword !== this.passwordForm.confirmPassword
+    },
+    checkCurrentPassword () {
+      axios.post(`${process.env.VUE_APP_API_URL}/api/check_password`, {
+        username: this.username,
+        currentPassword: this.passwordForm.currentPassword
+      })
+        .then(response => {
+          this.passwordErrors.currentPassword = false
+        })
+        .catch(error => {
+          console.error('当前密码验证失败:', error) // 记录错误
+          this.passwordErrors.currentPassword = true
+        })
     },
     // 提交密码修改请求
     handleSubmitPassword () {
-      this.validatePassword()
+      this.validateNewPassword()
+      this.validateConfirmPassword()
       // 检查是否有错误
       if (Object.values(this.passwordErrors).some(error => error)) {
         return // 如果有错误，不提交表单
       }
       // 发送请求到服务器
-      axios.post('/api/change-password', {
+      axios.post(`${process.env.VUE_APP_API_URL}/api/reset_password`, {
+        username: this.username,
         currentPassword: this.passwordForm.currentPassword,
         newPassword: this.passwordForm.newPassword
       })
         .then(response => {
-        // 处理成功逻辑
+          // 处理成功逻辑
           alert('密码修改成功！')
           this.passwordModalVisible = false
+          this.resetPasswordForm()
         })
         .catch(error => {
           // 处理失败逻辑
           console.error('密码修改失败:', error)
           alert('密码修改失败，请重试。')
+          this.resetPasswordForm()
         })
+    },
+    cancelPasswordChange () {
+      this.passwordModalVisible = false
+      this.resetPasswordForm() // 重置表单
     }
   },
   mounted () {
@@ -167,12 +320,13 @@ export default {
 </script>
 
 <style>
-body {
+.yong-hu-zhong-xin {
   background-image: url('~@/assets/bg4.jpg'); /* 替换为你的图片路径 */
   background-size: cover; /* 背景图片覆盖整个元素 */
   background-repeat: no-repeat; /* 防止背景图片重复 */
   background-attachment: fixed; /* 背景图片固定，不随页面滚动 */
   background-position: center center; /* 背景图片居中显示 */
+  min-height: 100vh; /* 确保背景覆盖整个视图高度 */
 }
 .yong-hu-zhong-xin {
   display: flex;
@@ -412,23 +566,23 @@ width:30%;
   margin-top: 0;
 }
 
-.form-group {
+.form-group-user {
   display: flex;
   flex-direction: column;
   width: 100%;
 }
 
-.form-group label {
+.form-group-user label {
   margin-bottom: 5px;
   color:rgb(255, 255, 255);
 }
 
-.form-group input {
+.form-group-user input {
   padding: 8px;
   border-radius: 5px;
   border: 1px solid #ccc;
 }
-.form-group input {
+.form-group-user input {
   padding: 10px 20px; /* 调整内边距以匹配按钮 */
   border-radius: 5px; /* 圆角边框，与按钮一致 */
   /* border: none; 去除边框 */
@@ -438,17 +592,17 @@ width:30%;
   width: 90%;
 }
 
-.form-group input:focus {
+.form-group-user input:focus {
   border-color: #007bff; /* 焦点时的边框颜色 */
   outline: none; /* 去除默认的焦点样式 */
   border-width: 2px; /* 边框粗细 */
 }
 
-.form-group input.invalid-input {
+.form-group-user input.invalid-input {
   border-color: red !important;
 }
 
-.form-group input.invalid-input:focus {
+.form-group-user input.invalid-input:focus {
   border-color: red !important;
   outline: none;
   border-width: 2px;
@@ -478,4 +632,43 @@ width:30%;
   /* 其他样式保持不变 */
 }
 
+.note {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 1);
+  margin-top: 5px;
+  font-style: italic;
+}
+
+.invalid-input {
+  border: 1px solid red;
+}
+
+.avatar-preview {
+  margin-top: 10px;
+  width: 300px;
+  height: 300px;
+  border: 1px solid #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.avatar-preview-img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.tooltip {
+  display: inline-block;
+  background-color: #333;
+  color: #fff;
+  padding: 5px;
+  border-radius: 3px;
+  position: absolute;
+  z-index: 1000;
+  font-size: 12px;
+  margin-left: 10px;
+}
 </style>

@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify,send_file,Response
+from flask import Flask, request, jsonify,send_file,Response,send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import check_password_hash,generate_password_hash
 from geoalchemy2 import Geometry
@@ -22,7 +22,7 @@ from datetime import datetime, timezone,timedelta
 from pysolar.solar import get_altitude, get_azimuth
 from urllib.parse import unquote
 import requests
-
+import re
 
 # step 1: create a Flask app
 # 初始化 Flask 应用
@@ -445,6 +445,145 @@ def login():
         print(f"检查密码哈希时出错: {e}")
         return jsonify({'message': '内部服务器错误'}), 500
 
+@app.route('/api/forget_reset_password', methods=['POST'])
+def forget_reset_password():
+    data = request.json
+    print("忘记密码重置请求数据:", data)
+
+    # 检查用户是否存在
+    user = User.query.filter_by(username=data['username']).first()
+    if not user:
+        return jsonify({'message': 'User does not exist'}), 404
+
+    # 检查安全问题答案是否正确
+    if user.security_answer != data['security_answer']:
+        return jsonify({'message': 'Security answer is incorrect'}), 400
+
+    # 检查新密码是否符合要求
+    if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,10}$', data['newPassword']):
+        return jsonify({'message': 'New password does not meet the requirements'}), 400
+
+    # 生成新的哈希密码
+    hashed_password = bcrypt.generate_password_hash(data['newPassword']).decode('utf-8')
+    print(f"生成的新哈希密码: {hashed_password}")
+
+    # 更新用户密码
+    user.password = hashed_password
+    db.session.commit()
+    return jsonify({'message': 'Password reset successfully'}), 200
+
+@app.route('/api/reset_password', methods=['POST'])
+def reset_password():
+    data = request.json
+    print("重置密码请求数据:", data)
+
+    # 检查用户是否存在
+    user = User.query.filter_by(username=data['username']).first()
+    if not user:
+        return jsonify({'message': 'User does not exist'}), 404
+
+    # 检查当前密码是否正确
+    try:
+        if not bcrypt.check_password_hash(user.password, data['currentPassword']):
+            print("当前密码不正确", user.password, data['currentPassword'])
+            return jsonify({'message': 'Current password is incorrect'}), 400
+    except ValueError as e:
+        print(f"哈希检查错误: {e}")
+        return jsonify({'message': 'Invalid hash method'}), 500
+
+    # 检查新密码是否符合要求
+    if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,10}$', data['newPassword']):
+        return jsonify({'message': 'New password does not meet the requirements'}), 400
+
+    # 生成新的哈希密码
+    hashed_password = bcrypt.generate_password_hash(data['newPassword']).decode('utf-8')
+    print(f"生成的新哈希密码: {hashed_password}")
+
+    # 更新用户密码
+    user.password = hashed_password
+    db.session.commit()
+    return jsonify({'message': 'Password reset successfully'}), 200
+
+@app.route('/api/get_security_question', methods=['POST'])
+def get_security_question():
+    data = request.get_json()
+    username = data.get('username')
+    user = User.query.filter_by(username=username).first()
+    if user:
+        return jsonify({'security_question': user.security_question})
+    else:
+        return jsonify({'error': 'User not found'}), 404
+
+@app.route('/api/verify_security_answer', methods=['POST'])
+def verify_security_answer():
+    data = request.get_json()
+    username = data.get('username')
+    security_answer = data.get('security_answer')
+    user = User.query.filter_by(username=username).first()
+    if user and user.security_answer == security_answer:
+        return jsonify({'correct': True})
+    else:
+        return jsonify({'correct': False})
+
+@app.route('/api/update_user_info', methods=['POST'])
+def update_user_info():
+    data = request.get_json()
+    print("更新用户信息请求数据:", data)
+
+    username = data.get('username')
+    if not username:
+        return jsonify({'message': 'Username is required'}), 400
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        print(f"用户 {username} 不存在")
+        return jsonify({'message': 'User does not exist'}), 404
+
+    # 更新用户名
+    new_username = data.get('new_username')
+    if new_username:
+        user.username = new_username
+        print(f"更新用户名: {new_username}")
+
+    # 更新其他用户信息
+    for field in ['email', 'security_question', 'security_answer', 'birthday', 'avatar']:
+        if field in data:
+            setattr(user, field, data[field])
+            print(f"更新 {field}: {data[field]}")
+
+    db.session.commit()
+    print(f"用户 {username} 信息更新成功")
+    return jsonify({field: getattr(user, field) for field in ['username', 'email', 'security_question', 'security_answer', 'birthday', 'avatar']}), 200
+
+@app.route('/api/check_password', methods=['POST'])
+def check_password():
+    data = request.json
+    print("检查密码请求数据:", data)
+
+    # 检查用户是否存在
+    user = User.query.filter_by(username=data['username']).first()
+    if not user:
+        return jsonify({'message': 'User does not exist'}), 404
+
+    # 检查用户密码哈希是否为空
+    if not user.password:
+        return jsonify({'message': 'User password hash is empty'}), 500
+
+    # 检查当前密码是否正确
+    try:
+        if not bcrypt.check_password_hash(user.password, data['currentPassword']):
+            print("当前密码不正确", user.password, data['currentPassword'])
+            return jsonify({'message': 'Current password is incorrect'}), 400
+        else:
+            print("当前密码正确", user.password, data['currentPassword'])
+    except ValueError as e:
+        print(f"哈希检查错误: {e}")
+        return jsonify({'message': 'Invalid hash method'}), 500
+
+    return jsonify({'message': 'Current password is correct'}), 200
+
+
+
 @app.route('/api/user_info', methods=['GET'])
 def get_user_info():
     username = request.args.get('username')
@@ -460,7 +599,36 @@ def get_user_info():
     else:
         return jsonify({'message': 'User not found'}), 404
 
+@app.route('/api/avatar/<filename>', methods=['GET'])
+def get_avatar(filename):
+    return send_from_directory(avatar_dir, filename)
 
+@app.route('/api/upload_avatar', methods=['POST'])
+def upload_avatar():
+    file = request.files['avatar']
+    if file:
+        filename = str(uuid.uuid4()) + os.path.splitext(file.filename)[1]
+        file_path = os.path.join(avatar_dir, filename)
+        file.save(file_path)
+
+        username = request.form['username']
+        user = User.query.filter_by(username=username).first()
+        if user:
+            old_avatar = user.avatar  # 获取旧头像文件名
+            user.avatar = filename
+            db.session.commit()
+
+            # 删除旧头像文件，确保 old_avatar 不是默认值或空值
+            if old_avatar and old_avatar != 'default_avatar.png':  # 假设 'default_avatar.png' 是默认头像文件名
+                old_avatar_path = os.path.join(avatar_dir, old_avatar)
+                if os.path.exists(old_avatar_path):
+                    os.remove(old_avatar_path)
+
+            return jsonify({'message': '头像上传成功', 'avatar': filename}), 200
+        else:
+            return jsonify({'message': 'User not found'}), 404
+    else:
+        return jsonify({'message': 'No file uploaded'}), 400
 
 @app.route('/api/solar_angles', methods=['GET'])
 def get_solar_angles():
@@ -661,7 +829,10 @@ if __name__ == '__main__':
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     print(BASE_DIR)
     temp_dir = os.path.join(BASE_DIR, 'tmp')
-    print(temp_dir)
+    avatar_dir = os.path.join(BASE_DIR, 'avatar')
+    # 检查 avatar 目录是否存在，如果不存在则创建
+    if not os.path.exists(avatar_dir):
+        os.makedirs(avatar_dir)
     # 检查 tmp 目录是否存在，如果不存在则创建
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)

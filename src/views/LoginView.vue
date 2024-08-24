@@ -12,24 +12,24 @@
             <!-- 用户自定义头像按钮 -->
           </div>
           <!-- 头像上传模态框 -->
-  <div v-if="showAvatarModal" class="avatar-modal">
-    <div class="modal-content">
-      <h2>上传头像</h2>
-      <!-- 头像文件输入 -->
-      <input type="file" @change="handleAvatarUpload" />
-      <!-- 取消按钮 -->
-      <button @click="closeAvatarUploadModal">取消</button>
-      <!-- 确认上传按钮 -->
-      <button @click="uploadAvatar">确认上传</button>
-    </div>
-  </div>
+        <div v-if="showAvatarModal" class="avatar-modal">
+          <div class="modal-content">
+            <h2>上传头像</h2>
+            <!-- 头像文件输入 -->
+            <input type="file" @change="handleAvatarUpload" />
+            <!-- 取消按钮 -->
+            <button @click="closeAvatarUploadModal">取消</button>
+            <!-- 确认上传按钮 -->
+            <button @click="uploadAvatar">确认上传</button>
+          </div>
+        </div>
         <div class="form-container">
-        <div class="form-group">
+        <div class="form-group-user">
           <label for="username">用户名:</label>
           <input type="text" id="username" v-model="loginUsername">
         </div>
       </div>
-      <div class="form-group">
+      <div class="form-group-user">
           <label for="password">密码:</label>
           <input type="password" id="password" v-model="loginPassword">
       </div>
@@ -43,17 +43,38 @@
     </div>
   </div>
   </div>
-    <!-- 忘记密码模态窗口 -->
+  <!-- 忘记密码模态窗口 -->
   <div v-if="showResetPasswordModal" class="modal-overlay">
     <div class="modal">
-      <h2>忘记密码</h2>
-      <div class="reset-form-group">
-        <label for="reset-password-answer">请输入您的安全问题的答案：</label>
-        <input type="text" id="reset-password-answer" v-model="resetPasswordAnswer">
+      <h2 v-if="!securityQuestionText">忘记密码</h2>
+      <h2 v-else-if="!isAnswerCorrect">回答安全问题</h2>
+      <h2 v-else>修改密码</h2>
+      <div v-if="!securityQuestionText" class="form-group-user">
+        <label for="reset-username">请输入您的用户名：</label>
+        <input type="text" id="reset-username" v-model="resetUsername">
+        <div class="button-group">
+          <button @click="fetchSecurityQuestion">确认</button>
+          <button @click="showResetPasswordModal = false">取消</button>
+        </div>
       </div>
-      <div class="button-group">
-        <button @click="showResetPasswordModal = false">取消</button>
-        <button @click="submitResetPassword">提交</button>
+      <div v-else-if="!isAnswerCorrect" class="form-group-user">
+        <label for="reset-password-answer">请输入您的安全问题——{{ securityQuestionText }}的答案：</label>
+        <input type="text" id="reset-password-answer" v-model="resetPasswordAnswer">
+        <div class="button-group">
+          <button @click="verifySecurityAnswer">确认</button>
+          <button @click="showResetPasswordModal = false">取消</button>
+        </div>
+      </div>
+      <div v-else class="form-group-user">
+        <label for="new-password">新密码：</label>
+        <input type="password" id="new-password" v-model="newPassword" :class="{'invalid-input': !isNewPasswordValid, 'valid-input': isNewPasswordValid}">
+        <span class="note">注意：密码需要使用包含英文和数字的6到10字符数。</span>
+        <label for="confirm-password">确认密码：</label>
+        <input type="password" id="confirm-password" v-model="confirmPassword" :class="{'invalid-input': !isConfirmPasswordValid, 'valid-input': isConfirmPasswordValid}">
+        <div class="button-group">
+          <button @click="submitNewPassword">提交</button>
+          <button @click="showResetPasswordModal = false">取消</button>
+        </div>
       </div>
     </div>
   </div>
@@ -61,30 +82,30 @@
   <div v-if="showRegisterModal" class="modal-overlay">
     <div class="modal">
       <h2>注册</h2>
-      <div class="form-group">
+      <div class="form-group-user">
         <label for="reg-username">用户名：</label>
         <input type="text" id="reg-username" v-model="username" :class="{'invalid-input': !isUsernameValid}">
         <span class="note">注意：用户名只能使用2到10字符数的中文、数字、英文三种组合。</span>
       </div>
-      <div class="form-group">
+      <div class="form-group-user">
         <label for="reg-password">密码：</label>
         <input type="password" id="reg-password" v-model="password" :class="{'invalid-input': !isPasswordValid}">
         <span class="note">注意：密码需要使用包含英文和数字的6到10字符数。</span>
       </div>
-      <div class="form-group">
+      <div class="form-group-user">
         <label for="reg-email">邮箱：</label>
         <input type="email" id="reg-email" v-model="email" :class="{'invalid-input': !isEmailValid}">
       </div>
-      <div class="form-group">
+      <div class="form-group-user">
         <label for="reg-security-question">安全问题：</label>
         <input type="text" id="reg-security-question" v-model="securityQuestion">
         <span class="note">注意：用于忘记密码时找回。</span>
       </div>
-      <div class="form-group">
+      <div class="form-group-user">
         <label for="reg-security-answer">回答：</label>
         <input type="text" id="reg-security-answer" v-model="securityAnswer">
       </div>
-      <div class="form-group">
+      <div class="form-group-user">
         <label for="reg-birthday">生日：</label>
         <input type="date" id="reg-birthday" v-model="birthday">
       </div>
@@ -100,6 +121,7 @@
 import { ref, watch, computed } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 export default {
   name: 'LoginView',
@@ -122,12 +144,72 @@ export default {
     // 添加新的状态来控制忘记密码模态框的显示和用户输入
     const showResetPasswordModal = ref(false)
     const resetPasswordAnswer = ref('')
+    const resetUsername = ref('')
     const securityQuestionText = ref('')
+    const isAnswerCorrect = ref(false)
+    const newPassword = ref('')
+    const confirmPassword = ref('')
+    const isNewPasswordValid = ref(true)
+    const isConfirmPasswordValid = ref(true)
 
-    // 定义 openResetPasswordModal 函数
+    const fetchSecurityQuestion = async () => {
+      try {
+        const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/get_security_question`, { username: resetUsername.value })
+        securityQuestionText.value = response.data.security_question
+      } catch (error) {
+        console.error('获取安全问题失败:', error)
+        alert('获取安全问题失败，请检查用户名是否正确。')
+      }
+    }
+
+    const verifySecurityAnswer = async () => {
+      try {
+        const response = await axios.post(`${process.env.VUE_APP_API_URL}/api/verify_security_answer`, {
+          username: resetUsername.value,
+          security_answer: resetPasswordAnswer.value
+        })
+        if (response.data.correct) {
+          isAnswerCorrect.value = true
+        } else {
+          alert('安全问题答案错误，请重试。')
+        }
+      } catch (error) {
+        console.error('验证安全问题答案失败:', error)
+        alert('验证安全问题答案失败，请稍后再试。')
+      }
+    }
+
+    const submitNewPassword = async () => {
+      isNewPasswordValid.value = validatePassword(newPassword.value)
+      isConfirmPasswordValid.value = validatePassword(confirmPassword.value)
+
+      if (!isNewPasswordValid.value || !isConfirmPasswordValid.value) {
+        alert('新密码或确认密码不符合要求，请重试。')
+        return
+      }
+
+      if (newPassword.value !== confirmPassword.value) {
+        alert('两次输入的密码不一致，请重试。')
+        return
+      }
+
+      try {
+        await axios.post(`${process.env.VUE_APP_API_URL}/api/forget_reset_password`, {
+          username: resetUsername.value,
+          security_answer: resetPasswordAnswer.value, // 使用安全问题答案
+          newPassword: newPassword.value
+        })
+        alert('密码重置成功，请使用新密码登录。')
+        showResetPasswordModal.value = false
+      } catch (error) {
+        console.error('重置密码失败:', error)
+        alert('重置密码失败，请稍后再试。')
+      }
+    }
+
     const openResetPasswordModal = () => {
       console.log('忘记密码按钮被点击')
-      openResetPasswordModal.value = true
+      showResetPasswordModal.value = true
     }
 
     const submitResetPassword = async () => {
@@ -182,8 +264,20 @@ export default {
       console.log('Password valid:', isPasswordValid.value)
     }
 
-    watch(password, checkPassword)
+    // 检查新密码
+    const checkNewPassword = () => {
+      isNewPasswordValid.value = validatePassword(newPassword.value)
+      console.log('New Password valid:', isNewPasswordValid.value)
+    }
 
+    // 检查确认密码
+    const checkConfirmPassword = () => {
+      isConfirmPasswordValid.value = validatePassword(confirmPassword.value)
+      console.log('Confirm Password valid:', isConfirmPasswordValid.value)
+    }
+    watch(password, checkPassword)
+    watch(newPassword, checkNewPassword)
+    watch(confirmPassword, checkConfirmPassword)
     // 验证邮箱
     const validateEmail = (email) => {
       if (email === '') {
@@ -271,7 +365,6 @@ export default {
         alert('注册请求失败，请稍后再试。')
       }
     }
-
     // 登录
     const login = async () => {
       try {
@@ -289,14 +382,12 @@ export default {
           const data = await response.json()
           alert(data.message) // 弹窗提示登录成功
           // 更新Vuex Store
-          store.dispatch('login', { username: loginUsername.value, avatarUrl: 'your-avatar-url' })
+          store.dispatch('login', { username: loginUsername.value })
           console.log('登录成功:', data)
           console.log('当前登录状态:', store.state)
-          // 这里可以添加更多的逻辑，比如跳转到另一个页面
-          // 等待三秒后跳转到用户中心界面
           setTimeout(() => {
             router.push({ name: 'yong-hu-zhong-xin' })
-          }, 3000)
+          }, 1000)
         } else {
           const errorData = await response.json()
           alert(errorData.message) // 弹窗提示登录失败
@@ -335,6 +426,8 @@ export default {
       isUsernameValid,
       isEmailValid,
       isPasswordValid,
+      isConfirmPasswordValid,
+      isNewPasswordValid,
 
       // 登录方法
       login,
@@ -346,14 +439,24 @@ export default {
       resetPasswordAnswer,
       securityQuestionText,
       openResetPasswordModal,
-      submitResetPassword
+      submitResetPassword,
+
+      resetUsername,
+      isAnswerCorrect,
+      newPassword,
+      confirmPassword,
+      fetchSecurityQuestion,
+      verifySecurityAnswer,
+      submitNewPassword,
+      checkNewPassword,
+      checkConfirmPassword
     }
   }
 }
 </script>
 
 <style>
-body {
+.deng-lu {
   background-image: url('~@/assets/bg2.jpg'); /* 替换为你的图片路径 */
   background-size: cover; /* 背景图片覆盖整个元素 */
   background-repeat: no-repeat; /* 防止背景图片重复 */
@@ -483,14 +586,14 @@ body {
   align-items: center;
 }
 
-.form-group {
+.form-group-user {
   display: flex;
   flex-direction: column;
   width: 100%;
   border-radius: 10px;
 }
 
-.form-group label {
+.form-group-user label {
   margin-bottom: 5px;
   color:rgb(255, 255, 255);
   font-size: 16px;         /* 增大字体大小 */
@@ -498,12 +601,15 @@ body {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 1); /* 给文字添加阴影效果 */
 }
 
-.form-group input {
-  padding: 8px;
-  border-radius: 10px;
-  border: 1.5px solid #a8a7a7;
+.form-group-user input {
+  padding: 10px 20px; /* 调整内边距以匹配按钮 */
+  border-radius: 25px; /* 圆角边框，与按钮一致 */
+  border: 1.5px solid #a8a7a7; /* 保留边框 */
+  background-color: #ffffff2d; /* 背景颜色，可以根据需要调整 */
+  color: #333; /* 文字颜色，可以根据需要调整 */
+  margin-bottom: 10px; /* 在输入框之间添加一些间距，可根据需要调整 */
+  width: 90%;
 }
-
 button {
   padding: 10px;
   border-radius: 5px;
@@ -539,15 +645,6 @@ button {
   color: #ffffff;                  /* 鼠标悬浮时的字体颜色 */
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 1); /* 鼠标悬浮时的字体阴影效果增强 */
 }
-.form-group input {
-  padding: 10px 20px; /* 调整内边距以匹配按钮 */
-  border-radius: 25px; /* 圆角边框，与按钮一致 */
-  /* border: none; 去除边框 */
-  background-color: #ffffff2d; /* 背景颜色，可以根据需要调整 */
-  color: #333; /* 文字颜色，可以根据需要调整 */
-  margin-bottom: 10px; /* 在输入框之间添加一些间距，可根据需要调整 */
-  width: 90%;
-}
 
 /* 调整按钮样式以匹配提供的样式 */
 button {
@@ -565,7 +662,7 @@ button:hover {
   background-color: #0056b3; /* 按钮背景颜色变深 */
 }
 
-.form-group input:focus {
+.form-group-user input:focus {
   border-color: #007bff; /* 焦点时的边框颜色 */
   outline: none; /* 去除默认的焦点样式 */
   border-width: 2px; /* 边框粗细 */
@@ -578,11 +675,11 @@ button:hover {
   font-style: italic;
 }
 
-.form-group input.invalid-input {
+.form-group-user input.invalid-input {
   border-color: red !important;
 }
 
-.form-group input.invalid-input:focus {
+.form-group-user input.invalid-input:focus {
   border-color: red !important;
   outline: none;
   border-width: 2px;
@@ -639,14 +736,14 @@ button:hover {
   background-color: #0056b3; /* 按钮背景颜色变深 */
 }
 
-.reset-form-group{
+.reset-form-group-user{
   margin-bottom: 5px;
   color:rgb(255, 255, 255);
   font-size: 16px;         /* 增大字体大小 */
   font-weight: bold;        /* 字体加粗 */
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 1); /* 给文字添加阴影效果 */
 }
-.reset-form-group input{
+.reset-form-group-user input{
   padding: 10px 20px; /* 调整内边距以匹配按钮 */
   border-radius: 25px; /* 圆角边框，与按钮一致 */
   /* border: none; 去除边框 */

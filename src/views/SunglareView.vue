@@ -15,7 +15,11 @@
         <div ref="polarChart" class="echarts-container"></div>
       </div>
       <div class="geoscene-wrapper">
-        <iframe :src="iframeSrc" frameborder="0" class="geoscene-iframe"></iframe>
+        <div v-if="isLoading" class="loader-overlay">
+          <div class="loader">
+          </div>
+        </div>
+        <iframe :src="iframeSrc" frameborder="0" class="geoscene-iframe" @load="onIframeLoad"></iframe>
       </div>
     </div>
   </div>
@@ -59,6 +63,7 @@ export default {
   data () {
     return {
       iframeSrc: '',
+      isLoading: false,
       selectedDistrict: 420100,
       intervalid: null,
       // 定时器 ID
@@ -116,6 +121,7 @@ export default {
   },
   methods: {
     async fetchIframeUrl () {
+      this.isLoading = true // 开始加载动画
       try {
         const response = await fetch(`${process.env.VUE_APP_API_URL}/api/getapp`, {
           method: 'GET',
@@ -129,10 +135,15 @@ export default {
           console.log('获取到的iframe URL:', this.iframeSrc)
         } else {
           console.error('URL not found in response')
+          this.isLoading = false // 如果没有找到 URL，停止加载动画
         }
       } catch (error) {
         console.error('Error fetching iframe URL:', error)
+        this.isLoading = false // 如果发生错误，停止加载动画
       }
+    },
+    onIframeLoad () {
+      this.isLoading = false // iframe 加载完成，停止加载动画
     },
     handleDistrictChange () {
       clearInterval(this.intervalid)
@@ -462,10 +473,6 @@ export default {
     async fetchSolarAngles (areaName) {
       console.log('获取当前时间的太阳角度信息:', areaName)
       const time = new Date().toISOString()
-      // const date = new Date() //
-      // date.setHours(13) //
-      // date.setMinutes(8) //
-      // const time = date.toISOString() //
       const url = `${process.env.VUE_APP_API_URL}/api/solar_angles?area_name=${encodeURIComponent(areaName)}&time=${time}`
       console.log('请求太阳角度信息:', url)
       try {
@@ -728,5 +735,52 @@ select {
   height: 100%; /* 调整高度以占据整个父容器 */
   border-radius: 10px; /* 添加圆角 */
   overflow: hidden; /* 确保圆角效果 */
+}
+
+/* 新的覆盖层容器样式 */
+.loader-overlay {
+  position: absolute;
+  width: 25%;
+  height: 25%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.8); /* 可选：添加半透明背景 */
+  transform: translateX(-50%,-50%);
+  z-index: 10; /* 确保覆盖层在最上层 */
+}
+
+/* 加载动画的样式 */
+.loader {
+  display: inline-grid;
+  width: 90px;
+  aspect-ratio: 1;
+  animation: l3-0 5s steps(10) infinite;
+}
+
+.loader:before,
+.loader:after {
+  content:"";
+  grid-area: 1/1;
+}
+
+.loader:before {
+  clip-path: polygon(100% 50%,90.45% 79.39%,65.45% 97.55%,34.55% 97.55%,9.55% 79.39%,0% 50%,9.55% 20.61%,34.55% 2.45%,65.45% 2.45%,90.45% 20.61%,100% 50%,85.6% 24.14%,63.6% 8.15%,36.4% 8.15%,14.4% 24.14%,6% 50%,14.4% 75.86%,36.4% 91.85%,63.6% 91.85%,85.6% 75.86%,94% 50%,85.6% 24.14%);
+  background: #574951;
+}
+
+.loader:after {
+  background: #83988E;
+  clip-path: polygon(100% 50%,65.45% 97.55%,9.55% 79.39%,9.55% 20.61%,65.45% 2.45%);
+  margin: 27%;
+  translate: 46% 0;
+  transform-origin: right;
+  animation: l3-1 .5s linear infinite;
+}
+
+@keyframes l3-0 {to{rotate: 1turn}}
+@keyframes l3-1 {
+  0%{rotate:  18deg}
+  to{rotate: -18deg}
 }
 </style>

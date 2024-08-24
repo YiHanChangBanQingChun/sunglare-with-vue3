@@ -66,7 +66,12 @@
     </div>
   </div>
   <!-- 地图展示 -->
-  <div id="viewDiv"></div>
+  <div id="viewDiv">
+  </div>
+  <div v-if="ismaploading" class="maploader-overlay">
+    <div class="maploader">
+    </div>
+  </div>
   <!-- 时间选择框和路径展示框 -->
   <div class="main-container">
     <!-- 时间选择框 -->
@@ -99,6 +104,7 @@ export default {
   data () {
     return {
       searchQueryStart: '',
+      ismaploading: true,
       searchQueryEnd: '',
       highlightedIndex: -1,
       searchResults: [],
@@ -388,6 +394,10 @@ export default {
           snapToZoom: false
         }
       })
+      // 监听地图视图的 `when` 事件，地图加载完成后设置 `ismaploading` 为 false
+      mapView.when(() => {
+        this.ismaploading = false
+      })
       // 创建 BasemapGallery 实例
       const basemapGallery = new BasemapGallery({
         view: mapView,
@@ -617,5 +627,54 @@ export default {
 
 .search-results li.highlighted {
   background-color: #f0f0f0; /* 高亮背景颜色 */
+}
+
+/* 新的覆盖层容器样式 */
+.maploader-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 25%;
+  height: 25%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.8); /* 可选：添加半透明背景 */
+  transform: translate(-50%, -50%);
+  z-index: 10; /* 确保覆盖层在最上层 */
+}
+
+/* 加载动画的样式 */
+.maploader {
+  display: inline-grid;
+  width: 90px;
+  aspect-ratio: 1;
+  animation: l3-0 5s steps(10) infinite;
+}
+
+.maploader:before,
+.maploader:after {
+  content:"";
+  grid-area: 1/1;
+}
+
+.maploader:before {
+  clip-path: polygon(100% 50%,90.45% 79.39%,65.45% 97.55%,34.55% 97.55%,9.55% 79.39%,0% 50%,9.55% 20.61%,34.55% 2.45%,65.45% 2.45%,90.45% 20.61%,100% 50%,85.6% 24.14%,63.6% 8.15%,36.4% 8.15%,14.4% 24.14%,6% 50%,14.4% 75.86%,36.4% 91.85%,63.6% 91.85%,85.6% 75.86%,94% 50%,85.6% 24.14%);
+  background: #574951;
+}
+
+.maploader:after {
+  background: #83988E;
+  clip-path: polygon(100% 50%,65.45% 97.55%,9.55% 79.39%,9.55% 20.61%,65.45% 2.45%);
+  margin: 27%;
+  translate: 46% 0;
+  transform-origin: right;
+  animation: l3-1 .5s linear infinite;
+}
+
+@keyframes l3-0 {to{rotate: 1turn}}
+@keyframes l3-1 {
+  0%{rotate:  18deg}
+  to{rotate: -18deg}
 }
 </style>
