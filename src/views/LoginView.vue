@@ -505,7 +505,6 @@ export default {
 .text {
   margin-top: 5px; /* 顶部外边距 */
   margin-bottom: 5px; /* 底部外边距 */
-  background: rgba(109, 72, 72, 0.45);
   -webkit-backdrop-filter: blur(25px);
   backdrop-filter: blur(25px);
   border: 1px solid rgba(255,255,255,0.45);
@@ -670,7 +669,7 @@ button:hover {
 
 .note {
   font-size: 12px;
-  color: rgba(255, 255, 255, 1);
+  color: rgba(112, 73, 73, 0.75);
   margin-top: 5px;
   font-style: italic;
 }
