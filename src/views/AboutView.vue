@@ -22,7 +22,7 @@
         <ul>
           <li>Vue.js：项目的前端框架</li>
           <li>GeoScene API for JavaScript：项目的地图展示框架</li>
-          <li>PostgrSQL：项目的后端数据库</li>
+          <li>PostgreSQL：项目的后端数据库</li>
           <li>Echarts：项目的数据可视化框架</li>
           <li>Python Flask：项目的后端框架</li>
           <li class="image-container1"><img src="@/assets/kaifa1.png" alt="项目介绍图片" /></li>
