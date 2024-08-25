@@ -1,391 +1,67 @@
-# 太阳眩光项目 (sun-glare-project)
-
-这个项目是为了分析和展示不同条件下的太阳眩光影响。以下是项目的设置和运行指南。
+# 太阳眩光路径规划与数据服务平台 (sun-glare-project)
 ***
-
-## 前端项目设置
-
-1. 安装依赖
-   
-    + 首先，你需要安装项目依赖。打开终端（命令行），导航到项目的根目录，然后运行以下命令：
-    ```cmd
-    cd /your-project-path/sun-glare-project
-    npm install
-    ```
-
-    + 这个命令会根据 `package.json` 文件中列出的依赖，下载并安装所有必要的包。这可能需要几分钟的时间。
-
-2. 开发环境下编译和热重载
-   
-    + 为了在开发过程中实时查看你的更改，你可以运行以下命令来启动一个本地开发服务器：
-
-    ```cmd
-    npm run serve
-    ```
-
-    + 这个命令会启动一个热重载服务器，当你修改并保存代码后，页面会自动刷新以反映最新的更改。这对于开发和调试非常有用。
-
-3. 生产环境下编译和压缩
-
-    + 当你准备将项目部署到生产环境时，你应该运行以下命令来编译和压缩你的代码，以优化性能：
-
-    ```cmd
-    npm run build
-    ```
-
-    + 这个命令会在项目的 `dist/` 目录下生成生产环境用的代码。你可以将这个目录的内容部署到任何静态文件服务器上。
-
-4. Lint和修复文件
-
-    + 为了保持代码质量和一致性，你可以使用以下命令来检查和自动修复代码中的问题：
-
-    ```cmd
-    npm run lint
-    ```
-
-    + 这个命令会检查你的代码，并尝试自动修复任何发现的问题。对于无法自动修复的问题，你需要手动修改。
-
-5. 自定义配置
-
-    + Vue CLI 提供了许多配置选项来定制项目的构建过程。你可以在 Vue CLI 的官方配置参考文档中找到更多信息：[配置参考](https://cli.vuejs.org/config/)
-
++ **背景**：
+  + *在我国经济持续高速发展的背景下，私人轿车及其他交通工具的数量急剧增长，交通网络日益复杂多样。与此同时，太阳眩光对道路交通安全构成的威胁也日益凸显，“太阳眩光”与“安全驾驶”成为公众热议的话题之一。研究表明，太阳眩光作为一种常见的驾驶干扰因素，在日出和日落时分尤为严重，由于阳光与地平线的低角度，容易通过车辆前挡风玻璃、道路标志、建筑物玻璃幕墙等反射，造成驾驶员瞬间致盲或视力模糊，可能导致驾驶员瞬间致盲或视力模糊，增加交通事故的风险。因此，用户迫切需要一种工具来预测和规避太阳眩光，以减少由此引起的交通事故和不便。*
+  + *目前市场上对于驾驶安全辅助工具的需求日益增长，尤其是在自动驾驶技术尚未完全成熟的情况下，结合太阳眩光影响的路径规划系统作为一种辅助工具，有望填补市场空白，满足用户对于安全驾驶的需求。*
+  + *网站将提供直观的地图展示和简洁的操作流程，确保用户能够快速方便地获取所需信息。*
+  + *网站利用了GIS技术和大数据分析，结合深度学习模型，如在Cityscapes数据集上预训练的DeepLabv3模型，可以精确模拟太阳路径和光线，为用户提供准确的眩光预测。*
+  + *在确定选定区域之后，我们需要进行道路提取，并在道路上选取特定间隔的点进行标注。这些标注点将作为收集街景影像的依据，同时也将用于判断太阳眩光的位置。为了获取特定位置和时间的太阳位置，首先需要使用NOAA（美国国家海洋和大气管理局）地球系统实验室（ESRL, Earth System Research Laboratory）提出的太阳位置估算法。这是一种基于天文和地球物理参数的算法，旨在精确计算太阳相对于地球表面的位置。该算法利用了球面三角学的基本公式，计算出太阳的高度角和方位角，通过这两个角度可以确定太阳在天空中的精确位置。我们可以利用这个算法来估计任何特定时刻的太阳位置，同时考虑天气条件（例如是否晴天），从而推断出给定时刻和地点处是否有太阳照射。*
+  + *在先前的数据处理过程中，我们获得了大量的点数据。接下来，我们需要利用百度街景的API接口，通过这些点的坐标来收集街景图像。随后，我们将进行图像处理，利用PSPNet模型对街景图像中的天空部分进行提取，并生成鱼眼图片。然后，结合太阳的方位角和高度角数据，将其映射到图像上，以判断太阳的位置是否位于天空区域，从而完成对太阳眩光在多个时空的识别。本系统基于Jurado-Piña和Pardillo Mayora的研究成果，将太阳眩光形成的标准进行了量化。具体而言，我们采用了两个关键标准来识别可能受到太阳眩光影响的点：首先，驾驶人方向与太阳方位角之差的绝对值小于25度；其次，驾驶人位置的太阳高度角和坡度之差的绝对值小于25度。只有当这两个标准均满足时，我们才能确定该点在特定时间受到太阳眩光影响的可能性非常高。*
+  + *首先，根据之前提到的太阳位置和街景影像数据，对特定区域内每个路段的太阳眩光程度进行评估。这可以通过计算每个路段在不同时间段内受到太阳眩光影响的概率或强度来实现。太阳眩光程度的评估应该综合考虑太阳高度角、方位角以及路面坡度等因素，以便更准确地反映眩光影响的实际情况。根据眩光程度评估结果，利用路径规划算法生成避免太阳眩光的最佳行车路线。可以使用Dijkstra算法或A star算法等。在路径规划过程中，将太阳眩光程度作为一个约束条件，确保生成的路线避开受太阳眩光影响较大的路段。使用前端开发技术（例如JavaScript、HTML、CSS）结合地图API（例如ArcGIS Map SDK for JS）实现优化后行车路线的交互式展示。在网页上展示地图，并提供用户交互功能，让用户可以选择不同时间段的行车路线，并查看路线详情和实时交通情况。用户可以根据自身需求选择最适合的路线，以避免太阳眩光的影响。*
+  + *结合太阳眩光影响的路径规划系统建立之后，不仅可以提升驾驶安全性，减少由太阳眩光引起的交通事故，还能为城市规划、交通管理和环境科学研究提供有力的数据支持，具有显著的社会效益。*
+  + *这个项目是为了分析和展示不同条件下的太阳眩光影响。以下是项目的设置和运行指南。*
 ***
-## 后端flask部署
-
-1. 安装python版本和依赖
-
-   + 找到后端文件，即func中的server-app.py
-
-   + 使用Python3.11.0
-
-   + 可选：创建虚拟环境
-
-      + 克隆
-
-        ```cmd
-        conda create --n flask-py11 python==3.11 
-        ```
-
-      + 激活
-
-        ```cmd
-        conda activate flask-py11
-        ```
-        cd到func文件夹中输入，即可完成
-        ```cmd
-        pip install -r requirements.txt
-        ```
-
-   +  注意：
- 
-      +  这里使用 psycopg2-binary 而不是 psycopg2，因为 psycopg2-binary 是预编译版本，更容易安装，但功能上与 psycopg2 相同。
-  
-      +  Flask - 用于创建Web应用。
- 
-      +  Flask-SQLAlchemy - 为Flask应用提供SQLAlchemy支持。
-
-      +  GeoAlchemy2 - 用于在SQLAlchemy中处理地理空间数据。
-
-      +  Flask-CORS - 用于处理跨源资源共享（CORS），允许跨域请求。
-
-      +  psycopg2 - PostgreSQL数据库的适配器。
-
-      +  uuid - 用于生成唯一标识符。
-
-      +  Shapely - 用于处理和操作几何对象。
-
-      +  pip不了就单独装，请仔细阅读报错原因
-2. 更换你的数据库访问url
-
-   + 下载postgresql，安装postgis，然后用postgis创建个数据集
-
-   + 改这行代码
-
-    ```Python
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://your-user-name:your-user-password@localhost/your-database-name'
-    ```
-
-   + 其中，your开头的部分都换成自己的就行
-
-   + 然后点运行就可以，放在那不用管
-
-   + 适当情况可以加打印信息调试
-
-3. 将数据传入后端以让数据库调用
-
-   + 前置条件，激活postgis
-
-   + 在postgres的安装目录下找bin\postgisgui，里面有个shp2pgsql-gui.exe，用这个传入点shp数据
-
-     + 用wuhanpoi84.shp文件，在sun-glare-project\use-data\test-vector下
-
-     + 注意设置坐标系4326，即需要设置srid
-
-     + 注意使用utf-8显示中文
-
-     + 存储好点后，即可供后端查询
-     
-     + 注意，目前的列名需要更改为后端搭配的列名，即留意server-app下的模型结构，也要修改表单名字，改成英文的：
-       ```python
-       class Location(db.Model):
-           __tablename__ = 'locations'
-           id = db.Column(db.Integer, primary_key=True)
-           name = db.Column(db.String(255))
-           address = db.Column(db.String(255))
-           baidu_longitude = db.Column(db.Float)
-           baidu_latitude = db.Column(db.Float)
-           wgs84_longitude = db.Column(db.Float)
-           wgs84_latitude = db.Column(db.Float)
-           baidu_index = db.Column(db.String(255))
-           label = db.Column(db.String(255))
-           geom = db.Column(Geometry(geometry_type='POINT', srid=4326))
-
-       def __repr__(self):
-           return f'<Location {self.name}>'
-       ``` 
-
-     + 你喜欢的话也可以用sun-glare-project\use-data\whpoi-wgs84.csv建表单，一样的，方法不做赘述。但需要注意使用postgis创建geom列。但需要注意，用这个方法传入需要使用的csv是notepad打开显示ANSI的csv，不然会报错。需要根据csv文件表头先创建空表，等等等等。
-
-       + 加geom列方法：首先，添加一个新的geom列到你的表中。假设你的表名为your_table，可以使用以下SQL命令：
-
-          ```sql
-          ALTER TABLE your_table ADD COLUMN geom geometry(Point, 4326);
-          ```
-        
-       + 其次，使用ST_SetSRID和ST_MakePoint函数将x和y列的值转换为geom列的值：
-
-          ```sql
-          ALTER TABLE your_table ADD COLUMN geom geometry(Point, 4326);
-          ```
-
-       + 确保geom列已正确填充，可以运行以下查询来检查：
-        
-          ```sql
-          SELECT x, y, ST_AsText(geom) FROM your_table LIMIT 10;
-          ```
-
-     + 后面部署用更大的更全的poi，这个是老师给的，即同位置的“whpoi_wgs84_huge.csv”
-
-   + 使用同一个工具，传入路网数据，因为网上教程少，建议按以下步骤做，可以正确部署(注：老方法已经弃用，我根据老方法处理完数据后，直接导出了csv，之后部署可以直接新建表然后复制表。只需要启动了pgrouting和postgis功能就可以操作)
-     + 以下是旧方法（已弃用，下滑可查看新方法）
-     + 用sun-glare-project\use-data\test-vector下的whrd7line.shp。打断方式在func中的python程序实现，我忘了保存加encording=utf-8了，现在没有路名...
-
-     + 记得使用4326坐标系
-
-     + 勾选第三个和第五个
-
-     + 之后运行后，打开pgadmin4，然后记得先启动pgrouting
-
-     + 键入以下代码（方便展示和写文档合并了，但是每次仅运行一行）
-        
-        ```SQL
-        DELETE FROM whrd7
-       WHERE fclass IN ('bridleway', 'footway', 'pedestrian', 'steps', 'cycleway');
-        ALTER TABLE whrd7 ADD COLUMN source integer;
-        ALTER TABLE whrd7 ADD COLUMN target integer;
-        ALTER TABLE whrd7 ADD COLUMN length double precision;
-        SELECT pgr_createTopology('whrd7',0.0001, 'geom', 'gid');
-        CREATE INDEX source_idx ON whrd7 ("source");
-        CREATE INDEX target_idx ON whrd7 ("target");
-        update whrd7 set length =st_length(geom);
-        ALTER TABLE whrd7 ADD COLUMN reverse_cost double precision;
-        UPDATE whrd7 SET reverse_cost =length;
-        ```
-     + 乘以系数，将成本系数的度换为米
-       ```sql
-       UPDATE whrd7
-       SET length = length * 98049.67060050,
-           reverse_cost = reverse_cost * 98049.67060050;
-       ``` 
-     + 设置单双向正确的成本
-       ```sql
-       UPDATE whrd7
-       SET 
-           reverse_cost = CASE 
-               WHEN oneway = 'F' THEN 99999 
-               ELSE reverse_cost 
-           END,
-           length = CASE 
-               WHEN oneway = 'T' THEN 99999 
-               ELSE length 
-           END
-       WHERE oneway IN ('F', 'T');
-       ``` 
-     + 新建一列 maxspeed_mps，将 maxspeed 转换为米每秒单位
-       ```sql
-       ALTER TABLE whrd7 ADD COLUMN maxspeed_mps FLOAT;
-
-       UPDATE whrd7
-       SET maxspeed_mps = CASE
-           WHEN maxspeed = 0 THEN 50 / 3.6
-           ELSE maxspeed / 3.6
-       END;
-       ``` 
-     + 新建两列 forward_time 和 reverse_time
-       ```sql
-       ALTER TABLE whrd7 ADD COLUMN forward_time FLOAT;
-       ALTER TABLE whrd7 ADD COLUMN reverse_time FLOAT;
-       ``` 
-     + 计算正向和反向的时间成本
-       ```sql
-       UPDATE whrd7
-       SET 
-           forward_time = CASE
-               WHEN length = 99999 THEN 99999
-               ELSE length / maxspeed_mps
-           END,
-           reverse_time = CASE
-               WHEN reverse_cost = 99999 THEN 99999
-               ELSE reverse_cost / maxspeed_mps
-           END;
-       ``` 
-     + 完成初始化后，让我们检验一下数据是否可以正确规划路径，以下是直接全部运行的脚本
-
-        ```SQL
-       WITH start_vertex AS (
-           SELECT id FROM whrd7_vertices_pgr
-           ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(114.13257559110757,30.62535117304848), 4326) LIMIT 1
-       ), end_vertex AS (
-           SELECT id FROM whrd7_vertices_pgr
-           ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(114.32733343250193,30.260181353114426), 4326) LIMIT 1
-       )
-       SELECT seq, path_seq, node, edge, cost, agg_cost, geom, length
-       FROM pgr_astar(
-           'SELECT gid AS id, source, target, 
-           CASE 
-               WHEN forward_time = 99999 THEN 99999 
-               ELSE forward_time 
-           END AS cost, 
-           CASE 
-               WHEN reverse_time = 99999 THEN 99999 
-               ELSE reverse_time 
-           END AS reverse_cost, 
-           COALESCE(ST_X(ST_StartPoint(geom)), 0) AS x1, COALESCE(ST_Y(ST_StartPoint(geom)), 0) AS y1, 
-           COALESCE(ST_X(ST_EndPoint(geom)), 0) AS x2, COALESCE(ST_Y(ST_EndPoint(geom)), 0) AS y2 
-           FROM whrd7
-           WHERE geom IS NOT NULL AND (ST_GeometryType(geom) = ''ST_LineString'' OR ST_GeometryType(geom) = ''ST_MultiLineString'')',
-           (SELECT id FROM start_vertex), (SELECT id FROM end_vertex), directed := true
-       ) AS route
-       JOIN whrd7 ON route.edge = whrd7.gid;
-        ```
-      + 以下是新方法（原始文件在use-data.7z里的whrd7.csv以及whrd7_vertices_pgr.csv，使用前先把之前的在数据库的同名路网两个文件给删除或重命名）：
-
-      + 创建表
-          ```sql
-          CREATE TABLE whrd7 (
-              gid SERIAL PRIMARY KEY,
-              fclass VARCHAR(255),
-              name VARCHAR(255),
-              oneway VARCHAR(255),
-              maxspeed INTEGER,
-              e_angle FLOAT,
-              id INTEGER,
-              geom GEOMETRY(Geometry, 4326),
-              source INTEGER,
-              length FLOAT,
-              target INTEGER,
-              reverse_cost FLOAT,
-              maxspeed_mps FLOAT,
-              forward_time FLOAT,
-              reverse_time FLOAT
-          );
-          CREATE TABLE whrd7_vertices_pgr (
-              id SERIAL PRIMARY KEY,
-              cnt INTEGER,
-              chk INTEGER,
-              ein INTEGER,
-              eout INTEGER,
-              the_geom GEOMETRY(Geometry, 4326)
-          );
-          ```
-      + 复制表
-          ```sql
-         COPY whrd7 (gid, fclass, name, oneway, maxspeed, e_angle, id, geom, source, length, target, reverse_cost, maxspeed_mps, forward_time, reverse_time)
-         FROM 'D:/path/to/your/whrd7.csv'
-         DELIMITER ','
-         CSV HEADER;
-
-         COPY whrd7_vertices_pgr (id, cnt, chk, ein, eout, the_geom)
-         FROM 'D:/path/to/your/whrd7_vertices_pgr.csv'
-         DELIMITER ','
-         CSV HEADER;
-          ```
-      + 之后键入旧方法的查询语句，也可以得到一样的结果
-    + 
-    + 目前只是简单搭建，这个路径规划的限制条件未增加，后面估计要结合眩光更改
-
-    + 创建用户信息表单，在query tool键入以下语句即可
-       
-        ```sql
-        CREATE TABLE users (
-        id SERIAL PRIMARY KEY,
-        username VARCHAR(50) UNIQUE NOT NULL,
-        password VARCHAR(80) NOT NULL,
-        email VARCHAR(50) UNIQUE NOT NULL,
-        security_question VARCHAR(100) NOT NULL,
-        security_answer VARCHAR(100) NOT NULL,
-        birthday DATE NOT NULL
-        );
-        ```
-
+1. **提示**：
+   1. 请判断自身条件，开发环境需要内存大于40g（假设未安装各种插件），部署环境需要至少25g；
+   2. 开发环境需要安装node.js、vue.cli、axios、geoscene api for js、echarts，visual c++ bulild tool、postgresql以及对应版本postgis、python3.11.4以及requirements.txt对应文件；
+   3. 部署环境需要安装nginx、postgresql及对应版本posgis、python3.11.4以及requirements.txt对应文件。
 ***
+2. **开发环境部署方法**：
+   1. 从GitHub拉取项目，放置到你想放置的地方；
+   2. 原地解压sql.zip；
+   3. 下载好了node.js后，在相应的项目目录打开cmd，输入*npm install*，会自动安装所需要的插件；
+   4. 创建虚拟环境，在你的python3.11.4版本区域打开cmd，输入*python -m venv flask-py11*，创建虚拟环境；
+   5. 之后输入*.\venv\Scripts\activate*，激活虚拟环境；
+   6. 然后使用cd，改变到项目所在位置；
+   7. 输入*python setup.py*，按流程操作即可；
+   8. 完成后，你需要修改server-app.py中关于数据库的配置；
+   9. 运行项目，需要在flask-py11环境在对应项目的func文件夹的cmd中输入*python server-app.py*；
+   10. 打开cmd，修改到项目位置，输入*npm run serve*，稍后在提示地址即可打开。
+***
+3. **生产环境部署方法**：
+   1. 从GitHub拉取项目，放置到你想放置的地方；
+   2. 原地解压sql.zip,dist.zip；
+   3. 下载nginx，解压后，将conf里的nginx.conf替换为项目文件夹中的nginx.conf，并且将该文件里面的32到55行进行微调
+      ```Python
+      server {
+           listen       80; # 修改成你的监听端口，80需要在防火墙开放
+           server_name  112.125.122.56; # 修改成你的服务器ip
 
-## 恭喜完成项目部署！可以开始愉快coding了！祝你好运！
+           location /sun-glare-project/ {
+               root C:/dist/;  # 指向Vue构建输出目录的父目录，修改成dist的位置
+               try_files $uri $uri/ /sun-glare-project/index.html;
+           }
 
+           location /sun-glare-project/api/ {
+               rewrite ^/sun-glare-project/api/(.*)$ /api/$1 break;
+               proxy_pass http://127.0.0.1:5000; # 修改成你的flask后端运行位置（默认5000）
+               proxy_set_header Host $host;
+               proxy_set_header X-Real-IP $remote_addr;
+               proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+               proxy_set_header X-Forwarded-Proto $scheme;
+               add_header Access-Control-Allow-Origin *;
+               add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS';
+               add_header Access-Control-Allow-Headers 'Origin, Content-Type, Accept, Authorization';
 
-## 记录(可以写下工作情况、内容、等等)：
-
-1. **Vue项目开发流程**：
-   
-    1. **拉取项目**：从GitHub或其他版本控制系统拉取最新的项目代码。
-    
-    ```sh
-    git pull origin main
-    ```
-    
-    2. **安装依赖**：每次拉取项目后，安装项目所需的依赖包。
-    
-    ```sh
-    npm install
-    ```
-    
-    3. **开发**：启动开发服务器进行开发。
-    
-    ```sh
-    npm run serve
-    ```
-    
-    4. **停止开发服务器**：在完成代码编写后，停止开发服务器。
-    
-    ```sh
-    Ctrl + C
-    ```
-    
-    5. **构建项目**：构建生产环境的代码。
-    
-    ```sh
-    npm run build
-    ```
-    
-    6. **提交代码**：将代码提交到GitHub或其他版本控制系统。
-    
-    ```sh
-    git add .
-    git commit -m "你的提交信息"
-    git push origin main
-    ```
-    
-    这个循环可以帮助你保持项目的最新状态，并确保所有依赖项都是最新的。
-
-2. **服务器部署流程**
-
-    1. **大部分同上**
-    例如数据库创立，运行python。
-    
-    2. **注意nginx的conf文件修改**
-    文件备份我备份在了func里面。
-
-    3. **需要运行npm run build打包成disk**
-    把disk复制到服务器上，注意和nginx的指定的位置一样。
-
-    4. **注意修改server-app.py的main部分，使其监听所有端口**
+               if ($request_method = OPTIONS) {
+                   return 204;
+               }
+           }
+      ```
+   4. 之后，在nginx文件夹，启动cmd，输入start nginx，运行程序，如果需要退出，输入nginx -s stop；
+   5. 创建虚拟环境，在你的python3.11.4版本区域打开cmd，输入*python -m venv flask-py11*，创建虚拟环境；
+   6. 之后输入*.\venv\Scripts\activate*，激活虚拟环境；
+   7. 然后使用cd，改变到项目所在位置；
+   8. 输入*python setup.py*，按流程操作即可；
+   9. 完成后，你需要修改server-app.py中关于数据库的配置；
+   10. 运行项目，需要在flask-py11环境在对应项目的func文件夹的cmd中输入*python server-app.py*。
