@@ -9,8 +9,10 @@
       <div class="xiang-mu-jie-shao">
         <h2>项目概览：</h2>
         <ul>
-          <li>本项目是一个基于Vue3架构开发的武汉市实时炫光状况的展示页面。</li>
-          <li>项目的主要功能是展示武汉市实时炫光状况，目前用于实验调用面在地图上显示。</li>
+          <li>本项目是一个基于Vue3与GeoScene架构开发的太阳眩光查询与优化系统。</li>
+          <li>项目通过使用50米*50米分辨率的武汉市路网点信息，收集到约13万张街景点图片。</li>
+          <li>使用深度学习语义分割的方法进行天空提取，并计算不同经纬不同时间的情况下，太阳在街景的位置来判断是否受到眩光。</li>
+          <li>最后进行路径规划算法的实现与眩光信息图表展示的平台搭建。</li>
           <li>项目单位：广州大学地理科学与遥感学院</li>
           <li class="image-container1"><img src="@/assets/p1.png" alt="项目介绍图片" /></li>
         </ul>
@@ -19,8 +21,8 @@
         <h2>项目开发的主要技术栈是：</h2>
         <ul>
           <li>Vue.js：项目的前端框架</li>
-          <li>ArcGIS API for JavaScript：项目的地图展示框架</li>
-          <li>Postgis：项目的后端数据库</li>
+          <li>GeoScene API for JavaScript：项目的地图展示框架</li>
+          <li>PostgrSQL：项目的后端数据库</li>
           <li>Echarts：项目的数据可视化框架</li>
           <li>Python Flask：项目的后端框架</li>
           <li class="image-container1"><img src="@/assets/kaifa1.png" alt="项目介绍图片" /></li>
@@ -29,9 +31,9 @@
       <div class="xiang-mu-jie-shao">
         <h2>项目研究的主要技术栈是：</h2>
         <ul>
-          <li>Geopandas：项目的地理数据处理库</li>
-          <li>Pillow：项目的图像处理库</li>
-          <li>Mxnet：项目的深度学习库</li>
+          <li>Geopandas,GeoScene Pro：项目的地理数据处理库与软件</li>
+          <li>Pillow,cv2：项目的图像处理库</li>
+          <li>Mxnet,gluonCV：项目的深度学习库</li>
           <li class="image-container1"><img src="@/assets/yanjiu11.png" alt="项目介绍图片" /></li>
         </ul>
       </div>
@@ -39,13 +41,18 @@
         <h2>项目的主要功能包括：</h2>
         <ul>
           <li>基于实时眩光状况的路径规划——以武汉市为例</li>
-          <li>武汉市眩光状况的可视化</li>
+          <li>武汉市眩光状况的图表可视化</li>
           <li class="image-container1"><img src="@/assets/sunshine.png" alt="项目介绍图片" /></li>
         </ul>
       </div>
     </div>
-    <div class="image-container1">
-      <img src="@/assets/final2.png" alt="项目介绍图片" />
+    <div class="xiang-mu-jie-shao-container-single">
+      <div class="xiang-mu-jie-shao">
+        <h2>项目的系统架构图：</h2>
+        <ul>
+          <li class="image-container1"><img src="@/assets/final2.png" alt="项目介绍图片" /></li>
+        </ul>
+      </div>
     </div>
   </body>
 </template>
@@ -104,6 +111,15 @@ body {
   gap: 20px; /* 定义网格项之间的间隔 */
   padding: 20px; /* 容器内边距 */
   margin-top: 10vh; /* 向下移动20px，可以根据需要调整这个值 */
+}
+
+.xiang-mu-jie-shao-container-single {
+  display: grid;
+  grid-template-columns: 1fr; /* 定义一列 */
+  grid-template-rows: auto auto; /* 定义两行，高度根据内容自动调整 */
+  gap: 20px; /* 定义网格项之间的间隔 */
+  padding: 20px; /* 容器内边距 */
+  margin-top: 0vh; /* 向下移动20px，可以根据需要调整这个值 */
 }
 
 .xiang-mu-jie-shao {
