@@ -29,14 +29,14 @@ import re
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 # CORS(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:200307@localhost/postgis_34_sample'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456@localhost/postgis_34_sample'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 数据库连接参数
 conn_params = {
     "dbname": "postgis_34_sample",
     "user": "postgres",
-    "password": "200307",
+    "password": "123456",
     "host": "localhost"
 }
 

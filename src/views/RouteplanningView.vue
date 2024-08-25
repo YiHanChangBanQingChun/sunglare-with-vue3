@@ -6,11 +6,11 @@
     <div class="search-containers">
       <!-- 交换的侧边栏 -->
       <div class="revert-containers">
-        <div class="car"><img src="https://wx3.sinaimg.cn/orj360/008tIcISgy1hsgyr8gzsjj300o00odfl.jpg"></div>
+        <div class="car"><img src='@/assets/car.png'></div>
         <div class="swap-action">
           <!-- 绑定 swap 方法到点击事件 -->
           <button @click="swap" title="切换起终点">
-            <img src="https://wx1.sinaimg.cn/orj360/008tIcISgy1hsiz7qtw48j301s01sq2p.jpg" alt="revert" style="width: 22px; height: 25px;">
+            <img :src="require('@/assets/revert.png')" alt="" class="revert">
           </button>
         </div>
       </div>
@@ -18,14 +18,14 @@
       <div class="search-container start">
         <!-- 图片 -->
         <div class="search-icon-wrapper">
-          <img src="https://wx1.sinaimg.cn/orj360/008tIcISgy1hsgyr8gv8dj300f00f0oh.jpg" alt="pink">
+          <img src='@/assets/pink-circle.png' alt="pink">
         </div>
         <!-- 输入框 -->
         <input type="text" v-model="searchQueryStart" @input="onSearchInputChange($event, true)" placeholder="请输入起点" class="search-box search-box-start"/>
         <!-- 搜索框内部的删除图片 -->
         <span class="search-box-img">
           <div class="delete" title="清空" @click="clc1">
-            <img src="https://wx2.sinaimg.cn/orj360/008tIcISgy1hsnss2ckv4j300k00k0m1.jpg" alt="delete1">
+            <img src='@/assets/cancel.png' alt="delete1">
           </div>
         </span>
         <!-- 修正后的起点搜索结果展示 -->
@@ -41,14 +41,14 @@
       <div class="search-container end">
         <!-- 图片容器 -->
         <div class="search-icon-wrapper">
-          <img src="https://wx4.sinaimg.cn/orj360/008tIcISgy1hsgyr8got8j300f00f0o9.jpg" alt="green">
+          <img src='@/assets/green-circle.png' alt="green">
         </div>
         <!-- 输入框 -->
         <input type="text" v-model="searchQueryEnd" @input="onSearchInputChange($event, false)" placeholder="请输入终点" class="search-box search-box-end"/>
          <!-- 搜索框内部的删除图片 -->
         <span class="search-box-img">
           <div class="delete" title="清空" @click="clc2">
-            <img src="https://wx2.sinaimg.cn/orj360/008tIcISgy1hsnss2ckv4j300k00k0m1.jpg" alt="delete1">
+            <img src='@/assets/cancel.png' alt="delete1">
           </div>
         </span>
         <!-- 修正后的终点搜索结果展示 -->
@@ -61,7 +61,7 @@
         </div>
       </div>
       <div class="search-action" @click="onSearch" title="搜索">
-          <img src="https://wx4.sinaimg.cn/mw2000/008tIcISgy1hsq1fw9ob9j300w00w3ya.jpg" alt="search">
+        <img :src="require('@/assets/search.png')" alt="" class="search">
       </div>
     </div>
   </div>
@@ -521,7 +521,7 @@ export default {
   display: flex;
   position: absolute; /* 绝对定位 */
   margin-left: 328px; /* 与左边界保持一定距离 */
-  top: 13px; /* 与底部保持一定距离 */
+  top: 11px; /* 与底部保持一定距离 */
   border: 2px solid  #ccc;
   justify-content: flex-start;
   border-radius: 10px;
@@ -537,6 +537,12 @@ export default {
 }
 
 /* 交换的容器样式 */
+.revert{
+  width:25px;
+  height:28px;
+  padding-top: 10px;
+  padding-left: 3px;
+}
 .revert-containers{
   position: absolute; /* 或使用 fixed，根据需要 */
   left: 0; /* 侧边栏靠在最左边 */
