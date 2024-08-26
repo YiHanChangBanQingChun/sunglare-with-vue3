@@ -230,11 +230,11 @@ try:
     else:
         print("whrd7 表已存在，跳过创建和插入数据步骤。")
     
-    print("第五步：开始插入 whrd7_vertices_vgr 数据到数据库...")
-    if not table_exists('whrd7_vertices_vgr'):
+    print("第五步：开始插入 whrd7_vertices_pgr 数据到数据库...")
+    if not table_exists('whrd7_vertices_pgr'):
         try:
-            # 读取 whrd7_vertices_vgr.csv 文件
-            csv_file_path = os.path.join(root_dir, 'sql', 'whrd7_vertices_vgr.csv')
+            # 读取 whrd7_vertices_pgr.csv 文件
+            csv_file_path = os.path.join(root_dir, 'sql', 'whrd7_vertices_pgr.csv')
             df_vertices = pd.read_csv(csv_file_path, delimiter=',', names=[
                 'id', 'cnt', 'chk', 'ein', 'eout', 'the_geom'
             ])
@@ -249,9 +249,9 @@ try:
             # 确保数据类型正确
             df_vertices['cnt'] = df_vertices['cnt'].apply(lambda x: int(x) if x != '' else None)
             
-            # 创建 whrd7_vertices_vgr 表
+            # 创建 whrd7_vertices_pgr 表
             create_table_query = """
-            CREATE TABLE IF NOT EXISTS whrd7_vertices_vgr (
+            CREATE TABLE IF NOT EXISTS whrd7_vertices_pgr (
                 id INTEGER PRIMARY KEY,
                 cnt INT,
                 chk VARCHAR(255),
@@ -263,12 +263,12 @@ try:
             cursor.execute(create_table_query)
             connection.commit()
             
-            # 插入 whrd7_vertices_vgr 数据并显示进度条
-            for index, row in tqdm(df_vertices.iterrows(), total=df_vertices.shape[0], desc="插入 whrd7_vertices_vgr 数据进度"):
+            # 插入 whrd7_vertices_pgr 数据并显示进度条
+            for index, row in tqdm(df_vertices.iterrows(), total=df_vertices.shape[0], desc="插入 whrd7_vertices_pgr 数据进度"):
                 try:
                     if row['id'] is not None:
                         insert_query = """
-                        INSERT INTO whrd7_vertices_vgr (id, cnt, chk, ein, eout, the_geom)
+                        INSERT INTO whrd7_vertices_pgr (id, cnt, chk, ein, eout, the_geom)
                         VALUES (%s, %s, %s, %s, %s, ST_SetSRID(%s::geometry, 4326));
                         """
                         cursor.execute(insert_query, (
@@ -280,11 +280,11 @@ try:
                     print(f"插入数据失败: {e}, 行: {index}")
                     connection.rollback()
             connection.commit()
-            print("whrd7_vertices_vgr 数据已成功插入到数据库！")
+            print("whrd7_vertices_pgr 数据已成功插入到数据库！")
         except Exception as e:
             print(f"连接数据库失败: {e}")
     else:
-        print("whrd7_vertices_vgr 表已存在，跳过创建和插入数据步骤。")
+        print("whrd7_vertices_pgr 表已存在，跳过创建和插入数据步骤。")
     
     print("第六步：开始更新 时间DLC的数据...")
     date_csv_folder = os.path.join(root_dir, 'sql', 'road_date_time')
