@@ -207,6 +207,9 @@ def get_closest_table_name(month, day, hour, minute):
     closest_table = "whrd7"  # Default to the base table
     closest_time_diff = timedelta.max
 
+    # 预定义的天数列表
+    available_days = [1, 5, 9, 13, 17, 21, 25, 29]
+
     for table in tables:
         table_name = table[0]
         try:
@@ -217,43 +220,38 @@ def get_closest_table_name(month, day, hour, minute):
 
             # 提取月份部分
             table_month = int(parts[1])
-            # print(f"Table month: {table_month}")
             # 检查时间部分是否以 't' 开头，并且包含 '_'
             if not parts[2].startswith('t'):
-                # print(f"Skipping table with unexpected time format: {table_name}")
                 continue  # Skip if the time part does not follow expected format
-            
+
             # 提取时间部分并进行分割
             table_hour = int(parts[2][1:])  # Get the part after 't'
             table_minute = int(parts[3])
             table_second = int(parts[4])
-            # 如果是9月，提取天数部分
-            if month == 9 and len(parts) > 5:
-                table_day = int(parts[5])
-            else:
-                table_day = 15  # 默认值
-            # print(f"Table time: {table_hour:02d}:{table_minute:02d}:{table_second:02d}")
+
+            # 找到最接近的天数
+            closest_day = min(available_days, key=lambda x: abs(x - day))
             # 计算时间差
-            table_time = datetime(2023, table_month,table_day, table_hour, table_minute, table_second)
+            table_time = datetime(2023, table_month, closest_day, table_hour, table_minute, table_second)
             input_time = datetime(2023, month, day, hour, minute)
-            time_diff = abs(table_time - input_time)
+            time_diff = abs((table_time - input_time).total_seconds() % 86400)  # 86400秒 = 24小时
             
             # 更新最接近的表
-            if time_diff < closest_time_diff:
-                closest_time_diff = time_diff
+            if time_diff < closest_time_diff.total_seconds():
+                closest_time_diff = timedelta(seconds=time_diff)
                 closest_table = table_name
             
-            # print(f"Table {table_name}: {table_month:02d}/{table_hour:02d}:{table_minute:02d}, time diff: {time_diff}")
         except (ValueError, IndexError) as e:
             print(f"Error parsing table name {table_name}: {e}")
         except Exception as e:
             print(f"Unexpected error parsing table name {table_name}: {e}")
 
-        # 如果最接近的表的时间差超过1小时（忽略日期差别），则使用默认表
-    if closest_time_diff.total_seconds() % 86400 > 3600:  # 86400秒 = 24小时, 3600秒 = 1小时
+    # 如果最接近的表的时间差超过1小时（忽略日期差别），则使用默认表
+    if closest_time_diff.total_seconds() > 3600:  # 3600秒 = 1小时
         closest_table = "whrd7"
+        print(closest_time_diff.total_seconds())
 
-    print(f"Closest table for {month:02d}/{day:02d} {hour:02d}:{minute:02d} is {closest_table}")
+    print(f"Closest table for {month:02d}/{closest_day:02d} {hour:02d}:{minute:02d} is {closest_table}")
     return closest_table
 
 def execute_route_plan(start, end, table_name):

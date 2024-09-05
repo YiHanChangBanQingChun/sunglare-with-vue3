@@ -155,15 +155,17 @@ export default {
       if (!date) return false
       const selected = new Date(date)
       const month = selected.getMonth() + 1 // 月份从0开始
-      const day = selected.getDate()
-
-      if (month >= 1 && month <= 7 && day !== 15) {
-        return true
-      }
-      if (month === 8 && day <= 20) {
-        return true
-      }
-      if (month >= 10 && month <= 12 && day !== 15) {
+      // const day = selected.getDate()
+      // if (month >= 1 && month <= 7 && day !== 15) {
+      //   return true
+      // }
+      // if (month === 8 && day <= 20) {
+      //   return true
+      // }
+      // if (month >= 10 && month <= 12 && day !== 15) {
+      //   return true
+      // }
+      if (month === 9) {
         return true
       }
       return false
@@ -171,7 +173,8 @@ export default {
     handleDateChange (event) {
       const date = event.target.value
       if (this.isDateDisabled(date)) {
-        alert('选择的日期未进行模拟，请选择其他日期。可选日期为，1-7月的15日，8月20日-9月30日，10-12月的15日。')
+        // alert('选择的日期未进行模拟，请选择其他日期。可选日期为，1-7月的15日，8月20日-9月30日，10-12月的15日。')
+        alert('抱歉，选择的日期未进行模拟，请选择其他日期。可选日期为，9月1日-9月30日.')
         this.selectedDate = ''
       }
     },
