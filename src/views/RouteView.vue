@@ -28,7 +28,7 @@
             <img src='@/assets/cancel.png' alt="delete1">
           </div>
         </span>
-        <!-- 修正后的起点搜索结果展示 -->
+        <!-- 起点搜索结果展示 -->
         <div class="search-results" v-if="searchResults.length && searchQueryStart" ref="searchResultsStart">
     <ul>
       <li v-for="(result, index) in searchResults" :key="index" :class="{ 'highlighted': index === highlightedIndex }" @click="selectResult(result, true)">
@@ -51,7 +51,7 @@
             <img src='@/assets/cancel.png' alt="delete1">
           </div>
         </span>
-        <!-- 修正后的终点搜索结果展示 -->
+        <!-- 终点搜索结果展示 -->
         <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd" ref="searchResultsEnd">
     <ul>
       <li v-for="(result, index) in searchResultsEnd" :key="index" :class="{ 'highlighted': index === highlightedIndex }" @click="selectResult(result, false)">
@@ -259,7 +259,6 @@ export default {
       setTimeout(() => {
         clearInterval(this.blinkingTimers[routeId])
         delete this.blinkingTimers[routeId]
-
         // 设置最终的高亮颜色
         const finalRenderer = {
           type: 'simple',
@@ -278,7 +277,6 @@ export default {
         clearInterval(this.blinkingTimers[routeId])
         delete this.blinkingTimers[routeId]
       }
-
       // 重置路径样式为默认颜色
       const layer = this.routeLayers[routeId]
       if (layer) {
@@ -395,18 +393,27 @@ export default {
     clc2 () {
       this.searchQueryEnd = ''
     },
+    // 交换起点和终点
     swap () {
       this.isSwapping = true // 设置标志位
+      // 交换 searchQueryStart 和 searchQueryEnd
       const tempQuery = this.searchQueryStart
       this.searchQueryStart = this.searchQueryEnd
       this.searchQueryEnd = tempQuery
+      // 交换 selectedResultStart 和 selectedResultEnd
       const tempResult = this.selectedResultStart
       this.selectedResultStart = this.selectedResultEnd
       this.selectedResultEnd = tempResult
+      // 调用 onSearch 方法重新查询路径
       this.onSearch().then(() => {
         this.parseUrlParams()
         this.initMap()
-        this.isSwapping = false // 设置标志位
+        // 确保在交换操作完成后，更新搜索框的值
+        this.searchQueryStart = this.selectedResultStart.name
+        this.searchQueryEnd = this.selectedResultEnd.name
+        this.isSwapping = false // 重置标志位
+      }).catch(() => {
+        this.isSwapping = false // 确保在错误情况下也重置标志位
       })
     },
     // 解析URL参数
@@ -564,10 +571,10 @@ export default {
                   time: formattedTime
                 }
               })
-              if (!this.isSwapping) { // 如果不是交换操作，更新搜索框的值
-                this.searchQueryStart = startWithLocation.name
-                this.searchQueryEnd = endWithLocation.name
-              }
+              // if (!this.isSwapping) { // 如果不是交换操作，更新搜索框的值
+              this.searchQueryStart = startWithLocation.name
+              this.searchQueryEnd = endWithLocation.name
+              // }
               resolve()
             })
             .catch(error => {
