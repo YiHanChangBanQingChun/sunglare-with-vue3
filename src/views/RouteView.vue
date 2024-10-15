@@ -90,7 +90,7 @@
     <!-- 路线展示 -->
     <div class="routelist">
       <ul class="cardlist">
-        <div class="route" data-index="1">
+        <div class="route" data-index="1" @click="highlightRoute('noGlareRouteId')">
           <div class="introduction" :style="{ color: getColor(1) }">无眩光路径</div>
           <p class="intro">
             <span>总时长：</span>
@@ -99,7 +99,7 @@
             <span>{{ totalDistance }}</span>
           </p>
         </div>
-        <div class="route" data-index="0">
+        <div class="route" data-index="0" @click="highlightRoute('defaultRouteId')">
           <div class="introduction" :style="{ color: getColor(0) }">常规路径</div>
           <p class="intro">
             <span>总时长：</span>
@@ -122,9 +122,10 @@ import GraphicsLayer from '@geoscene/core/layers/GraphicsLayer'
 import FeatureLayer from '@geoscene/core/layers/FeatureLayer'
 import Extent from '@geoscene/core/geometry/Extent'
 import axios from 'axios'
-import { nextTick } from 'vue'
+import { nextTick, markRaw } from 'vue'
 import BasemapGallery from '@geoscene/core/widgets/BasemapGallery.js'
 import Compass from '@geoscene/core/widgets/Compass.js'
+// import LayerList from '@geoscene/core/widgets/LayerList.js'
 
 export default {
   name: 'RouteView',
@@ -146,7 +147,17 @@ export default {
       noGlareTotalHours: 0, // 无眩光路径的总时长（小时）
       noGlareTotalMinutes: 0, // 无眩光路径的总时长（分钟）
       highlightedIndex: -1, // 高亮的搜索结果索引
-      noGlareTotalDistance: '0千米' // 无眩光路径的总距离
+      noGlareTotalDistance: '0千米', // 无眩光路径的总距离
+      highlightedRouteId: null, // 当前高亮显示的路径ID
+      routeLayers: {}, // 存储路径的FeatureLayer实例
+      // 闪烁路径的相关数据
+      blinkingTimers: {}, // 存储每条路径的闪烁定时器 ID
+      highlightedColor: [0, 123, 255, 1], // 浅蓝色，完全不透明
+      highlightedBlinkColor: [0, 123, 255, 0.2], // 浅蓝色，半透明
+      noGlareColor: [25, 202, 173], // 无眩光路径原色
+      defaultColor: [244, 96, 108], // 常规路径原色
+      noGlareRouteId: null,
+      defaultRouteId: null
     }
   },
   // 在组件挂载时初始化地图
@@ -179,6 +190,7 @@ export default {
     }
   },
   methods: {
+    // 获取颜色
     getColor (index) {
       if (index === 0) {
         return 'rgb(25, 202, 173)' // 绿色，无眩光路径
@@ -187,12 +199,109 @@ export default {
       }
       return 'black' // 默认颜色
     },
+    // 绘制路径
+    highlightRoute (routeId) {
+      // 如果之前有高亮的路径且不是当前点击的路径，重置其样式
+      if (this.highlightedRouteId && this.highlightedRouteId !== routeId) {
+        this.resetRouteStyle(this.highlightedRouteId)
+      }
+      // 如果当前点击的路径已经在闪烁中，先停止闪烁
+      if (this.blinkingTimers[routeId]) {
+        clearInterval(this.blinkingTimers[routeId])
+        delete this.blinkingTimers[routeId]
+        this.resetRouteStyle(routeId)
+      }
+      // 更新所有路径的渲染器样式
+      Object.keys(this.routeLayers).forEach(id => {
+        const layer = this.routeLayers[id]
+        const isHighlighted = id === routeId
+        const newRenderer = {
+          type: 'simple',
+          symbol: {
+            type: 'simple-line',
+            color: isHighlighted ? this.highlightedColor : (id === 'noGlareRouteId' ? this.noGlareColor : this.defaultColor),
+            width: isHighlighted ? 5 : 3
+          }
+        }
+        layer.renderer = newRenderer
+      })
+      this.highlightedRouteId = routeId
+      // 启动闪烁效果
+      this.startBlinking(routeId)
+    },
+    startBlinking (routeId) {
+      const layer = this.routeLayers[routeId]
+      if (!layer) return
+
+      let isBlinkOn = false
+
+      // 每隔200毫秒切换一次透明度
+      const intervalId = setInterval(() => {
+        isBlinkOn = !isBlinkOn
+        const color = isBlinkOn ? this.highlightedColor : this.highlightedBlinkColor
+
+        // 更新渲染器以实现闪烁效果
+        const newRenderer = {
+          type: 'simple',
+          symbol: {
+            type: 'simple-line',
+            color: color,
+            width: 4.5
+          }
+        }
+        layer.renderer = newRenderer
+      }, 300)
+
+      // 存储定时器 ID
+      this.blinkingTimers[routeId] = intervalId
+
+      // 三秒后停止闪烁并固定颜色
+      setTimeout(() => {
+        clearInterval(this.blinkingTimers[routeId])
+        delete this.blinkingTimers[routeId]
+
+        // 设置最终的高亮颜色
+        const finalRenderer = {
+          type: 'simple',
+          symbol: {
+            type: 'simple-line',
+            color: this.highlightedColor, // 固定为完全不透明的浅蓝色
+            width: 4.5
+          }
+        }
+        layer.renderer = finalRenderer
+      }, 3000)
+    },
+    resetRouteStyle (routeId) {
+      // 清除任何现有的闪烁定时器
+      if (this.blinkingTimers[routeId]) {
+        clearInterval(this.blinkingTimers[routeId])
+        delete this.blinkingTimers[routeId]
+      }
+
+      // 重置路径样式为默认颜色
+      const layer = this.routeLayers[routeId]
+      if (layer) {
+        const isNoGlare = routeId === 'noGlareRouteId'
+        const newRenderer = {
+          type: 'simple',
+          symbol: {
+            type: 'simple-line',
+            color: isNoGlare ? this.noGlareColor : this.defaultColor,
+            width: isNoGlare ? 4.5 : 3
+          }
+        }
+        layer.renderer = newRenderer
+      }
+    },
+    // 绘制路径
     onTimeInputChange (event) {
       const value = event.target.value
       const [hours, minutes] = value.split(':').map(Number)
       const roundedMinutes = Math.floor(minutes / 10) * 10
       this.selectedTime = `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`
     },
+    // 判断日期是否可用
     isDateDisabled (date) {
       if (!date) return false
       const selected = new Date(date)
@@ -212,6 +321,7 @@ export default {
       }
       return false
     },
+    // 处理日期变化
     handleDateChange (event) {
       const date = event.target.value
       if (this.isDateDisabled(date)) {
@@ -220,6 +330,7 @@ export default {
         this.selectedDate = ''
       }
     },
+    // 处理键盘事件
     handleKeydown (event) {
       if (this.searchResults.length && this.searchQueryStart) {
         switch (event.key) {
@@ -511,18 +622,22 @@ export default {
           }
         }
       })
+
       const compass = new Compass({
         view: this.view
       })
+
       // 将 BasemapGallery 添加到地图视图的右上角
       this.view.ui.add(basemapGallery, 'bottom-right')
       // 移动缩放控件到左下角
       this.view.ui.move('zoom', 'bottom-left')
       // 将指南针添加到地图视图的左下角
       this.view.ui.add(compass, 'bottom-left')
+
       // 创建一个新的GraphicsLayer实例，以便在地图上绘制点
       const graphicsLayer = new GraphicsLayer()
       map.add(graphicsLayer)
+
       // 创建 FeatureLayer 实例
       const featureLayer = new FeatureLayer({
         url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/wuhan_village/FeatureServer',
@@ -550,6 +665,7 @@ export default {
       // 将 FeatureLayer 添加到地图
       map.add(featureLayer)
       map.add(graphicsLayer)
+
       this.view.when(() => {
         this.drawPoints(graphicsLayer)
         this.adjustView()
@@ -788,8 +904,11 @@ export default {
               { name: 'length', type: 'double' } // 添加length字段
             ]
           })
+          const rawGeojsonLayer = markRaw(geojsonLayer)
           // 将FeatureLayer图层添加到地图上
-          map.layers.add(geojsonLayer)
+          // 添加到地图
+          map.layers.add(rawGeojsonLayer)
+          // map.layers.add(geojsonLayer)
           // 计算总时长（小时和分钟）
           if (totalCost < 3600) {
             totalCost += 600
@@ -808,10 +927,12 @@ export default {
             this.noGlareTotalHours = hours
             this.noGlareTotalMinutes = minutes
             this.noGlareTotalDistance = distance
+            this.routeLayers.noGlareRouteId = geojsonLayer
           } else {
             this.totalHours = hours
             this.totalMinutes = minutes
             this.totalDistance = distance
+            this.routeLayers.defaultRouteId = geojsonLayer
           }
         })
         .catch(error => console.error('Error loading the geojson file:', error))
