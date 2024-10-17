@@ -98,6 +98,8 @@ import BasemapGallery from '@geoscene/core/widgets/BasemapGallery.js'
 import Compass from '@geoscene/core/widgets/Compass.js'
 // import { search } from 'core-js/fn/symbol'
 import { nextTick } from 'vue'
+import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
+// import BasemapToggle from '@geoscene/core/widgets/BasemapToggle.js'
 // @ is an alias to /src
 export default {
   name: 'RouteplanningView',
@@ -410,15 +412,36 @@ export default {
           }
         }
       })
+      // 创建 Compass 实例
       const compass = new Compass({
         view: mapView
       })
       // 将 BasemapGallery 添加到地图视图的右上角
       mapView.ui.add(basemapGallery, 'bottom-right')
+
+      // 创建 BasemapToggle 实例
+      // const basemapToggle = new BasemapToggle({
+      //   view: mapView,
+      //   nextBasemap: 'tianditu-image',
+      //   basemap: 'tianditu-vector'
+      // })
+      // mapView.ui.add(basemapToggle, 'bottom-right')
+
       // 移动缩放控件到左下角
       mapView.ui.move('zoom', 'bottom-left')
       // 将指南针添加到地图视图的左下角
       mapView.ui.add(compass, 'bottom-left')
+      // 创建 ScaleBar 实例
+      const scaleBar = new ScaleBar({
+        view: mapView,
+        unit: 'metric', // 使用公制单位
+        style: 'ruler' // 使用标尺样式
+      })
+      // 将 ScaleBar 添加到地图视图的左下角
+      mapView.ui.add(scaleBar, {
+        position: 'bottom-left'
+      })
+
       return mapView
     }
   }

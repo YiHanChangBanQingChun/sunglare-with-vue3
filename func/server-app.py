@@ -51,9 +51,9 @@ with app.app_context():
 
 # 获取当前文件的目录
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-print(BASE_DIR)
+# print(BASE_DIR)
 temp_dir = os.path.join(BASE_DIR, 'tmp')
-print(temp_dir)
+# print(temp_dir)
 
 # 检查 tmp 目录是否存在，如果不存在则创建
 if not os.path.exists(temp_dir):
@@ -188,7 +188,7 @@ def search():
     return jsonify(locations)
 
 def get_closest_table_name(month, day, hour, minute):
-    print(f"Finding closest table for month: {month:02d}, day: {day:02d}, hour: {hour:02d}, minute: {minute:02d}")
+    # print(f"Finding closest table for month: {month:02d}, day: {day:02d}, hour: {hour:02d}, minute: {minute:02d}")
     try:
         conn = psycopg2.connect(**conn_params)
         cur = conn.cursor()
@@ -201,7 +201,7 @@ def get_closest_table_name(month, day, hour, minute):
         cur.close()
         conn.close()
     except Exception as e:
-        print(f"Error connecting to database: {e}")
+        # print(f"Error connecting to database: {e}")
         return None
 
     closest_table = "whrd7"  # Default to the base table
@@ -215,7 +215,7 @@ def get_closest_table_name(month, day, hour, minute):
         try:
             parts = table_name.split('_')
             if len(parts) < 5:
-                print(f"Skipping table with unexpected format: {table_name}")
+                # print(f"Skipping table with unexpected format: {table_name}")
                 continue  # Skip tables that don't follow the expected format
 
             # 提取月份部分
@@ -242,20 +242,23 @@ def get_closest_table_name(month, day, hour, minute):
                 closest_table = table_name
             
         except (ValueError, IndexError) as e:
-            print(f"Error parsing table name {table_name}: {e}")
+            # print(f"Error parsing table name {table_name}: {e}")
+            1
         except Exception as e:
-            print(f"Unexpected error parsing table name {table_name}: {e}")
+            # print(f"Unexpected error parsing table name {table_name}: {e}")
+            1
 
     # 如果最接近的表的时间差超过1小时（忽略日期差别），则使用默认表
     if closest_time_diff.total_seconds() > 3600:  # 3600秒 = 1小时
         closest_table = "whrd7"
-        print(closest_time_diff.total_seconds())
+        # print(closest_time_diff.total_seconds())
 
-    print(f"Closest table for {month:02d}/{closest_day:02d} {hour:02d}:{minute:02d} is {closest_table}")
+
+    # print(f"Closest table for {month:02d}/{closest_day:02d} {hour:02d}:{minute:02d} is {closest_table}")
     return closest_table
 
 def execute_route_plan(start, end, table_name):
-    print(f"Executing route plan for table: {table_name}, start: {start}, end: {end}")
+    # print(f"Executing route plan for table: {table_name}, start: {start}, end: {end}")
     try:
         conn = psycopg2.connect(**conn_params)
         cur = conn.cursor()
@@ -310,7 +313,8 @@ def execute_route_plan(start, end, table_name):
                     }
                     features.append(feature)
                 except Exception as e:
-                    print(f"Error loading WKB data: {e}")
+                    # print(f"Error loading WKB data: {e}")
+                    1
         
         geojson = {
             "type": "FeatureCollection",
@@ -327,10 +331,10 @@ def execute_route_plan(start, end, table_name):
         cur.close()
         conn.close()
 
-        print(f"Route plan executed successfully, route_plan_id: {route_plan_id}, temp_file_path: {temp_file_path}")
+        # print(f"Route plan executed successfully, route_plan_id: {route_plan_id}, temp_file_path: {temp_file_path}")
         return route_plan_id, temp_file_path
     except Exception as e:
-        print(f"Error executing route plan: {e}")
+        # print(f"Error executing route plan: {e}")
         return None, None
 
 @app.route('/api/route/plan', methods=['POST'])
@@ -341,7 +345,7 @@ def route_plan():
     date = data.get('date')
     time = data.get('time')
     
-    print(f"Received route plan request: start={start}, end={end}, date={date}, time={time}")
+    # print(f"Received route plan request: start={start}, end={end}, date={date}, time={time}")
     
     # 默认路径规划
     default_table_name = "whrd7"
@@ -356,10 +360,10 @@ def route_plan():
             day = date_obj.day
             hour = time_obj.hour
             minute = time_obj.minute
-            print(f"Parsed date and time: month={month}, day={day}, hour={hour}, minute={minute}")
+            # print(f"Parsed date and time: month={month}, day={day}, hour={hour}, minute={minute}")
             closest_table_name = get_closest_table_name(month, day, hour, minute)
         except Exception as e:
-            print(f"Error parsing date/time: {e}")
+            # print(f"Error parsing date/time: {e}")
             closest_table_name = None
     else:
         closest_table_name = None
@@ -370,7 +374,7 @@ def route_plan():
         time_based_route_plan_id = None
         time_based_temp_file_path = None
 
-    print(f"Route plan response: default_id={default_route_plan_id}, time_based_id={time_based_route_plan_id}")
+    # print(f"Route plan response: default_id={default_route_plan_id}, time_based_id={time_based_route_plan_id}")
     return jsonify({
         "default_id": default_route_plan_id,
         "default_temp_file_path": default_temp_file_path,
@@ -394,7 +398,7 @@ def load_user(user_id):
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.json
-    print("注册请求数据:", data)
+    # print("注册请求数据:", data)
 
      # 检查用户名是否已经存在
     existing_user = User.query.filter_by(username=data['username']).first()
@@ -402,7 +406,7 @@ def register():
         return jsonify({'message': 'Username already exists'}), 400
 
     hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-    print(f"生成的哈希密码: {hashed_password}")
+    # print(f"生成的哈希密码: {hashed_password}")
 
     new_user = User(
         username=data['username'], 
@@ -419,34 +423,36 @@ def register():
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
-    print("接收到的登录请求数据:", data)
+    # print("接收到的登录请求数据:", data)
 
     username = data.get('username')
     password = data.get('password')
     
-    print(f"登录请求数据: username={username}, password={password}")
+    # print(f"登录请求数据: username={username}, password={password}")
 
     user = User.query.filter_by(username=username).first()
     if user:
-        print(f"找到用户: {user.username}, 加密后的密码: {user.password}")
+        # print(f"找到用户: {user.username}, 加密后的密码: {user.password}")
+        1
     else:
-        print("未找到用户")
+        # print("未找到用户")
+        1
 
     try:
         if user and bcrypt.check_password_hash(user.password, password):
-            print("密码匹配成功")
+            # print("密码匹配成功")
             return jsonify({'message': '登录成功'}), 200
         else:
-            print("用户名或密码错误")
+            # print("用户名或密码错误")
             return jsonify({'message': '用户名或密码错误'}), 401
     except ValueError as e:
-        print(f"检查密码哈希时出错: {e}")
+        # print(f"检查密码哈希时出错: {e}")
         return jsonify({'message': '内部服务器错误'}), 500
 
 @app.route('/api/forget_reset_password', methods=['POST'])
 def forget_reset_password():
     data = request.json
-    print("忘记密码重置请求数据:", data)
+    # print("忘记密码重置请求数据:", data)
 
     # 检查用户是否存在
     user = User.query.filter_by(username=data['username']).first()
@@ -463,7 +469,7 @@ def forget_reset_password():
 
     # 生成新的哈希密码
     hashed_password = bcrypt.generate_password_hash(data['newPassword']).decode('utf-8')
-    print(f"生成的新哈希密码: {hashed_password}")
+    # print(f"生成的新哈希密码: {hashed_password}")
 
     # 更新用户密码
     user.password = hashed_password
@@ -473,7 +479,7 @@ def forget_reset_password():
 @app.route('/api/reset_password', methods=['POST'])
 def reset_password():
     data = request.json
-    print("重置密码请求数据:", data)
+    # print("重置密码请求数据:", data)
 
     # 检查用户是否存在
     user = User.query.filter_by(username=data['username']).first()
@@ -483,10 +489,10 @@ def reset_password():
     # 检查当前密码是否正确
     try:
         if not bcrypt.check_password_hash(user.password, data['currentPassword']):
-            print("当前密码不正确", user.password, data['currentPassword'])
+            # print("当前密码不正确", user.password, data['currentPassword'])
             return jsonify({'message': 'Current password is incorrect'}), 400
     except ValueError as e:
-        print(f"哈希检查错误: {e}")
+        # print(f"哈希检查错误: {e}")
         return jsonify({'message': 'Invalid hash method'}), 500
 
     # 检查新密码是否符合要求
@@ -495,7 +501,7 @@ def reset_password():
 
     # 生成新的哈希密码
     hashed_password = bcrypt.generate_password_hash(data['newPassword']).decode('utf-8')
-    print(f"生成的新哈希密码: {hashed_password}")
+    # print(f"生成的新哈希密码: {hashed_password}")
 
     # 更新用户密码
     user.password = hashed_password
@@ -526,7 +532,7 @@ def verify_security_answer():
 @app.route('/api/update_user_info', methods=['POST'])
 def update_user_info():
     data = request.get_json()
-    print("更新用户信息请求数据:", data)
+    # print("更新用户信息请求数据:", data)
 
     username = data.get('username')
     if not username:
@@ -534,29 +540,29 @@ def update_user_info():
 
     user = User.query.filter_by(username=username).first()
     if not user:
-        print(f"用户 {username} 不存在")
+        # print(f"用户 {username} 不存在")
         return jsonify({'message': 'User does not exist'}), 404
 
     # 更新用户名
     new_username = data.get('new_username')
     if new_username:
         user.username = new_username
-        print(f"更新用户名: {new_username}")
+        # print(f"更新用户名: {new_username}")
 
     # 更新其他用户信息
     for field in ['email', 'security_question', 'security_answer', 'birthday', 'avatar']:
         if field in data:
             setattr(user, field, data[field])
-            print(f"更新 {field}: {data[field]}")
+            # print(f"更新 {field}: {data[field]}")
 
     db.session.commit()
-    print(f"用户 {username} 信息更新成功")
+    # print(f"用户 {username} 信息更新成功")
     return jsonify({field: getattr(user, field) for field in ['username', 'email', 'security_question', 'security_answer', 'birthday', 'avatar']}), 200
 
 @app.route('/api/check_password', methods=['POST'])
 def check_password():
     data = request.json
-    print("检查密码请求数据:", data)
+    # print("检查密码请求数据:", data)
 
     # 检查用户是否存在
     user = User.query.filter_by(username=data['username']).first()
@@ -570,12 +576,13 @@ def check_password():
     # 检查当前密码是否正确
     try:
         if not bcrypt.check_password_hash(user.password, data['currentPassword']):
-            print("当前密码不正确", user.password, data['currentPassword'])
+            # print("当前密码不正确", user.password, data['currentPassword'])
             return jsonify({'message': 'Current password is incorrect'}), 400
         else:
-            print("当前密码正确", user.password, data['currentPassword'])
+            1
+            # print("当前密码正确", user.password, data['currentPassword'])
     except ValueError as e:
-        print(f"哈希检查错误: {e}")
+        # print(f"哈希检查错误: {e}")
         return jsonify({'message': 'Invalid hash method'}), 500
 
     return jsonify({'message': 'Current password is correct'}), 200
@@ -655,7 +662,7 @@ def get_solar_angles():
     altitude = get_altitude(latitude, longitude, dt_utc)
     # 转换方位角为从东开始逆时针
     converted_azimuth = (450 - azimuth) % 360
-    print(f"太阳方位角: {azimuth}, 转换后的太阳方位角: {converted_azimuth}, 太阳高度角: {altitude}")
+    # print(f"太阳方位角: {azimuth}, 转换后的太阳方位角: {converted_azimuth}, 太阳高度角: {altitude}")
     
     # 返回计算结果
     return jsonify({
@@ -689,7 +696,7 @@ def get_solar_angles_day():
     latitude = coords['latitude']
     
     # 生成从5点到8点的时间点
-    times = [datetime.combine(date, datetime.min.time()) + timedelta(hours=5) + timedelta(minutes=10 * i) for i in range(90)]
+    times = [datetime.combine(date, datetime.min.time()) + timedelta(hours=5) + timedelta(minutes=20 * i) for i in range(45)]
     
     solar_angles = []
     for dt in times:
@@ -703,13 +710,13 @@ def get_solar_angles_day():
                 'solar_azimuth': converted_azimuth,
                 'solar_altitude': altitude
             })
-            print(f"时间: {dt}, 太阳方位角: {azimuth}, 太阳高度角: {altitude}")
+            # print(f"时间: {dt}, 太阳方位角: {azimuth}, 太阳高度角: {altitude}")
     return jsonify(solar_angles)
 
 @app.route('/api/statistics', methods=['GET'])
 def get_statistics():
     district_code = request.args.get('district')
-    print(f"查询县区代码: {district_code}")
+    # print(f"查询县区代码: {district_code}")
 
     district_names = {
         '420100': '武汉市',
@@ -773,13 +780,13 @@ def get_statistics():
                     't11': stat[12],
                     't12': stat[13]
                 })
-                print(f"Found statistics for {stat[0]}")
-                print(stat)
+                # print(f"Found statistics for {stat[0]}")
+                # print(stat)
             return jsonify(result)
         else:
             return jsonify({'message': 'No statistics found'}), 404
     except Exception as e:
-        print(e)
+        # print(e)
         return jsonify({'message': 'An error occurred'}), 500
     finally:
         # 关闭数据库连接
@@ -814,7 +821,7 @@ def getapp():
         if closest_date is None or abs((entry_date - current_date).days) < abs((closest_date - current_date).days):
             closest_date = entry_date
             closest_url = entry["url"]
-    print(f"Closest URL: {closest_url}")
+    # print(f"Closest URL: {closest_url}")
     if closest_url:
         return jsonify({'url': closest_url})
     else:
@@ -825,7 +832,7 @@ if __name__ == '__main__':
         db.create_all()
     # 获取当前文件的目录
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    print(BASE_DIR)
+    # print(BASE_DIR)
     temp_dir = os.path.join(BASE_DIR, 'tmp')
     avatar_dir = os.path.join(BASE_DIR, 'avatar')
     # 检查 avatar 目录是否存在，如果不存在则创建

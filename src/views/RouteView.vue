@@ -125,6 +125,7 @@ import axios from 'axios'
 import { nextTick, markRaw } from 'vue'
 import BasemapGallery from '@geoscene/core/widgets/BasemapGallery.js'
 import Compass from '@geoscene/core/widgets/Compass.js'
+import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
 // import LayerList from '@geoscene/core/widgets/LayerList.js'
 
 export default {
@@ -633,7 +634,16 @@ export default {
       const compass = new Compass({
         view: this.view
       })
-
+      // 创建 ScaleBar 实例
+      const scaleBar = new ScaleBar({
+        view: this.view,
+        unit: 'metric', // 使用公制单位
+        style: 'ruler' // 使用标尺样式
+      })
+      // 将 ScaleBar 添加到地图视图的左下角
+      this.view.ui.add(scaleBar, {
+        position: 'bottom-left'
+      })
       // 将 BasemapGallery 添加到地图视图的右上角
       this.view.ui.add(basemapGallery, 'bottom-right')
       // 移动缩放控件到左下角
