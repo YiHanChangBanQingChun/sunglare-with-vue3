@@ -793,6 +793,10 @@ def get_statistics():
         cur.close()
         conn.close()
 
+@app.route('/api/get_api_key', methods=['GET'])
+def get_api_key():
+    api_key = '6fcbe57360a4a9ba6bccb06ac366a3bc'  # 你的 API 密钥
+    return jsonify({'key': api_key})
 
 @app.before_request
 def initialize():
@@ -801,17 +805,18 @@ def initialize():
         clear_temp_folder()
         temp_folder_cleared = True
 
+url_list = [
+    {"date": "2024-09-01", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=a29dc123ec1e46e5a391e62cb43ac095"},
+    {"date": "2024-09-05", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=64e61674326e4a87954f9b790bcbeb1b"},
+    {"date": "2024-09-10", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=700280f37e0449fc9701e22103d88de4"},
+    {"date": "2024-09-15", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=957ed46de859472595081c1dfbeb72a0"},
+    {"date": "2024-09-20", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=c14dc9f9965f4e9e858e7afdd46cb75e"},
+    {"date": "2024-09-25", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=97fb5c3168814345ba994d2080315dca"},
+    {"date": "2024-09-30", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=21896e400b9e470b8d8e6325ae1b84d3"}
+]
+
 @app.route('/api/getapp', methods=['GET'])
 def getapp():
-    url_list = [
-        {"date": "2024-09-01", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=a29dc123ec1e46e5a391e62cb43ac095"},
-        {"date": "2024-09-05", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=64e61674326e4a87954f9b790bcbeb1b"},
-        {"date": "2024-09-10", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=700280f37e0449fc9701e22103d88de4"},
-        {"date": "2024-09-15", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=957ed46de859472595081c1dfbeb72a0"},
-        {"date": "2024-09-20", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=c14dc9f9965f4e9e858e7afdd46cb75e"},
-        {"date": "2024-09-25", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=97fb5c3168814345ba994d2080315dca"},
-        {"date": "2024-09-30", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=21896e400b9e470b8d8e6325ae1b84d3"}
-    ]
     current_date = datetime.now().date()
     
     closest_date = None
@@ -826,7 +831,20 @@ def getapp():
         return jsonify({'url': closest_url})
     else:
         return jsonify({'message': 'No URL found'}), 404
-    
+
+@app.route('/api/get_dates', methods=['GET'])
+def get_dates():
+    dates = [entry["date"] for entry in url_list]
+    return jsonify({'dates': dates})
+
+@app.route('/api/get_url_by_date', methods=['GET'])
+def get_url_by_date():
+    date = request.args.get('date')
+    for entry in url_list:
+        if entry["date"] == date:
+            return jsonify({'url': entry["url"]})
+    return jsonify({'message': 'No URL found for the given date'}), 404
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

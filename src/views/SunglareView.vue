@@ -20,6 +20,14 @@
           </div>
         </div>
         <iframe :src="iframeSrc" frameborder="0" class="geoscene-iframe" @load="onIframeLoad"></iframe>
+        <div class="combobox-container">
+          <select v-model="selectedDate" @change="handleDateChange">
+            <option value="" disabled hidden >请选择需要查询眩光信息的日期</option>
+            <option v-for="date in availableDates" :key="date" :value="date">
+              {{ date }}
+            </option>
+          </select>
+        </div>
       </div>
     </div>
   </div>
@@ -88,7 +96,11 @@ export default {
       polarChart: null, // 极坐标图
       solarData: [], // 当前时间的太阳位置数据
       solarTrajectoryData: [], // 当天的太阳轨迹数据
-      barChart: null // 柱状图
+      barChart: null, // 柱状图
+      apiKey: '',
+      selectedOption: null,
+      selectedDate: '', // 初始为空
+      availableDates: [] // 可用日期
     }
   },
   watch: {
@@ -112,6 +124,8 @@ export default {
     const areaName = '武汉市' // 替换为实际的区域名称
     await this.fetchSolarAngles(areaName)
     await this.fetchSolarAnglesDay(areaName)
+    await this.fetchApiKey()
+    this.fetchAvailableDates()
   },
   beforeUnmount () {
     if (this.intervalid) {
@@ -120,6 +134,48 @@ export default {
     }
   },
   methods: {
+    // 获取可用日期
+    async fetchAvailableDates () {
+      try {
+        const response = await fetch(`${process.env.VUE_APP_API_URL}/api/get_dates`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        const data = await response.json()
+        if (data.dates) {
+          this.availableDates = data.dates
+        } else {
+          console.error('No dates found in response')
+        }
+      } catch (error) {
+        console.error('Error fetching available dates:', error)
+      }
+    },
+    async fetchIframeUrlByDate (date) {
+      this.isLoading = true // 开始加载动画
+      try {
+        const response = await fetch(`${process.env.VUE_APP_API_URL}/api/get_url_by_date?date=${date}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        const data = await response.json()
+        if (data.url) {
+          this.iframeSrc = data.url
+          console.log('获取到的iframe URL:', this.iframeSrc)
+        } else {
+          console.error('URL not found in response')
+          this.isLoading = false // 如果没有找到 URL，停止加载动画
+        }
+      } catch (error) {
+        console.error('Error fetching iframe URL:', error)
+        this.isLoading = false // 如果发生错误，停止加载动画
+      }
+    },
+    // 获取 默认的iframe URL
     async fetchIframeUrl () {
       this.isLoading = true // 开始加载动画
       try {
@@ -142,9 +198,15 @@ export default {
         this.isLoading = false // 如果发生错误，停止加载动画
       }
     },
+    handleDateChange (event) {
+      const selectedDate = event.target.value
+      this.fetchIframeUrlByDate(selectedDate)
+    },
+    // 检查 iframe 是否加载完成
     onIframeLoad () {
       this.isLoading = false // iframe 加载完成，停止加载动画
     },
+    // 处理区域选择变化事件
     handleDistrictChange () {
       clearInterval(this.intervalid)
       console.log('选择的区域:', this.selectedDistrict)
@@ -154,6 +216,7 @@ export default {
         this.fetchWeatherInfo(this.selectedDistrict)
       }, 60000)
     },
+    // 处理右键点击事件
     initzhuzhuangtu () {
       this.barChart = echarts.init(this.$refs.zhuzhuangtu)
       this.barChart.setOption({
@@ -193,6 +256,7 @@ export default {
       // 初始化时加载静态数据
       this.updateStaticChart()
     },
+    // 更新柱状图
     updatezhuzhuangtu (data, currentMonth) {
       const xAxisData = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
       const seriesData = data.map(item => {
@@ -226,6 +290,7 @@ export default {
         series: [{ data: seriesData }]
       })
     },
+    // 更新静态图表
     updateStaticChart () {
       const staticData = [
         { name: '东西湖区', count: 11107 },
@@ -270,6 +335,7 @@ export default {
         series: [{ data: seriesData, type: 'bar' }]
       })
     },
+    // 获取统计数据
     async fetchStatistics (district = null) {
       try {
         if (!district || district === '420100') {
@@ -297,6 +363,7 @@ export default {
         console.error('请求统计数据发生错误:', error)
       }
     },
+    // 初始化仪表盘
     inityibiaopan (areaName) {
       const chartDom = document.getElementById('yibiaopan')
       const myChart = echarts.init(chartDom)
@@ -470,6 +537,7 @@ export default {
         }
       }, 2000)
     },
+    // 获取当前时间的太阳角度信息
     async fetchSolarAngles (areaName) {
       console.log('获取当前时间的太阳角度信息:', areaName)
       const time = new Date().toISOString()
@@ -496,6 +564,7 @@ export default {
         console.error('请求太阳角度信息发生错误:', error)
       }
     },
+    // 获取一天内的太阳角度轨迹信息
     async fetchSolarAnglesDay (areaName) {
       console.log('获取一天内的太阳角度轨迹信息:', areaName)
       const date = new Date().toISOString().split('T')[0]
@@ -526,10 +595,12 @@ export default {
         console.error('请求太阳角度信息发生错误:', error)
       }
     },
+    // 初始化极坐标图
     initPolarChart () {
       this.polarChart = echarts.init(this.$refs.polarChart)
       this.updatePolarChart()
     },
+    // 更新极坐标图
     updatePolarChart (areaName = '') {
       const rawData = toRaw(this.solarData)
       const option = {
@@ -607,6 +678,21 @@ export default {
       console.log('ECharts Option:', option) // 添加这行
       this.polarChart.setOption(option)
     },
+    // 获取 API 密钥
+    async fetchApiKey () {
+      try {
+        const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/get_api_key`)
+        if (response.data && response.data.key) {
+          this.apiKey = response.data.key
+          console.log('获取 API 密钥成功:', this.apiKey)
+        } else {
+          console.error('获取 API 密钥失败')
+        }
+      } catch (error) {
+        console.error('请求 API 密钥发生错误:', error)
+      }
+    },
+    //  获取天气信息
     async fetchWeatherInfo (district) {
       const districtNames = {
         420100: '武汉市',
@@ -624,10 +710,12 @@ export default {
         420116: '黄陂区',
         420117: '新洲区'
       }
-      console.log(`选择的区域: ${districtNames[district] || '未知区域'} (${district})`)
+      // console.log(`选择的区域: ${districtNames[district] || '未知区域'} (${district})`)
 
-      const key = '6fcbe57360a4a9ba6bccb06ac366a3bc'
-      const url = `https://restapi.amap.com/v3/weather/weatherInfo?city=${district}&key=${key}&extensions=base`
+      if (!this.apiKey) {
+        await this.fetchApiKey() // 获取 API 密钥
+      }
+      const url = `https://restapi.amap.com/v3/weather/weatherInfo?city=${district}&key=${this.apiKey}&extensions=base`
 
       try {
         const response = await axios.get(url)
@@ -652,6 +740,7 @@ export default {
         console.error('请求天气信息发生错误:', error)
       }
     },
+    // 更新天气信息
     updateWeatherInfo (weatherInfo) {
       this.currentTemperature = parseFloat(weatherInfo.temperature)
     }
@@ -675,7 +764,7 @@ export default {
   top: 0;
   left: 0;
   margin: 20px;
-  width: 30%;
+  width: 20%;
 }
 
 select {
@@ -782,5 +871,32 @@ select {
 @keyframes l3-1 {
   0%{rotate:  18deg}
   to{rotate: -18deg}
+}
+
+/* ComboBox 容器样式 */
+.combobox-container {
+  position: absolute;
+  top: 5px;
+  right: 5px; /* 保持与顶部相同的距离 */
+  width: calc(100% - 20px); /* 使宽度相对于父容器，并减去左右的间距 */
+  max-width: 300px; /* 设置最大宽度，防止过宽 */
+  z-index: 20; /* 确保比 geoscene-wrapper 高 */
+  padding: 5px; /* 添加内边距 */
+  box-sizing: border-box; /* 确保内边距包含在宽度内 */
+}
+
+.combobox-container select {
+  width: 100%; /* 使 select 元素占满容器宽度 */
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  font-size: 14px;
+}
+
+.combobox-container select option[disabled][hidden] {
+  color: rgb(124, 124, 124) !important;
+  font-style: italic !important;
 }
 </style>

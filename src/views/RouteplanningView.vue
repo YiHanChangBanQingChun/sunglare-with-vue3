@@ -114,7 +114,7 @@ export default {
       selectedResultStart: null,
       selectedResultEnd: null,
       selectedDate: '', // 用户选择的日期
-      selectedTime: ''// 用户选择的时间
+      selectedTime: '' // 用户选择的时间
     }
   },
   mounted () {
@@ -147,12 +147,25 @@ export default {
     }
   },
   methods: {
+    toggleBasemapGallery () {
+      if (this.mapView) {
+        this.basemapGalleryVisible = !this.basemapGalleryVisible
+        const basemapGallery = this.mapView.ui.find('basemapGallery')
+        if (basemapGallery) {
+          basemapGallery.container.style.display = this.basemapGalleryVisible ? 'block' : 'none'
+        }
+      } else {
+        console.error('MapView is not initialized.')
+      }
+    },
+    // 时间选择框的输入事件处理函数
     onTimeInputChange (event) {
       const value = event.target.value
       const [hours, minutes] = value.split(':').map(Number)
       const roundedMinutes = Math.floor(minutes / 10) * 10
       this.selectedTime = `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`
     },
+    // 检查日期是否不可用
     isDateDisabled (date) {
       if (!date) return false
       const selected = new Date(date)
@@ -172,6 +185,7 @@ export default {
       }
       return false
     },
+    // 处理日期变化
     handleDateChange (event) {
       const date = event.target.value
       if (this.isDateDisabled(date)) {
@@ -180,6 +194,7 @@ export default {
         this.selectedDate = ''
       }
     },
+    // 处理键盘事件
     handleKeydown (event) {
       if (this.searchResults.length && this.searchQueryStart) {
         switch (event.key) {
@@ -225,6 +240,7 @@ export default {
         }
       }
     },
+    // 更新时间，日期
     updateTime () {
       const now = new Date()
       this.selectedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
@@ -416,6 +432,7 @@ export default {
       const compass = new Compass({
         view: mapView
       })
+
       // 将 BasemapGallery 添加到地图视图的右上角
       mapView.ui.add(basemapGallery, 'bottom-right')
 
