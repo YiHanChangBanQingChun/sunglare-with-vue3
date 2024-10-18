@@ -5,14 +5,14 @@
     </div>
     <div class="gong-neng-lan">
       <nav>
+        <h3 v-if="weatherInfo" @mouseover="showWeatherDetails" @mouseleave="hideWeatherDetails">
+            <router-link to="">{{ greetingMessage }}</router-link>
+        </h3>
         <div class="weather-info" @mouseover="showWeatherDetails" @mouseleave="hideWeatherDetails">
           <h3 v-if="weatherInfo">
             <img :src="currentWeatherIcon" alt="天气图标" class="weather-icon">
-          </h3>
+          </h3>|
         </div>
-        <h3 v-if="weatherInfo" @mouseover="showWeatherDetails" @mouseleave="hideWeatherDetails">
-            <router-link to="">{{ currentWeather }}</router-link>
-        </h3>|
         <!--  <h3><router-link to="/">主页</router-link></h3> |-->
         <h3><router-link to="/lu-jing-gui-hua">路径规划</router-link></h3>|
         <h3><router-link to="/xuan-guang-qing-kuang">眩光状况</router-link></h3>|
@@ -23,7 +23,7 @@
         </h3>
         <div class="avatar1"></div>
       </nav>
-      <div v-if="showDetails" class="weather-details">
+      <!-- <div v-if="showDetails" class="weather-details">
         <table>
           <thead>
             <tr>
@@ -52,9 +52,41 @@
             </tr>
           </tbody>
         </table>
-      </div>
+      </div> -->
     </div>
     <router-view/>
+    <div :class="['weather-details', { show: showDetails }]">
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>白天天气</th>
+              <th>白天温度</th>
+              <th>白天风向</th>
+              <th>白天风力</th>
+              <th>夜晚天气</th>
+              <th>夜晚温度</th>
+              <th>夜晚风向</th>
+              <th>夜晚风力</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="forecast in weatherForecasts" :key="forecast.date">
+              <td>{{ forecast.date }}</td>
+              <!-- <td>{{ forecast.dayweather }}</td> -->
+              <td><img :src="forecast.dayIcon" :alt="forecast.dayweather" class="weather-icon"></td>
+              <td>{{ forecast.daytemp }}°C</td>
+              <td>{{ forecast.daywind }}</td>
+              <td>{{ forecast.daypower }}级</td>
+              <!-- <td>{{ forecast.nightweather }}</td> -->
+              <td><img :src="forecast.nightIcon" :alt="forecast.nightweather" class="weather-icon"></td>
+              <td>{{ forecast.nighttemp }}°C</td>
+              <td>{{ forecast.nightwind }}</td>
+              <td>{{ forecast.nightpower }}级</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
   </div>
 </template>
 
@@ -77,7 +109,8 @@ const weatherIconMap = {
   阴: require('@/assets/weather_icon/阴.png'),
   局部阵雪: require('@/assets/weather_icon/局部阵雪.png'),
   强雪雹交加: require('@/assets/weather_icon/强雪雹交加.png'),
-  晴: require('@/assets/weather_icon/晴.png')
+  晴: require('@/assets/weather_icon/晴.png'),
+  未知: require('@/assets/weather_icon/未知.png')
 }
 
 export default {
@@ -90,7 +123,8 @@ export default {
       currentPower: '',
       currentWeatherIcon: '',
       showDetails: false,
-      weatherForecasts: []
+      weatherForecasts: [],
+      isDaytime: this.checkDaytime()
     }
   },
   setup () {
@@ -100,20 +134,24 @@ export default {
     const handleLogout = () => {
       store.dispatch('logout')
     }
-
     return {
       isLoggedIn,
       handleLogout
     }
   },
   methods: {
+    // 获取天气信息
     async fetchWeatherInfo () {
       try {
         const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/get_weather`)
         const data = response.data
         // console.log('Weather information:', data)
         const forecast = data.forecasts[0].casts[0] // 获取当天的天气信息
-        this.weatherForecasts = data.forecasts[0].casts // 获取未来几天的天气信息
+        this.weatherForecasts = data.forecasts[0].casts.map(cast => ({
+          ...cast,
+          dayIcon: this.getWeatherIcon(cast.dayweather),
+          nightIcon: this.getWeatherIcon(cast.nightweather)
+        })) // 获取未来几天的天气信息并添加图标路径
         this.weatherInfo = forecast
         this.updateCurrentWeather()
         console.log('Successfully fetched weather information:', this.weatherInfo)
@@ -121,6 +159,25 @@ export default {
         console.error('Error fetching weather information:', error)
       }
     },
+    // 获取天气图标
+    getWeatherIcon (weather) {
+      if (weather.includes('雷')) {
+        return weatherIconMap['雷']
+      } else if (weather.includes('雨')) {
+        return weatherIconMap['雨']
+      } else if (weather.includes('冰雹')) {
+        return weatherIconMap['强雪雹交加']
+      } else if (weather.includes('雪')) {
+        return weatherIconMap['雪']
+      } else if (weather.includes('晴')) {
+        return weatherIconMap['晴']
+      } else if (weather.includes('多云')) {
+        return weatherIconMap['多云']
+      } else {
+        return weatherIconMap[weather] || require('@/assets/weather_icon/未知.png')
+      }
+    },
+    // 更新当前天气
     updateCurrentWeather () {
       const currentHour = new Date().getHours()
       // 调试
@@ -164,11 +221,41 @@ export default {
         this.currentWeatherIcon = weatherIconMap[this.currentWeather] || require('@/assets/weather_icon/未知.png')
       }
     },
+    // 显示天气详情
     showWeatherDetails () {
       this.showDetails = true
     },
+    // 隐藏天气详情
     hideWeatherDetails () {
       this.showDetails = false
+    },
+    checkDaytime () {
+      const currentHour = new Date().getHours()
+      return currentHour >= 6 && currentHour < 18
+    }
+  },
+  computed: {
+    greetingMessage () {
+      const currentHour = new Date().getHours()
+      let greeting = ''
+
+      if (currentHour >= 5 && currentHour < 8) {
+        greeting = '清晨好，武汉市'
+      } else if (currentHour >= 8 && currentHour < 12) {
+        greeting = '早上好，武汉市'
+      } else if (currentHour >= 12 && currentHour < 14) {
+        greeting = '中午好，武汉市'
+      } else if (currentHour >= 14 && currentHour < 18) {
+        greeting = '下午好，武汉市'
+      } else if (currentHour >= 18 && currentHour < 20) {
+        greeting = '傍晚好，武汉市'
+      } else if (currentHour >= 20 && currentHour < 23) {
+        greeting = '晚上好，武汉市'
+      } else {
+        greeting = '深夜好，武汉市'
+      }
+
+      return `${greeting}${this.currentWeather}`
     }
   },
   mounted () {
@@ -216,7 +303,8 @@ export default {
 nav {
   display: flex; /* 启用Flex布局 */
   align-items: center; /* 垂直居中对齐 */
-  gap: 6px; /* 设置子元素之间的间距 */
+  gap: 3px; /* 设置子元素之间的间距 */
+  margin:auto;
 }
 
 nav h3 {
@@ -258,14 +346,25 @@ nav a {
 
 .weather-details {
   position: fixed;
-  top: 100%;
-  left: 0;
+  top: 10%; /* 调整为合适的顶部位置 */
+  left: 80%;
+  transform: translateX(-50%); /* 水平居中 */
   background: white;
   border: 1px solid #ccc;
   border-radius: 5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 10px;
-  z-index: 100;
+  z-index: 100000; /* 确保它在最上面 */
+  margin-top: 10px; /* 与功能栏保持一定的距离 */
+  white-space: nowrap; /* 确保所有文字在一行显示而不换行 */
+  opacity: 0; /* 初始透明度为0 */
+  visibility: hidden; /* 初始状态为隐藏 */
+  transition: opacity 0.8s ease-in-out, visibility 0.6s ease-in-out; /* 添加过渡效果 */
+}
+
+.weather-details.show {
+  opacity: 1; /* 鼠标悬停时透明度为1 */
+  visibility: visible; /* 鼠标悬停时显示 */
 }
 
 .weather-details table {
@@ -277,6 +376,19 @@ nav a {
   border: 1px solid #ccc;
   padding: 5px;
   text-align: center;
+  white-space: nowrap; /* 确保所有文字在一行显示而不换行 */
+}
+
+.weather-details th {
+  background-color: #f9f9f9; /* 添加表头背景颜色 */
+}
+
+.weather-details td {
+  background-color: #fff; /* 添加单元格背景颜色 */
+}
+
+.weather-details .forecast-item {
+  margin-bottom: 5px;
 }
 
 .forecast-item {
@@ -287,4 +399,5 @@ body {
   background-color: #EEDBBB;
   /* background-image: linear-gradient(43deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%); */
 }
+
 </style>

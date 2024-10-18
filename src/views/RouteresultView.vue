@@ -104,6 +104,8 @@ import BasemapGallery from '@geoscene/core/widgets/BasemapGallery.js'
 import FeatureLayer from '@geoscene/core/layers/FeatureLayer.js'
 import Compass from '@geoscene/core/widgets/Compass.js'
 import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
+import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.js'
+
 export default {
   name: 'RouteresultView',
   setup () {
@@ -486,16 +488,40 @@ export default {
         unit: 'metric', // 使用公制单位
         style: 'ruler' // 使用标尺样式
       })
-      // 将 ScaleBar 添加到地图视图的左下角
-      this.view.ui.add(scaleBar, {
-        position: 'bottom-left'
+      // 创建 DistanceMeasurement2D 实例
+      const distanceMeasurement2D = new DistanceMeasurement2D({
+        view: this.view,
+        unit: 'metric',
+        unitOptions: {
+          metric: ['kilometers', 'meters'],
+          nonMetric: ['miles', 'feet']
+        },
+        iconClass: 'esri-icon-measure-line' // 设置图标类
+      })
+      this.view.ui.add(distanceMeasurement2D, {
+        position: 'bottom-leading',
+        index: 0 // 确保它在最上面
       })
       // 将 BasemapGallery 添加到地图视图的右上角
-      this.view.ui.add(basemapGallery, 'bottom-right')
+      this.view.ui.add(basemapGallery, {
+        position: 'bottom-right',
+        index: 0
+      })
       // 移动缩放控件到左下角
-      this.view.ui.move('zoom', 'bottom-left')
+      this.view.ui.move('zoom', {
+        position: 'bottom-left',
+        index: 1
+      })
       // 将指南针添加到地图视图的左下角
-      this.view.ui.add(compass, 'bottom-left')
+      this.view.ui.add(compass, {
+        position: 'bottom-left',
+        index: 2
+      })
+      // 将 ScaleBar 添加到地图视图的左下角
+      this.view.ui.add(scaleBar, {
+        position: 'bottom-left',
+        index: 3
+      })
       // 创建一个新的GraphicsLayer实例，以便在地图上绘制点
       const graphicsLayer = new GraphicsLayer()
       map.add(graphicsLayer)
@@ -1010,5 +1036,34 @@ export default {
 
 .search-results li.highlighted {
   background-color: #f0f0f0; /* 高亮背景颜色 */
+}
+
+.geoscene-distance-measurement-2d__clear-button{
+  background-color: antiquewhite;
+  border-left-color: antiquewhite;
+  border-right-color: antiquewhite;
+  border-top-color: antiquewhite;
+  border-bottom-color: antiquewhite;
+  color:rgb(109, 72, 72);
+}
+
+.geoscene-distance-measurement-2d__clear-button:hover{
+  background-color: rgb(216, 180, 133);
+  border-left-color: rgb(216, 180, 133);
+  border-right-color: rgb(216, 180, 133);
+  border-top-color: rgb(216, 180, 133);
+  border-bottom-color: rgb(216, 180, 133);
+  color: rgb(109, 72, 72);
+}
+.geoscene-distance-measurement-2d__container{
+  width:170px;
+  margin: auto;
+}
+.geoscene-component.geoscene-distance-measurement-2d.geoscene-widget.geoscene-widget--panel{
+  width:180px;
+}
+
+.geoscene-ui-bottom-right.geoscene-ui-corner{
+  width:300px;
 }
 </style>

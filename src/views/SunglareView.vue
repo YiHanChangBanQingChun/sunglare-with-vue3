@@ -836,7 +836,7 @@ select {
   align-items: center;
   background: rgba(255, 255, 255, 0.8); /* 可选：添加半透明背景 */
   transform: translateX(-50%,-50%);
-  z-index: 10; /* 确保覆盖层在最上层 */
+  z-index: 2; /* 确保覆盖层在最上层 */
 }
 
 /* 加载动画的样式 */
@@ -880,7 +880,7 @@ select {
   right: 5px; /* 保持与顶部相同的距离 */
   width: calc(100% - 20px); /* 使宽度相对于父容器，并减去左右的间距 */
   max-width: 300px; /* 设置最大宽度，防止过宽 */
-  z-index: 20; /* 确保比 geoscene-wrapper 高 */
+  z-index: 3; /* 确保比 geoscene-wrapper 高 */
   padding: 5px; /* 添加内边距 */
   box-sizing: border-box; /* 确保内边距包含在宽度内 */
 }
