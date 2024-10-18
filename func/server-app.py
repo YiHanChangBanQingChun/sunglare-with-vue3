@@ -812,7 +812,8 @@ url_list = [
     {"date": "2024-09-15", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=957ed46de859472595081c1dfbeb72a0"},
     {"date": "2024-09-20", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=c14dc9f9965f4e9e858e7afdd46cb75e"},
     {"date": "2024-09-25", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=97fb5c3168814345ba994d2080315dca"},
-    {"date": "2024-09-30", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=21896e400b9e470b8d8e6325ae1b84d3"}
+    # {"date": "2024-11-01", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=21896e400b9e470b8d8e6325ae1b84d3"}
+    {"date": "2024-11-01", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=c7a4f6bdbde94605b3025bc3e3919648"},
 ]
 
 @app.route('/api/getapp', methods=['GET'])
@@ -845,6 +846,24 @@ def get_url_by_date():
             return jsonify({'url': entry["url"]})
     return jsonify({'message': 'No URL found for the given date'}), 404
 
+@app.route('/api/get_weather', methods=['GET'])
+def get_weather():
+    # 获取 API 密钥
+    api_key_response = requests.get('http://localhost:5000/api/get_api_key')
+    api_key = api_key_response.json().get('key')
+    
+    if not api_key:
+        return jsonify({'error': 'Failed to retrieve API key'}), 500
+    
+    # 请求天气信息
+    city_code = '420100'  # 武汉市的城市编码
+    weather_url = f'https://restapi.amap.com/v3/weather/weatherInfo?city={city_code}&key={api_key}&extensions=all'
+    
+    weather_response = requests.get(weather_url)
+    weather_data = weather_response.json()
+    
+    return jsonify(weather_data)
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
@@ -860,4 +879,3 @@ if __name__ == '__main__':
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
     app.run(debug=True)
-# test codes are as follows, in order to test the database connection and data situation

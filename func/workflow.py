@@ -653,7 +653,7 @@ if __name__ == "__main__":
 def merge_csv_files_in_chunks(clean_csv_path, date_csv_folder, output_folder):
     # 获取 date_csv_folder 文件夹中的所有 CSV 文件
     date_csv_files = [f for f in os.listdir(date_csv_folder) if f.endswith('.csv')]
-    
+    print(date_csv_files)
     # 如果输出文件夹不存在，则创建它
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
@@ -1205,11 +1205,11 @@ if __name__ == "__main__":
     # get_sun_glare_situation_from_hemi_pano_and_date(clean_pano_csv_file, hemi_folder, 2021, 1, 1, 0, 15)
 
     # 8. 合并csv
-    # merge_csv_files_in_chunks(clean_pano_csv_file,r"E:\webgislocation\time",r"E:\webgislocation\time_merge")
-    # # csv_to_shp(merge_csv_file, shp_date_file)
+    merge_csv_files_in_chunks(clean_pano_csv_file,r"E:\webgislocation\time_merge\juesai",r"E:\webgislocation\time_merge\juesaimerge")
+    # csv_to_shp(merge_csv_file, shp_date_file)
 
     # 9. 更新 whrd7 表
-    update_whrd7_tables(r"E:\webgislocation\time_merge_9", db_params)
+    # update_whrd7_tables(r"E:\webgislocation\time_merge_9", db_params)
 
     # 10.统计数据
     # count_points_in_districts(clean_pano_csv_file, polygon_shp, statistics_file)
