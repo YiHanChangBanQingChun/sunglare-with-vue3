@@ -1,5 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import AboutView from '../views/AboutView.vue'
+import ProjectOverview from '../views/AboutMarkdown/ProjectOverview.vue'
+import TechStack from '../views/AboutMarkdown/TechStack.vue'
+import ResearchStack from '../views/AboutMarkdown/ResearchStack.vue'
+import Features from '../views/AboutMarkdown/Features.vue'
+import Architecture from '../views/AboutMarkdown/Architecture.vue'
+import Contactus from '../views/AboutMarkdown/Contactus.vue'
 
 const routes = [
   {
@@ -8,8 +15,8 @@ const routes = [
     component: HomeView
   },
   {
-    path: '/guan-yu',
-    name: 'guan-yu',
+    path: '/AboutView',
+    name: 'AboutView',
     component: () => import(/* webpackChunkName: "guan-yu" */ '../views/AboutView.vue')
   },
   {
@@ -46,6 +53,19 @@ const routes = [
     path: '/yong-hu-zhong-xin',
     name: 'yong-hu-zhong-xin',
     component: () => import(/* webpackChunkName: "yong-hu-zhong-xin" */ '../views/UserView.vue')
+  },
+  {
+    path: '/about',
+    component: AboutView,
+    children: [
+      { path: '', redirect: 'project-overview' },
+      { path: 'project-overview', component: ProjectOverview },
+      { path: 'tech-stack', component: TechStack },
+      { path: 'research-stack', component: ResearchStack },
+      { path: 'features', component: Features },
+      { path: 'architecture', component: Architecture },
+      { path: 'contactus', component: Contactus }
+    ]
   }
 ]
 

@@ -28,6 +28,8 @@ import re
 # 初始化 Flask 应用
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
+# CORS(app, resources={r"/api/*": {"origins": "http://172.30.114.151:8080"}})
+# CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 # CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres1@localhost/postgis_34_sample'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -878,4 +880,5 @@ if __name__ == '__main__':
     # 检查 tmp 目录是否存在，如果不存在则创建
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
-    app.run(debug=True)
+    # app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

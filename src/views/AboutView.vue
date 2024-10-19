@@ -54,47 +54,60 @@
     </div>
   </body> -->
   <!-- 以下是重构后格式 -->
-  <h2>目录</h2>
   <div class="about-md-container">
     <div class="sidebar">
+      <h1>目录</h1>
       <ul>
-        <li @click="currentView = 'ProjectOverview'">项目概览</li>
+        <!-- <li @click="currentView = 'ProjectOverview'">项目概览</li>
         <li @click="currentView = 'TechStack'">项目开发的主要技术栈</li>
         <li @click="currentView = 'ResearchStack'">项目研究的主要技术栈</li>
         <li @click="currentView = 'Features'">项目的主要功能</li>
         <li @click="currentView = 'Architecture'">项目的系统架构图</li>
+        <li @click="currentView = 'Contactus'">联系我们</li> -->
+        <li><router-link to="/about/project-overview">项目概览</router-link></li>
+        <li><router-link to="/about/tech-stack">项目研究与开发的技术栈</router-link></li>
+        <!-- <li><router-link to="/about/research-stack">项目研究的主要技术栈</router-link></li> -->
+        <li><router-link to="/about/features">项目的主要功能</router-link></li>
+        <li><router-link to="/about/architecture">项目的系统架构图</router-link></li>
+        <li><router-link to="/about/contactus">联系我们</router-link></li>
       </ul>
     </div>
     <div class="about-md-content">
-      <component :is="currentView"></component>
+      <!-- <component :is="currentView"></component> -->
+      <router-view></router-view>
     </div>
   </div>
 </template>
 
 <script>
-// 以下是重构后代码
-import ProjectOverview from './AboutMarkdown/ProjectOverview.vue'
-import TechStack from './AboutMarkdown/TechStack.vue'
-import ResearchStack from './AboutMarkdown/ResearchStack.vue'
-import Features from './AboutMarkdown/Features.vue'
-import Architecture from './AboutMarkdown/Architecture.vue'
+// import ProjectOverview from './AboutMarkdown/ProjectOverview.vue'
+// import TechStack from './AboutMarkdown/TechStack.vue'
+// import ResearchStack from './AboutMarkdown/ResearchStack.vue'
+// import Features from './AboutMarkdown/Features.vue'
+// import Architecture from './AboutMarkdown/Architecture.vue'
+// import Contactus from './AboutMarkdown/Contactus.vue'
+
+// export default {
+//   components: {
+//     ProjectOverview,
+//     TechStack,
+//     ResearchStack,
+//     Features,
+//     Architecture,
+//     Contactus
+//   },
+//   data () {
+//     return {
+//       currentView: 'ProjectOverview'
+//     }
+//   }
+// }
+// window.onload = function () {
+// // 页面所有元素加载完成后的代码
+// }
 
 export default {
-  components: {
-    ProjectOverview,
-    TechStack,
-    ResearchStack,
-    Features,
-    Architecture
-  },
-  data () {
-    return {
-      currentView: 'ProjectOverview'
-    }
-  }
-}
-window.onload = function () {
-// 页面所有元素加载完成后的代码
+  name: 'AboutView'
 }
 </script>
 
@@ -191,7 +204,7 @@ body {
   padding: 0;
 }
 
-.sidebar h2 {
+.sidebar h1 {
   margin-top: 0;
   margin-bottom: 20px;
   font-size: 24px;
@@ -208,8 +221,8 @@ body {
 
 .sidebar {
   width: 20%;
-  background-color: rgba(240, 240, 240, 0.8); /* 半透明背景 */
-  backdrop-filter: blur(10px); /* 磨砂玻璃效果 */
+  background-color: rgba(255, 255, 255, 0.65); /* 半透明背景 */
+  backdrop-filter: blur(55px); /* 磨砂玻璃效果 */
   padding: 20px;
   border-radius: 15px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -230,12 +243,13 @@ body {
 
 .sidebar li:hover {
   text-decoration: underline;
+  background-color: rgba(112, 73, 73, 0.1); /* 鼠标悬停时的背景颜色 */
 }
 
 .about-md-content {
   width: 80%;
   margin-left: 5%;
-  background-color: rgba(255, 255, 255, 0.8); /* 半透明背景 */
+  background-color: rgba(255, 255, 255, 0.65); /* 半透明背景 */
   backdrop-filter: blur(10px); /* 磨砂玻璃效果 */
   padding: 20px;
   border-radius: 15px;
