@@ -105,6 +105,7 @@ import FeatureLayer from '@geoscene/core/layers/FeatureLayer.js'
 import Compass from '@geoscene/core/widgets/Compass.js'
 import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
 import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.js'
+import LayerList from '@geoscene/core/widgets/LayerList'
 
 export default {
   name: 'IntermediatePageView',
@@ -534,6 +535,11 @@ export default {
           }
         }
       })
+      // 创建 LayerList 实例
+      const layerList = new LayerList({
+        view: this.view
+      })
+      // 创建 Compass 实例
       const compass = new Compass({
         view: this.view
       })
@@ -558,10 +564,15 @@ export default {
         position: 'bottom-leading',
         index: 0 // 确保它在最上面
       })
-      // 将 BasemapGallery 添加到地图视图的右上角
+      // 将 BasemapGallery 添加到地图视图的右下角
       this.view.ui.add(basemapGallery, {
         position: 'bottom-right',
         index: 0
+      })
+      // 将 LayerList 添加到地图视图的右下角
+      this.view.ui.add(layerList, {
+        position: 'bottom-right',
+        index: 1
       })
       // 移动缩放控件到左下角
       this.view.ui.move('zoom', {
@@ -579,11 +590,16 @@ export default {
         index: 3
       })
       // 创建一个新的GraphicsLayer实例，以便在地图上绘制点
-      const graphicsLayer = new GraphicsLayer()
+      const graphicsLayer = new GraphicsLayer(
+        {
+          title: '起点和终点'
+        }
+      )
       map.add(graphicsLayer)
       // 创建 FeatureLayer 实例
       const featureLayer = new FeatureLayer({
         url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/wuhan_village/FeatureServer',
+        title: '武汉县区面',
         renderer: {
           type: 'simple', // 使用简单渲染器
           symbol: {
@@ -1052,7 +1068,16 @@ export default {
   width:180px;
 }
 
-.geoscene-ui-bottom-right.geoscene-ui-corner{
+/* .geoscene-ui-bottom-right.geoscene-ui-corner{
   width:300px;
+} */
+
+.geoscene-component.geoscene-basemap-gallery.geoscene-widget.geoscene-widget--panel-height-only.geoscene-basemap-gallery--grid{
+  width: 200px;
+  height: 200px;
+}
+
+.geoscene-component.geoscene-layer-list.geoscene-widget.geoscene-widget--panel{
+  width:200px;
 }
 </style>

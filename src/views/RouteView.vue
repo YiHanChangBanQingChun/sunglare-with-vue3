@@ -127,7 +127,7 @@ import BasemapGallery from '@geoscene/core/widgets/BasemapGallery.js'
 import Compass from '@geoscene/core/widgets/Compass.js'
 import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
 import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.js'
-// import LayerList from '@geoscene/core/widgets/LayerList.js'
+import LayerList from '@geoscene/core/widgets/LayerList.js'
 
 export default {
   name: 'RouteView',
@@ -156,10 +156,10 @@ export default {
       blinkingTimers: {}, // 存储每条路径的闪烁定时器 ID
       highlightedColor: [0, 123, 255, 1], // 浅蓝色，完全不透明
       highlightedBlinkColor: [0, 123, 255, 0.2], // 浅蓝色，半透明
-      noGlareColor: [25, 202, 173], // 无眩光路径原色
-      defaultColor: [244, 96, 108], // 常规路径原色
-      noGlareRouteId: null,
-      defaultRouteId: null
+      noGlareColor: [244, 96, 108], // 无眩光路径为红色
+      defaultColor: [25, 202, 173], // 常规路径为绿色
+      noGlareRouteId: 'noGlareRouteId',
+      defaultRouteId: 'defaultRouteId'
     }
   },
   // 在组件挂载时初始化地图
@@ -192,52 +192,64 @@ export default {
     }
   },
   methods: {
+
     // 获取颜色
     getColor (index) {
       if (index === 0) {
-        return 'rgb(25, 202, 173)' // 绿色，无眩光路径
+        return 'rgb(25, 202, 173)' // 绿色，耗时少路径
       } else if (index === 1) {
-        return 'rgb(244, 96, 108)' // 红色，耗时少路径
+        return 'rgb(244, 96, 108)' // 红色，无眩光路径
       }
       return 'black' // 默认颜色
     },
+
     // 绘制路径
     highlightRoute (routeId) {
+      // console.log('用户点击了路径:', routeId)
+      routeId = routeId === 'defaultRouteId' ? 'noGlareRouteId' : 'defaultRouteId'
       // 如果之前有高亮的路径且不是当前点击的路径，重置其样式
       if (this.highlightedRouteId && this.highlightedRouteId !== routeId) {
         this.resetRouteStyle(this.highlightedRouteId)
       }
+
       // 如果当前点击的路径已经在闪烁中，先停止闪烁
       if (this.blinkingTimers[routeId]) {
         clearInterval(this.blinkingTimers[routeId])
         delete this.blinkingTimers[routeId]
         this.resetRouteStyle(routeId)
       }
-      // 更新所有路径的渲染器样式
-      Object.keys(this.routeLayers).forEach(id => {
-        const layer = this.routeLayers[id]
-        const isHighlighted = id === routeId
+
+      // 只更新被点击的路径的渲染器样式
+      const layer = this.routeLayers[routeId]
+      if (layer) {
+        const color = this.highlightedColor
         const newRenderer = {
           type: 'simple',
+          title: '路径',
           symbol: {
             type: 'simple-line',
-            color: isHighlighted ? this.highlightedColor : (id === 'noGlareRouteId' ? this.noGlareColor : this.defaultColor),
-            width: isHighlighted ? 5 : 3
+            color: color,
+            width: 5
           }
         }
         layer.renderer = newRenderer
-      })
+      }
+
+      // 更新高亮路径 ID
       this.highlightedRouteId = routeId
       // 启动闪烁效果
       this.startBlinking(routeId)
     },
+
+    // 开始闪烁
     startBlinking (routeId) {
       const layer = this.routeLayers[routeId]
       if (!layer) return
 
       let isBlinkOn = false
+      const originalColor = routeId === this.noGlareRouteId ? this.noGlareColor : this.defaultColor
 
-      // 每隔200毫秒切换一次透明度
+      // 每隔300毫秒切换一次透明度
       const intervalId = setInterval(() => {
         isBlinkOn = !isBlinkOn
         const color = isBlinkOn ? this.highlightedColor : this.highlightedBlinkColor
@@ -245,6 +257,7 @@ export default {
         // 更新渲染器以实现闪烁效果
         const newRenderer = {
           type: 'simple',
+          title: '路径',
           symbol: {
             type: 'simple-line',
             color: color,
@@ -257,13 +270,15 @@ export default {
       // 存储定时器 ID
       this.blinkingTimers[routeId] = intervalId
 
-      // 三秒后停止闪烁并固定颜色
+      // 三秒后停止闪烁并恢复原始颜色
       setTimeout(() => {
         clearInterval(this.blinkingTimers[routeId])
         delete this.blinkingTimers[routeId]
-        // 设置最终的高亮颜色
+
+        // 恢复原始颜色
         const finalRenderer = {
           type: 'simple',
+          title: '路径',
           symbol: {
             type: 'simple-line',
             color: this.highlightedColor, // 固定为完全不透明的浅蓝色
@@ -271,23 +286,32 @@ export default {
           }
         }
         layer.renderer = finalRenderer
-      }, 3000)
+
+        // 三秒后恢复为原始颜色
+        setTimeout(() => {
+          this.resetRouteStyle(routeId, originalColor)
+        }, 3000)
+      }, 3000) // 闪烁三秒
     },
-    resetRouteStyle (routeId) {
+    resetRouteStyle (routeId, originalColor = null) {
       // 清除任何现有的闪烁定时器
       if (this.blinkingTimers[routeId]) {
         clearInterval(this.blinkingTimers[routeId])
         delete this.blinkingTimers[routeId]
       }
-      // 重置路径样式为默认颜色
+
+      // 重置路径样式为原始颜色或默认颜色
       const layer = this.routeLayers[routeId]
       if (layer) {
-        const isNoGlare = routeId === 'noGlareRouteId'
+        const isNoGlare = routeId === this.noGlareRouteId
+        // const color = (isNoGlare ? this.noGlareColor : this.defaultColor)
+        const color = (isNoGlare ? this.defaultColor : this.noGlareColor)
         const newRenderer = {
           type: 'simple',
+          title: '路径',
           symbol: {
             type: 'simple-line',
-            color: isNoGlare ? this.noGlareColor : this.defaultColor,
+            color: color,
             width: isNoGlare ? 4.5 : 3
           }
         }
@@ -651,15 +675,24 @@ export default {
         },
         iconClass: 'esri-icon-measure-line' // 设置图标类
       })
+      // 创建 LayerList 实例
+      const layerList = new LayerList({
+        view: this.view
+      })
       // 将 DistanceMeasurement2D 添加到地图视图的左下角
       this.view.ui.add(distanceMeasurement2D, {
         position: 'bottom-leading',
         index: 0 // 确保它在最上面
       })
-      // 将 BasemapGallery 添加到地图视图的右上角
+      // 将 BasemapGallery 添加到地图视图的右下角
       this.view.ui.add(basemapGallery, {
         position: 'bottom-right',
         index: 0
+      })
+      // 将 LayerList 添加到地图视图的右下角
+      this.view.ui.add(layerList, {
+        position: 'bottom-right',
+        index: 1
       })
       // 移动缩放控件到左下角
       this.view.ui.move('zoom', {
@@ -678,14 +711,20 @@ export default {
       })
 
       // 创建一个新的GraphicsLayer实例，以便在地图上绘制点
-      const graphicsLayer = new GraphicsLayer()
+      const graphicsLayer = new GraphicsLayer(
+        {
+          title: '起点与终点'
+        }
+      )
       map.add(graphicsLayer)
 
       // 创建 FeatureLayer 实例
       const featureLayer = new FeatureLayer({
         url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/wuhan_village/FeatureServer',
+        title: '武汉县区面', // 设置图层名称
         renderer: {
           type: 'simple', // 使用简单渲染器
+          title: '县区边界',
           symbol: {
             type: 'simple-fill', // 使用简单填充符号
             color: [0, 0, 0, 0], // 填充颜色透明
@@ -771,6 +810,7 @@ export default {
       })
       const startGraphic = new Graphic({
         geometry: startPoint,
+        title: '起点',
         symbol: {
           type: 'simple-marker', // autocasts as new SimpleMarkerSymbol()
           color: 'red',
@@ -828,6 +868,7 @@ export default {
       })
       const endGraphic = new Graphic({
         geometry: endPoint,
+        title: '终点',
         symbol: {
           type: 'simple-marker',
           color: 'green',
@@ -913,6 +954,7 @@ export default {
           let totalLength = 0
           let totalCost = 0
           const geojsonLayer = new FeatureLayer({ // 创建FeatureLayer图层
+            title: isNoGlareRoute ? '耗时少路径' : '无眩光路径',
             source: data.features.map((feature, index) => {
               totalLength += feature.properties.length
               totalCost += feature.properties.cost
@@ -929,6 +971,7 @@ export default {
             }),
             renderer: {
               type: 'simple', // 使用简单渲染器
+              title: isNoGlareRoute ? '耗时少路径' : '无眩光路径',
               symbol: {
                 type: 'simple-line', // 使用简单线符号
                 color: color, // 使用传入的颜色
@@ -1351,7 +1394,16 @@ export default {
   width:180px;
 }
 
-.geoscene-ui-bottom-right.geoscene-ui-corner{
+/* .geoscene-ui-bottom-right.geoscene-ui-corner{
   width:300px;
+} */
+
+.geoscene-component.geoscene-basemap-gallery.geoscene-widget.geoscene-widget--panel-height-only.geoscene-basemap-gallery--grid{
+  width: 200px;
+  height: 200px;
+}
+
+.geoscene-component.geoscene-layer-list.geoscene-widget.geoscene-widget--panel{
+  width:200px;
 }
 </style>

@@ -98,6 +98,7 @@ import Compass from '@geoscene/core/widgets/Compass.js'
 import { nextTick } from 'vue'
 import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
 import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.js'
+import LayerList from '@geoscene/core/widgets/LayerList'
 // import Point from '@geoscene/core/geometry/Point.js'
 // import { search } from 'core-js/fn/symbol'
 // import BasemapToggle from '@geoscene/core/widgets/BasemapToggle.js'
@@ -372,6 +373,7 @@ export default {
       // 创建 FeatureLayer 实例
       const featureLayer = new FeatureLayer({
         url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/wuhan_village/FeatureServer',
+        title: '武汉县区面',
         renderer: {
           type: 'simple', // 使用简单渲染器
           symbol: {
@@ -429,6 +431,10 @@ export default {
           }
         }
       })
+      // 创建 LayerList 实例
+      const layerList = new LayerList({
+        view: mapView
+      })
       // 创建 Compass 实例
       const compass = new Compass({
         view: mapView
@@ -456,10 +462,15 @@ export default {
       //   basemap: 'tianditu-vector'
       // })
       // mapView.ui.add(basemapToggle, 'bottom-right')
-      // 将 BasemapGallery 添加到地图视图的右上角
+      // 将 BasemapGallery 添加到地图视图的右下角
       mapView.ui.add(basemapGallery, {
         position: 'bottom-right',
         index: 0
+      })
+      // 将 LayerList 添加到地图视图的右下角
+      mapView.ui.add(layerList, {
+        position: 'bottom-right',
+        index: 1
       })
       // 将 DistanceMeasurement2D 添加到地图视图的右下角
       mapView.ui.add(distanceMeasurement2D, {
@@ -774,7 +785,16 @@ export default {
   width:180px;
 }
 
-.geoscene-ui-bottom-right.geoscene-ui-corner{
+/* .geoscene-ui-bottom-right.geoscene-ui-corner{
   width:300px;
+} */
+
+.geoscene-component.geoscene-basemap-gallery.geoscene-widget.geoscene-widget--panel-height-only.geoscene-basemap-gallery--grid{
+  width: 200px;
+  height: 200px;
+}
+
+.geoscene-component.geoscene-layer-list.geoscene-widget.geoscene-widget--panel{
+  width:200px;
 }
 </style>

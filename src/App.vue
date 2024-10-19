@@ -5,10 +5,10 @@
     </div>
     <div class="gong-neng-lan">
       <nav>
-        <h3 v-if="weatherInfo" @mouseover="showWeatherDetails" @mouseleave="hideWeatherDetails">
+        <h3 v-if="weatherInfo" @mouseover="showWeatherDetails" @mouseleave="hideWeatherDetails" @click="toggleWeatherDetails">
             <router-link to="">{{ greetingMessage }}</router-link>
         </h3>
-        <div class="weather-info" @mouseover="showWeatherDetails" @mouseleave="hideWeatherDetails">
+        <div class="weather-info" @mouseover="showWeatherDetails" @mouseleave="hideWeatherDetails" @click="toggleWeatherDetails">
           <h3 v-if="weatherInfo">
             <img :src="currentWeatherIcon" alt="天气图标" class="weather-icon">
           </h3>|
@@ -23,36 +23,6 @@
         </h3>
         <div class="avatar1"></div>
       </nav>
-      <!-- <div v-if="showDetails" class="weather-details">
-        <table>
-          <thead>
-            <tr>
-              <th>日期</th>
-              <th>白天天气</th>
-              <th>白天温度</th>
-              <th>白天风向</th>
-              <th>白天风力</th>
-              <th>夜晚天气</th>
-              <th>夜晚温度</th>
-              <th>夜晚风向</th>
-              <th>夜晚风力</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="forecast in weatherForecasts" :key="forecast.date">
-              <td>{{ forecast.date }}</td>
-              <td>{{ forecast.dayweather }}</td>
-              <td>{{ forecast.daytemp }}°C</td>
-              <td>{{ forecast.daywind }}</td>
-              <td>{{ forecast.daypower }}级</td>
-              <td>{{ forecast.nightweather }}</td>
-              <td>{{ forecast.nighttemp }}°C</td>
-              <td>{{ forecast.nightwind }}</td>
-              <td>{{ forecast.nightpower }}级</td>
-            </tr>
-          </tbody>
-        </table>
-      </div> -->
     </div>
     <router-view/>
     <div :class="['weather-details', { show: showDetails }]">
@@ -86,6 +56,9 @@
             </tr>
           </tbody>
         </table>
+        <div class="app-cancel-icon-container">
+          <img src="@/assets/cancel.png" alt="关闭" class="app-cancel-icon" @click="hideWeatherDetailsImmediately">
+        </div>
       </div>
   </div>
 </template>
@@ -124,7 +97,8 @@ export default {
       currentWeatherIcon: '',
       showDetails: false,
       weatherForecasts: [],
-      isDaytime: this.checkDaytime()
+      isDaytime: this.checkDaytime(),
+      isClicked: false
     }
   },
   setup () {
@@ -223,10 +197,24 @@ export default {
     },
     // 显示天气详情
     showWeatherDetails () {
-      this.showDetails = true
+      // this.showDetails = true
+      if (!this.isClicked) {
+        this.showDetails = true
+      }
     },
     // 隐藏天气详情
     hideWeatherDetails () {
+      // this.showDetails = false
+      if (!this.isClicked) {
+        this.showDetails = false
+      }
+    },
+    toggleWeatherDetails () {
+      this.isClicked = !this.isClicked
+      this.showDetails = this.isClicked
+    },
+    hideWeatherDetailsImmediately () {
+      this.isClicked = false
       this.showDetails = false
     },
     checkDaytime () {
@@ -400,4 +388,15 @@ body {
   /* background-image: linear-gradient(43deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%); */
 }
 
+.app-cancel-icon-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.app-cancel-icon {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
 </style>
