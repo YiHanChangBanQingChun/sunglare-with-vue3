@@ -23,6 +23,7 @@ from pysolar.solar import get_altitude, get_azimuth
 from urllib.parse import unquote
 import requests
 import re
+import copy
 
 # step 1: create a Flask app
 # 初始化 Flask 应用
@@ -259,6 +260,40 @@ def get_closest_table_name(month, day, hour, minute):
     # print(f"Closest table for {month:02d}/{closest_day:02d} {hour:02d}:{minute:02d} is {closest_table}")
     return closest_table
 
+def fix_segments(geojson):
+    # 深拷贝以保证不会修改原始数据
+    geojson_copy = copy.deepcopy(geojson)
+    features = geojson_copy['features']
+    
+    for i in range(len(features) - 1):
+        current_feature = features[i]
+        next_feature = features[i + 1]
+        
+        # 获取当前线段的坐标和下一个线段的坐标
+        current_coords = current_feature['geometry']['coordinates']
+        next_coords = next_feature['geometry']['coordinates']
+        
+        # 将元组转换为列表
+        current_coords = [list(coord) for coord in current_coords]
+        next_coords = [list(coord) for coord in next_coords]
+
+        # 处理 MultiLineString 和 LineString 的情况
+        current_end = current_coords[-1][-1] if isinstance(current_coords[-1], list) else current_coords[-1]
+        next_start = next_coords[0][0] if isinstance(next_coords[0], list) else next_coords[0]
+        
+        # 检查当前线段的终点与下一个线段的起点是否相同
+        if current_end != next_start:
+            # 修改下一个线段的起点，保持一致
+            if isinstance(next_coords[0], list):
+                next_coords[0][0] = current_end
+            else:
+                next_coords[0] = current_end
+
+            print(f"Fixed disconnection between segment {i} and {i + 1}")
+    
+    return geojson_copy
+
+
 def execute_route_plan(start, end, table_name):
     # print(f"Executing route plan for table: {table_name}, start: {start}, end: {end}")
     try:
@@ -323,6 +358,10 @@ def execute_route_plan(start, end, table_name):
             "features": features
         }
 
+        # 连接断开的路径段
+        geojson = fix_segments(geojson)
+        # print(geojson)
+
         route_plan_id = str(uuid.uuid4())
         temp_file_name = f"route_plan_{route_plan_id}.geojson"
         temp_file_path = os.path.join(temp_dir, temp_file_name)
@@ -333,10 +372,10 @@ def execute_route_plan(start, end, table_name):
         cur.close()
         conn.close()
 
-        # print(f"Route plan executed successfully, route_plan_id: {route_plan_id}, temp_file_path: {temp_file_path}")
+        print(f"Route plan executed successfully, route_plan_id: {route_plan_id}, temp_file_path: {temp_file_path}")
         return route_plan_id, temp_file_path
     except Exception as e:
-        # print(f"Error executing route plan: {e}")
+        print(f"Error executing route plan: {e}")
         return None, None
 
 @app.route('/api/route/plan', methods=['POST'])
@@ -362,7 +401,7 @@ def route_plan():
             day = date_obj.day
             hour = time_obj.hour
             minute = time_obj.minute
-            # print(f"Parsed date and time: month={month}, day={day}, hour={hour}, minute={minute}")
+            print(f"Parsed date and time: month={month}, day={day}, hour={hour}, minute={minute}")
             closest_table_name = get_closest_table_name(month, day, hour, minute)
         except Exception as e:
             # print(f"Error parsing date/time: {e}")
@@ -816,6 +855,10 @@ url_list = [
     {"date": "2024-09-25", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=97fb5c3168814345ba994d2080315dca"},
     # {"date": "2024-11-01", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=21896e400b9e470b8d8e6325ae1b84d3"}
     {"date": "2024-11-01", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=c7a4f6bdbde94605b3025bc3e3919648"},
+    {"date": "2024-11-03", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=43613b5da59d41bb8c89e11c7dc353b4"},
+    {"date": "2024-11-05", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=f6529613c4284ba49b2d5ea50915522e"},
+    {"date": "2024-11-06", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=30cbc027ff0842f5bce32706f54af107"},
+    {"date": "2024-11-07", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=637c1eebae274832bf31ad1bebb174a3"},
 ]
 
 @app.route('/api/getapp', methods=['GET'])

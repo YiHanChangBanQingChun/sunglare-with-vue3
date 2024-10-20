@@ -956,8 +956,12 @@ export default {
           const geojsonLayer = new FeatureLayer({ // 创建FeatureLayer图层
             title: isNoGlareRoute ? '耗时少路径' : '无眩光路径',
             source: data.features.map((feature, index) => {
-              totalLength += feature.properties.length
-              totalCost += feature.properties.cost
+              // totalLength += feature.properties.length
+              // totalCost += feature.properties.cost
+              if (feature.properties.cost !== 99999) {
+                totalLength += feature.properties.length
+                totalCost += feature.properties.cost
+              }
               return {
                 geometry: {
                   type: 'polyline',
@@ -997,10 +1001,12 @@ export default {
           // map.layers.add(geojsonLayer)
           // 计算总时长（小时和分钟）
           if (totalCost < 3600) {
-            totalCost += 600
+            totalCost += 60
           }
           const hours = Math.floor(totalCost / 3600)
+          // console.log('Hours:', hours)
           const minutes = Math.floor((totalCost % 3600) / 60)
+          // console.log('Minutes:', minutes)
           // 计算总距离（米或千米）
           let distance
           if (totalLength < 1000) {
@@ -1011,6 +1017,7 @@ export default {
           // 根据是否为无眩光路径来存储结果
           if (isNoGlareRoute) {
             this.noGlareTotalHours = hours
+            console.log('Hours:', hours)
             this.noGlareTotalMinutes = minutes
             this.noGlareTotalDistance = distance
             this.routeLayers.noGlareRouteId = geojsonLayer
