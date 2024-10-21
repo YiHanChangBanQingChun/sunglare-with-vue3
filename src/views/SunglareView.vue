@@ -602,7 +602,7 @@ export default {
     },
     // 更新极坐标图
     updatePolarChart (areaName = '') {
-      const rawData = toRaw(this.solarData)
+      const rawData = toRaw(this.solarData).filter(item => item.solar_altitude >= 0)
       const option = {
         title: {
           text: `${areaName}太阳高度角和方位角`,

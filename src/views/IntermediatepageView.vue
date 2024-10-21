@@ -790,6 +790,7 @@ export default {
   padding-left: 0px; /* 留出图片的空间 */
   margin-left: 24px; /* 根据侧边栏宽度来设置左边距 */
 }
+
 /* 更改 输入字体的框 的样式 */
 .search-box {
   position: relative; /* 允许绝对定位的子元素 */
@@ -807,12 +808,12 @@ export default {
 
 /* 鼠标悬停时只改变边框颜色，不改变宽度 */
 .search-box:hover {
-  border-color: blue; /* 改变边框颜色而不是宽度 */
+  border-color: rgb(109, 72, 72); /* 改变边框颜色而不是宽度 */
 }
 
 .search-box:focus {
   border-width: 2px;
-  border-color: blue;
+  border-color: rgb(109, 72, 72);
   text-indent: 0px; /* 聚焦时减少文本缩进 */
 }
 
@@ -863,6 +864,7 @@ export default {
   padding-top: 10px;
   padding-left: 3px;
 }
+
 .revert-containers{
   position: absolute; /* 或使用 fixed，根据需要 */
   left: 0; /* 侧边栏靠在最左边 */
@@ -875,6 +877,7 @@ export default {
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
 }
+
 .swap-action button {
   display:flex;
   flex-direction: row; /* 保持水平排列 */
@@ -907,9 +910,11 @@ export default {
   transform: translateY(-35%); /* 垂直居中对齐 */
   padding-inline-end: 0px;
 }
+
 .delete{
   cursor: pointer; /* 鼠标悬停时显示指针 */
 }
+
 .delete img {
   pointer-events: none; /* 点击图片时不会影响输入框 （记得改成删除这个框框内容）*/
 }
@@ -918,8 +923,9 @@ export default {
 .search-action img {
   transform: scale(0.85); /* 将图片缩放到原始尺寸的50% */
 }
+
 .search-action:hover{
-  border-color: blue;
+  border-color: rgb(216, 180, 133);
 }
 
 .main-container{
@@ -946,10 +952,12 @@ export default {
   padding-left: 10px;
   padding-top: 3px;
 }
+
 .form-group label,
 .form-group input {
   margin-right: 10px; /* 右侧外边距 */
 }
+
 /* 新的覆盖层容器样式 */
 .loader-overlay {
   position: absolute;
@@ -972,15 +980,18 @@ export default {
   aspect-ratio: 1;
   animation: l3-0 5s steps(10) infinite;
 }
+
 .loader:before,
 .loader:after {
   content:"";
   grid-area: 1/1;
 }
+
 .loader:before {
   clip-path: polygon(100% 50%,90.45% 79.39%,65.45% 97.55%,34.55% 97.55%,9.55% 79.39%,0% 50%,9.55% 20.61%,34.55% 2.45%,65.45% 2.45%,90.45% 20.61%,100% 50%,85.6% 24.14%,63.6% 8.15%,36.4% 8.15%,14.4% 24.14%,6% 50%,14.4% 75.86%,36.4% 91.85%,63.6% 91.85%,85.6% 75.86%,94% 50%,85.6% 24.14%);
   background: #574951;
 }
+
 .loader:after {
   background: #83988E;
   clip-path: polygon(100% 50%,65.45% 97.55%,9.55% 79.39%,9.55% 20.61%,65.45% 2.45%);
@@ -1060,10 +1071,30 @@ export default {
   border-bottom-color: rgb(216, 180, 133);
   color: rgb(109, 72, 72);
 }
+
+.geoscene-layer-list__item-container{
+  background-color: antiquewhite;
+  border-left-color: antiquewhite;
+  border-right-color: antiquewhite;
+  border-top-color: antiquewhite;
+  border-bottom-color: antiquewhite;
+  color:rgb(109, 72, 72);
+}
+
+.geoscene-layer-list__item-container:hover{
+  background-color: rgb(216, 180, 133);
+  border-left-color: rgb(216, 180, 133);
+  border-right-color: rgb(216, 180, 133);
+  border-top-color: rgb(216, 180, 133);
+  border-bottom-color: rgb(216, 180, 133);
+  color: rgb(109, 72, 72);
+}
+
 .geoscene-distance-measurement-2d__container{
   width:170px;
   margin: auto;
 }
+
 .geoscene-component.geoscene-distance-measurement-2d.geoscene-widget.geoscene-widget--panel{
   width:180px;
 }

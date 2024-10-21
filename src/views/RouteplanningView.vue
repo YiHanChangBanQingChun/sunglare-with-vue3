@@ -563,12 +563,12 @@ export default {
 
 /* 鼠标悬停时只改变边框颜色，不改变宽度 */
 .search-box:hover {
-  border-color: blue; /* 改变边框颜色而不是宽度 */
+  border-color: rgb(109, 72, 72); /* 改变边框颜色而不是宽度 */
 }
 
 .search-box:focus {
   border-width: 2px;
-  border-color: blue;
+  border-color: rgb(109, 72, 72);
   text-indent: 0px; /* 聚焦时减少文本缩进 */
 }
 
@@ -777,6 +777,25 @@ export default {
   border-bottom-color: rgb(216, 180, 133);
   color: rgb(109, 72, 72);
 }
+
+.geoscene-layer-list__item-container{
+  background-color: antiquewhite;
+  border-left-color: antiquewhite;
+  border-right-color: antiquewhite;
+  border-top-color: antiquewhite;
+  border-bottom-color: antiquewhite;
+  color:rgb(109, 72, 72);
+}
+
+.geoscene-layer-list__item-container:hover{
+  background-color: rgb(216, 180, 133);
+  border-left-color: rgb(216, 180, 133);
+  border-right-color: rgb(216, 180, 133);
+  border-top-color: rgb(216, 180, 133);
+  border-bottom-color: rgb(216, 180, 133);
+  color: rgb(109, 72, 72);
+}
+
 .geoscene-distance-measurement-2d__container{
   width:170px;
   margin: auto;

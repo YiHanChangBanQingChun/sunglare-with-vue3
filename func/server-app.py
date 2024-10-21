@@ -29,9 +29,6 @@ import copy
 # 初始化 Flask 应用
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
-# CORS(app, resources={r"/api/*": {"origins": "http://172.30.114.151:8080"}})
-# CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
-# CORS(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres1@localhost/postgis_34_sample'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 

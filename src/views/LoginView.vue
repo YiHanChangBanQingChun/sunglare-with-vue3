@@ -609,6 +609,7 @@ export default {
   margin-bottom: 10px; /* 在输入框之间添加一些间距，可根据需要调整 */
   width: 90%;
 }
+
 button {
   padding: 10px;
   border-radius: 5px;
@@ -656,6 +657,7 @@ button {
   transition: background-color 0.3s; /* 背景颜色过渡效果 */
   margin-top: 10px; /* 在按钮之间添加一些间距 */
 }
+
 /* 鼠标悬停在按钮上时的样式 */
 button:hover {
   background-color: #0056b3; /* 按钮背景颜色变深 */
@@ -707,6 +709,7 @@ button:hover {
   border: 4px solid #fff; /* 添加白色边框，根据需要调整宽度和颜色 */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
 }
+
 .login-button {
   display: flex;          /* 使用flex布局 */
   justify-content: center; /* 水平居中 */
@@ -742,6 +745,7 @@ button:hover {
   font-weight: bold;        /* 字体加粗 */
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 1); /* 给文字添加阴影效果 */
 }
+
 .reset-form-group-user input{
   padding: 10px 20px; /* 调整内边距以匹配按钮 */
   border-radius: 25px; /* 圆角边框，与按钮一致 */
