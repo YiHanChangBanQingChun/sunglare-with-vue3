@@ -87,29 +87,45 @@
         <input id="time-input" type="time" v-model="formattedTime" @input="onTimeInputChange" step="600"> <!-- 600秒 = 10分钟 -->
       </div>
     </div>
-    <!-- 路线展示 -->
-    <div class="routelist">
-      <ul class="cardlist">
-        <div class="route" data-index="1" @click="highlightRoute('noGlareRouteId')">
-          <div class="introduction" :style="{ color: getColor(1) }">无眩光路径</div>
-          <p class="intro">
-            <span>总时长：</span>
-            <span>{{ totalHours }}小时{{ totalMinutes }}分钟</span>
-            <span>总距离：</span>
-            <span>{{ totalDistance }}</span>
-          </p>
-        </div>
-        <div class="route" data-index="0" @click="highlightRoute('defaultRouteId')">
-          <div class="introduction" :style="{ color: getColor(0) }">常规路径</div>
-          <p class="intro">
-            <span>总时长：</span>
-            <span>{{ noGlareTotalHours }}小时{{ noGlareTotalMinutes }}分钟</span>
-            <span>总距离：</span>
-            <span>{{ noGlareTotalDistance }}</span>
-          </p>
-        </div>
-      </ul>
-    </div>
+    <div>
+   <!-- 路线展示 -->
+   <transition name="fade">
+      <div class="routelist" v-show="isRouteListVisible">
+        <ul class="cardlist">
+          <div class="route" data-index="1" @click="highlightRoute('noGlareRouteId')">
+            <div class="introduction" :style="{ color: getColor(1) }">无眩光路径</div>
+            <p class="intro">
+              <span>总时长：</span>
+              <span>{{ totalHours }}小时{{ totalMinutes }}分钟</span>
+              <span>总距离：</span>
+              <span>{{ totalDistance }}</span>
+            </p>
+            <p class="intro">
+              <span>经过：</span>
+              <span>{{ noGlareTotalPass }}</span>
+            </p>
+          </div>
+          <div class="route" data-index="0" @click="highlightRoute('defaultRouteId')">
+            <div class="introduction" :style="{ color: getColor(0) }">常规路径</div>
+            <p class="intro">
+              <span>总时长：</span>
+              <span>{{ noGlareTotalHours }}小时{{ noGlareTotalMinutes }}分钟</span>
+              <span>总距离：</span>
+              <span>{{ noGlareTotalDistance }}</span>
+            </p>
+            <p class="intro">
+              <span>经过：</span>
+              <span>{{ noGlareTotalPass }}</span>
+            </p>
+          </div>
+        </ul>
+        <span class="toggle-button" @click="toggleRouteList" title="隐藏">
+          <img src='@/assets/cancel.png' alt="delete1">
+        </span>
+      </div>
+    </transition>
+    <button v-if="!isRouteListVisible" @click="toggleRouteList" class="open-button">展开路线结果</button>
+  </div>
   </div>
 </template>
 
@@ -159,7 +175,10 @@ export default {
       noGlareColor: [244, 96, 108], // 无眩光路径为红色
       defaultColor: [25, 202, 173], // 常规路径为绿色
       noGlareRouteId: 'noGlareRouteId',
-      defaultRouteId: 'defaultRouteId'
+      defaultRouteId: 'defaultRouteId',
+      isRouteListVisible: true, // 路线列表是否可见
+      totalPass: '',
+      noGlareTotalPass: ''
     }
   },
   // 在组件挂载时初始化地图
@@ -192,7 +211,9 @@ export default {
     }
   },
   methods: {
-
+    toggleRouteList () {
+      this.isRouteListVisible = !this.isRouteListVisible
+    },
     // 获取颜色
     getColor (index) {
       if (index === 0) {
@@ -953,26 +974,39 @@ export default {
         .then(data => {
           let totalLength = 0
           let totalCost = 0
+          const passRoads = []
+
+          const features = data.features.map((feature, index) => {
+            if (feature.properties.cost !== 99999) {
+              totalLength += feature.properties.length
+              totalCost += feature.properties.cost
+            }
+            if (!feature.properties.name.includes('未知')) {
+              passRoads.push({
+                name: feature.properties.name,
+                length: feature.properties.length
+              })
+            }
+            return {
+              geometry: {
+                type: 'polyline',
+                paths: feature.geometry.coordinates
+              },
+              attributes: {
+                ...feature.properties,
+                id: index, // 为每个要素生成唯一的ID
+                routeType: isNoGlareRoute ? '耗时少路径' : '无眩光路径' // 添加路线类型
+              }
+            }
+          })
+
+          // 按长度排序并选出最长的三条路段
+          passRoads.sort((a, b) => b.length - a.length)
+          const topPassRoads = passRoads.slice(0, 3).map(road => road.name).join('->')
+
           const geojsonLayer = new FeatureLayer({ // 创建FeatureLayer图层
             title: isNoGlareRoute ? '耗时少路径' : '无眩光路径',
-            source: data.features.map((feature, index) => {
-              // totalLength += feature.properties.length
-              // totalCost += feature.properties.cost
-              if (feature.properties.cost !== 99999) {
-                totalLength += feature.properties.length
-                totalCost += feature.properties.cost
-              }
-              return {
-                geometry: {
-                  type: 'polyline',
-                  paths: feature.geometry.coordinates
-                },
-                attributes: {
-                  ...feature.properties,
-                  id: index // 为每个要素生成唯一的ID
-                }
-              }
-            }),
+            source: features,
             renderer: {
               type: 'simple', // 使用简单渲染器
               title: isNoGlareRoute ? '耗时少路径' : '无眩光路径',
@@ -991,8 +1025,41 @@ export default {
               { name: 'edge', type: 'integer' },
               { name: 'cost', type: 'double' },
               { name: 'agg_cost', type: 'double' },
-              { name: 'length', type: 'double' } // 添加length字段
-            ]
+              { name: 'length', type: 'double' },
+              { name: 'name', type: 'string' },
+              { name: 'maxspeed', type: 'integer' },
+              { name: 'routeType', type: 'string' } // 添加routeType字段
+            ],
+            popupTemplate: {
+              title: '{routeType} - {name}', // 显示路线类型和路名
+              content: [
+                {
+                  type: 'text',
+                  text: `总距离: ${(totalLength / 1000).toFixed(2)} km<br>总耗时: ${(totalCost / 3600).toFixed(2)} 小时`
+                },
+                {
+                  type: 'fields',
+                  fieldInfos: [
+                    {
+                      fieldName: 'length',
+                      label: '长度（米）'
+                    },
+                    {
+                      fieldName: 'cost',
+                      label: '耗时（秒）'
+                    },
+                    {
+                      fieldName: 'maxspeed',
+                      label: '最大速度'
+                    },
+                    {
+                      fieldName: 'name',
+                      label: '名称'
+                    }
+                  ]
+                }
+              ]
+            }
           })
           const rawGeojsonLayer = markRaw(geojsonLayer)
           // 将FeatureLayer图层添加到地图上
@@ -1020,11 +1087,13 @@ export default {
             console.log('Hours:', hours)
             this.noGlareTotalMinutes = minutes
             this.noGlareTotalDistance = distance
+            this.noGlareTotalPass = topPassRoads
             this.routeLayers.noGlareRouteId = geojsonLayer
           } else {
             this.totalHours = hours
             this.totalMinutes = minutes
             this.totalDistance = distance
+            this.totalPass = topPassRoads
             this.routeLayers.defaultRouteId = geojsonLayer
           }
         })
@@ -1256,19 +1325,41 @@ export default {
   border-radius: 10px; /* 设置圆角 */
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  overflow: hidden;
 }
+
+/* 过渡效果 */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.8s ease-in-out, max-height 0.6s ease-in-out;
+}
+.fade-enter, .fade-leave-to {
+  opacity: 0;
+  max-height: 1000px;
+}
+.fade-enter-to, .fade-leave {
+  opacity: 1;
+  max-height: 1000px;
+}
+
 .cardlist{
   padding:5px;
+  margin-top: 10px;
+  margin-bottom: 0px;
 }
 .route{
   left: 8px; /* 距离左侧的距离 */
   width:348px;
+  /* height: 12vh; */
   height: auto;
   border-radius: 10px; /* 设置圆角 */
   border: 2px solid #E4E6E7;
   padding: 25px 20px 10px 15px;
   cursor: pointer;
-  margin: 0 0 10px;
+  margin-bottom: 8px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 10px;
+  cursor: pointer;
 }
 .route:hover{
   border-color: blue;
@@ -1278,6 +1369,31 @@ export default {
 }
 .intro span{
   margin-right: 10px; /* 右侧外边距 */
+}
+
+.toggle-button {
+  align-self: center; /* 居中对齐 */
+  cursor: pointer;
+  margin-bottom: 2px;
+  margin-top: 2px;
+}
+
+.open-button:hover {
+  background-color: rgb(216, 180, 133);
+}
+
+.open-button {
+  position: fixed;
+  left: 8px;
+  margin-top: 135px;
+  background-color: #FFFFFF;
+  border: 2px solid #E4E6E7;
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  background-color: antiquewhite;
+  color: rgb(109,72,72);
+  cursor: pointer;
 }
 
 /* 新的覆盖层容器样式 */

@@ -289,7 +289,7 @@ def fix_segments(geojson):
             else:
                 next_coords[0] = current_end
 
-            print(f"Fixed disconnection between segment {i} and {i + 1}")
+            # print(f"Fixed disconnection between segment {i} and {i + 1}")
     
     return geojson_copy
 
@@ -308,13 +308,15 @@ def execute_route_plan(start, end, table_name):
             SELECT id FROM whrd7_vertices_pgr
             ORDER BY the_geom <-> ST_SetSRID(ST_MakePoint(%s, %s), 4326) LIMIT 1
         )
-        SELECT seq, path_seq, node, edge, cost, agg_cost, ST_AsBinary(geom) AS geom, length
+        SELECT seq, path_seq, node, edge, cost, agg_cost, ST_AsBinary(geom) AS geom, length, name, maxspeed
         FROM pgr_astar(
             'SELECT gid AS id, source, target, 
             forward_time AS cost, 
             reverse_time AS reverse_cost, 
             COALESCE(ST_X(ST_StartPoint(geom)), 0) AS x1, COALESCE(ST_Y(ST_StartPoint(geom)), 0) AS y1, 
-            COALESCE(ST_X(ST_EndPoint(geom)), 0) AS x2, COALESCE(ST_Y(ST_EndPoint(geom)), 0) AS y2 
+            COALESCE(ST_X(ST_EndPoint(geom)), 0) AS x2, COALESCE(ST_Y(ST_EndPoint(geom)), 0) AS y2 ,
+            name,
+            maxspeed
             FROM {table_name}
             WHERE geom IS NOT NULL AND (ST_GeometryType(geom) = ''ST_LineString'' OR ST_GeometryType(geom) = ''ST_MultiLineString'')',
             (SELECT id FROM start_vertex), (SELECT id FROM end_vertex), directed := true
@@ -328,7 +330,7 @@ def execute_route_plan(start, end, table_name):
         features = []
 
         for row in route_result:
-            geom_data = row[-2]
+            geom_data = row[-4]
             if isinstance(geom_data, memoryview):
                 geom_data = geom_data.tobytes()
             if isinstance(geom_data, bytes):
@@ -345,7 +347,9 @@ def execute_route_plan(start, end, table_name):
                             "edge": row[3],
                             "cost": row[4],
                             "agg_cost": row[5],
-                            "length": row[7]
+                            "length": row[7],
+                            "name": row[8],
+                            "maxspeed": row[9]
                         }
                     }
                     features.append(feature)
