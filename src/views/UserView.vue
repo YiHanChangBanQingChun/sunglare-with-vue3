@@ -1,39 +1,43 @@
 <template>
   <div class="yong-hu-zhong-xin">
-    <div class="text">
+    <div class="left-panel">
       <div class="avatar-container">
         <img :src="previewAvatarUrl || avatarUrl" alt="" class="avatar">
-        <button class="avatar-change-button" @click="toggleAvatarModal">更换头像</button>
       </div>
-      <!-- 用户信息显示 -->
-      <p @mouseover="showTooltip('username')" @mouseleave="hideTooltip" @click="editField('username')">
-        用户名: <span v-if="editingField !== 'username'">{{ userInfo.username }}</span>
-        <input v-else type="text" v-model="editForm.username" @blur="saveField('username')" />
-        <span v-if="tooltipVisible && tooltipField === 'username'" class="tooltip">点击修改用户名</span>
-      </p>
-      <p @mouseover="showTooltip('email')" @mouseleave="hideTooltip" @click="editField('email')">
-        邮箱: <span v-if="editingField !== 'email'">{{ userInfo.email }}</span>
-        <input v-else type="email" v-model="editForm.email" @blur="saveField('email')" />
-        <span v-if="tooltipVisible && tooltipField === 'email'" class="tooltip">点击修改邮箱</span>
-      </p>
-      <p @mouseover="showTooltip('security_question')" @mouseleave="hideTooltip" @click="editField('security_question')">
-        安全问题: <span v-if="editingField !== 'security_question'">{{ userInfo.security_question }}</span>
-        <input v-else type="text" v-model="editForm.security_question" @blur="saveField('security_question')" />
-        <span v-if="tooltipVisible && tooltipField === 'security_question'" class="tooltip">点击修改安全问题</span>
-      </p>
-      <p @mouseover="showTooltip('birthday')" @mouseleave="hideTooltip" @click="editField('birthday')">
-        生日: <span v-if="editingField !== 'birthday'">{{ userInfo.birthday }}</span>
-        <input v-else type="date" v-model="editForm.birthday" @blur="saveField('birthday')" />
-        <span v-if="tooltipVisible && tooltipField === 'birthday'" class="tooltip">点击修改生日</span>
-      </p>
+      <h2 class="welcome">欢迎,{{ userInfo.username }}</h2>
       <div class="button-div">
-      <!-- 添加修改密码按钮 -->
-      <button @click="showPasswordModal">修改密码</button>
-      <!-- 退出登录按钮 -->
-      <button @click="handleLogout">退出登录</button>
+        <button @click="toggleAvatarModal">更换头像</button>
+        <button @click="showSection('userInfo')">查看个人信息</button>
+        <button @click="showSection('feedback')">用户反馈</button>
+        <button @click="showPasswordModal">修改密码</button>
+        <button @click="handleLogout">退出登录</button>
+      </div>
     </div>
+    <div class="right-panel">
+      <div v-if="currentSection === 'userInfo'" class="text">
+        <h1>用户信息</h1>
+        <div class="info-item" v-for="field in fields" :key="field.name">
+          <p>
+            {{ field.label }}:
+            <span v-if="editingField !== field.name">{{ userInfo[field.name] }}</span>
+            <input v-else :type="field.type" v-model="editForm[field.name]" />
+            <span v-if="tooltipVisible && tooltipField === field.name" class="tooltip">点击修改{{ field.label }}</span>
+          </p>
+          <button v-if="editingField !== field.name" @click="editField(field.name)">修改</button>
+          <div v-else>
+            <button @click="saveField(field.name)">确认</button>
+            <button @click="cancelEdit">取消</button>
+          </div>
+        </div>
+      </div>
+      <div v-if="currentSection === 'feedback'" class="text feedback-form">
+        <textarea v-model="feedbackContent" class="feedback-textarea" placeholder="请输入您的反馈内容..."></textarea>
+        <div class="button-group-feedback">
+          <button @click="clearFeedback" class="btn btn-secondary">清除</button>
+          <button @click="submitFeedback" class="feedback-button">提交反馈</button>
+        </div>
+      </div>
     </div>
-        <!-- 修改密码模态窗口 -->
         <div v-if="passwordModalVisible" class="modal-overlay">
         <div class="modal">
           <h2>修改密码</h2>
@@ -57,7 +61,6 @@
           </div>
         </div>
       </div>
-    <!-- 头像上传模态框 -->
     <div v-if="showAvatarModal" class="modal-overlay">
       <div class="avatar-modal">
         <div class="modal-content">
@@ -109,17 +112,19 @@ export default {
       previewAvatarUrl: null, // 预览头像URL
       selectedFile: null, // 选中的文件
       editingField: null, // 当前正在编辑的字段
-      editForm: {
-        username: '',
-        email: '',
-        security_question: '',
-        security_answer: '',
-        birthday: ''
-      },
+      editForm: {}, // 用于保存编辑的字段
       tooltipVisible: false, // 控制提示信息的显示
       tooltipField: '', // 当前显示提示信息的字段
       currentUsername: '',
-      originalUsername: null // 用于保存旧用户名
+      originalUsername: null, // 用于保存旧用户名
+      currentSection: 'userInfo', // 当前显示的部分
+      fields: [
+        { name: 'username', label: '用户名', type: 'text' },
+        { name: 'email', label: '邮箱', type: 'email' },
+        { name: 'security_question', label: '安全问题', type: 'text' },
+        { name: 'birthday', label: '生日', type: 'date' }
+      ],
+      feedbackContent: '' // 反馈内容
     }
   },
   computed: {
@@ -144,9 +149,38 @@ export default {
         console.error('获取用户信息失败:', error)
       }
     },
+    // 清除反馈内容
+    clearFeedback () {
+      this.feedbackContent = ''
+    },
+    // 提交反馈
+    submitFeedback () {
+      const feedbackContent = this.feedbackContent
+      const username = this.username
+      const timestamp = new Date().toISOString()
+
+      axios.post(`${process.env.VUE_APP_API_URL}/api/submit_feedback`, {
+        username,
+        feedbackContent,
+        timestamp
+      })
+        .then(response => {
+          alert('反馈提交成功, 感谢您的反馈！')
+        })
+        .catch(error => {
+          console.error('反馈提交失败:', error)
+          alert('反馈提交失败, 请稍后再试。')
+        })
+    },
+    // 显示指定部分
+    showSection (section) {
+      this.currentSection = section
+    },
+    // 更新当前用户名
     updateCurrentUsername (username) {
       this.currentUsername = username // 更新当前用户名
     },
+    // 编辑字段
     editField (field) {
       this.editingField = field
       this.editForm[field] = this.userInfo[field]
@@ -154,55 +188,40 @@ export default {
         this.originalUsername = this.userInfo.username // 在点击编辑时保存旧用户名
       }
     },
+    // 取消编辑
     cancelEdit () {
       this.editingField = null
     },
     async saveField (field) {
       try {
-        // 确保 originalUsername 被正确保存
-        const originalUsername = this.originalUsername
-        console.log('旧用户名:', originalUsername) // 添加日志
-
+        const originalUsername = this.originalUsername || this.userInfo.username
         let updateData
 
-        // 如果更新的是用户名，创建包含旧用户名和新用户名的更新数据对象
         if (field === 'username') {
           updateData = {
-            username: originalUsername, // 使用旧用户名进行更新
-            new_username: this.editForm.username // 传递新的用户名
+            username: originalUsername,
+            new_username: this.editForm.username
           }
         } else {
-          // 创建更新数据对象
           updateData = {
-            username: originalUsername, // 使用旧用户名进行更新
+            username: originalUsername,
             [field]: this.editForm[field]
           }
         }
 
-        console.log('更新用户信息请求数据:', updateData) // 添加日志
-
-        // 发送更新请求
         await axios.post(`${process.env.VUE_APP_API_URL}/api/update_user_info`, updateData)
-
-        // 如果更新的是用户名，更新 Vuex 状态和当前组件中的用户名
-        if (field === 'username') {
-          this.updateUsername(this.editForm.username) // 更新 Vuex 状态中的用户名
-          this.username = this.editForm.username // 更新当前组件中的用户名
-        }
-
-        // 保存成功后刷新用户信息
-        await this.fetchUserInfo()
-        this.editingField = null // 退出编辑状态
-
-        console.log(`Field ${field} saved successfully and editing state exited.`)
+        this.userInfo[field] = this.editForm[field]
+        this.editingField = null
       } catch (error) {
         console.error('更新用户信息失败:', error)
       }
     },
+    // 显示提示信息
     showTooltip (field) {
       this.tooltipVisible = true
       this.tooltipField = field
     },
+    // 隐藏提示信息
     hideTooltip () {
       this.tooltipVisible = false
       this.tooltipField = ''
@@ -216,6 +235,7 @@ export default {
       this.passwordErrors.newPassword = false
       this.passwordErrors.confirmPassword = false
     },
+    // 上传头像
     handleAvatarUpload (event) {
       const file = event.target.files[0]
       if (file) {
@@ -227,6 +247,7 @@ export default {
         reader.readAsDataURL(file)
       }
     },
+    // 上传头像
     uploadAvatar () {
       if (this.selectedFile) {
         const formData = new FormData()
@@ -244,6 +265,7 @@ export default {
           })
       }
     },
+    // 退出登录
     handleLogout () {
       this.logout()
       alert('退出成功')
@@ -251,9 +273,11 @@ export default {
         this.$router.push({ name: 'lu-jing-gui-hua' })
       }, 1000)
     },
+    // 切换头像模态框的显示状态
     toggleAvatarModal () {
       this.showAvatarModal = !this.showAvatarModal // 切换模态框的显示状态
     },
+    // 显示密码修改模态框
     showPasswordModal () {
       // 显示模态框
       this.passwordModalVisible = true
@@ -267,6 +291,7 @@ export default {
     validateConfirmPassword () {
       this.passwordErrors.confirmPassword = this.passwordForm.newPassword !== this.passwordForm.confirmPassword
     },
+    // 验证当前密码
     checkCurrentPassword () {
       axios.post(`${process.env.VUE_APP_API_URL}/api/check_password`, {
         username: this.username,
@@ -307,6 +332,7 @@ export default {
           this.resetPasswordForm()
         })
     },
+    // 取消密码修改
     cancelPasswordChange () {
       this.passwordModalVisible = false
       this.resetPasswordForm() // 重置表单
@@ -321,59 +347,14 @@ export default {
 
 <style>
 .yong-hu-zhong-xin {
-  background-image: url('~@/assets/bg4.jpg'); /* 替换为你的图片路径 */
-  background-size: cover; /* 背景图片覆盖整个元素 */
-  background-repeat: no-repeat; /* 防止背景图片重复 */
-  background-attachment: fixed; /* 背景图片固定，不随页面滚动 */
-  background-position: center center; /* 背景图片居中显示 */
-  min-height: 100vh; /* 确保背景覆盖整个视图高度 */
-}
-.yong-hu-zhong-xin {
   display: flex;
-  flex-direction: column; /* 子元素垂直排列 */
-  align-items: center; /* 水平居中对齐子元素 */
-  justify-content: center; /* 垂直居中对齐子元素 */
-  height: 100vh; /* 设置容器高度为视口的 100% */
-}
-
-.text > h1 {
-text-align: center; /* 文本居中 */
-background: -webkit-linear-gradient(rgba(238,174,202,1), rgba(148,187,233,1));
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
-background-clip: text;
-color: transparent; /* 对于非WebKit浏览器的兼容 */
-}
-
-.text {
-margin-top: 5px; /* 顶部外边距 */
-margin-bottom: 5px; /* 底部外边距 */
-background-image: linear-gradient( #fce3688e, #4dbdf976); /* 渐变 */
--webkit-backdrop-filter: blur(25px);
-backdrop-filter: blur(25px);
-border: 1px solid rgba(255,255,255,0.45);
-border-radius: 15px; /* 添加圆角 */
-padding: 20px; /* 内边距 */
-text-align: left; /* 文本居中 */
-margin-top: 10vh; /* 向下移动20px，可以根据需要调整这个值 */
-width:30%;
-}
-
-.text p {
-  background-color: transparent; /* 设置背景色为透明 */
-  font-weight: bold;              /* 字体加粗 */
-  color: #ffffff;                  /* 设置字体颜色，这里假设为白色，您可以根据需要调整 */
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 1); /* 添加字体阴影效果 */
-  border-top: 2px dashed #868686; /* 上边框为虚线 */
-  border-right: none;            /* 右边框设置为无 */
-  border-bottom: none; /* 下边框为虚线 */
-  border-left: none;             /* 左边框设置为无 */
-  padding: 10px 20px;             /* 设置按钮内边距 */
-  border-radius: 0px;              /* 设置圆角边框 */
-  cursor: pointer;                 /* 鼠标悬停时显示指针 */
-  transition: all 0.3s ease;      /* 平滑过渡效果 */
-  margin: 0 10px;                 /* 设置按钮外边距，根据需要调整 */
-  text-align: center;
+  height: 88vh;
+  margin-top: 10vh;
+  background-image: url('~@/assets/bg4.jpg');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position: center center;
 }
 
 /* 查询按钮的容器样式 */
@@ -388,7 +369,7 @@ width:30%;
 /* 查询按钮样式 */
 .button-div button {
   padding: 10px 20px; /* 按钮内边距 */
-  background-image: linear-gradient( #15d3f98e,  #fce3688e); /* 渐变 */;
+  background-image: linear-gradient( #15d3f98e,  #fce3688e); /*渐变;*/
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 1); /* 添加字体阴影效果 */
   color: white; /* 文字颜色 */
   border-color: rgba(134, 133, 133, 0.5); /* 去除边框 */
@@ -483,12 +464,15 @@ width:30%;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); /* 给文字添加阴影效果 */
   text-align: center;
 }
+
 .button-div button:first-child {
   margin-right: 20px; /* 第一个按钮和第二个按钮之间的间距 */
 }
+
 .button-div button:last-child {
-  background:linear-gradient( #fc706e,  #fce3688e); /* 第一个按钮和第二个按钮之间的间距 */
+  background:linear-gradient( #fc706e,  #fce3688e);
 }
+
 .button-div button:last-child:hover {
   background-color: #440101;}
 /* 在模态框按钮组中为取消按钮添加右侧外边距 */
@@ -516,7 +500,7 @@ width:30%;
 }
 
 .modal {
-  background-image: linear-gradient( #33b6fcee, #fce368d3); /* 渐变 */;
+  background-image: linear-gradient( #33b6fcee, #fce368d3);
   padding: 20px;
   border-radius: 5px;
   width: 100%;
@@ -537,6 +521,7 @@ width:30%;
   font-size: 14px; /* 设置文字大小，您可以根据需要调整这个值 */
   font-weight: bold; /* 设置文字为加粗 */
 }
+
 .avatar-change-button:hover {
   background-color: #0056b3; /* 鼠标悬停时的背景颜色 */
 }
@@ -626,10 +611,7 @@ width:30%;
   justify-content: center; /* 水平居中按钮 */
   align-items: center; /* 垂直居中按钮，如果需要 */
   gap: 50px; /* 按钮之间的间距，根据需要调整 */
-}
-.button-group {
   margin-top: 20px; /* 根据需要调整间距 */
-  /* 其他样式保持不变 */
 }
 
 .note {
@@ -671,4 +653,173 @@ width:30%;
   font-size: 12px;
   margin-left: 10px;
 }
+
+.left-panel {
+  width: 20%;
+  background-color: rgba(255, 255, 255, 0.65); /* 半透明背景 */
+  backdrop-filter: blur(55px); /* 磨砂玻璃效果 */
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  margin-left: 20px; /* 调整左侧面板位置 */
+}
+
+.right-panel {
+  width: 70%;
+  padding: 20px;
+  margin-left: 20px; /* 调整右侧面板位置 */
+  margin-top: 0px;
+  padding-top: 0px;
+}
+
+.avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.button-div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.button-div button {
+  padding: 10px 20px;
+  background-image: linear-gradient(#15d3f98e, #fce3688e);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 1);
+  color: white;
+  border-color: rgba(134, 133, 133, 0.5);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin: 5px 0;
+  width: 100%;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.button-div button:hover {
+  background-color: #0056b3;
+}
+
+.text {
+  background-color: rgba(255, 255, 255, 0.65); /* 半透明背景 */
+  backdrop-filter: blur(25px); /* 磨砂玻璃效果 */
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 15px;
+  padding: 20px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column; /* 使内容垂直排列 */
+  flex-wrap: wrap; /* 允许内容换行 */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.info-item p {
+  margin: 0;
+  flex: 1;
+  font-size: 18px; /* 增加字体大小 */
+}
+
+.info-item button {
+  padding: 10px 20px;
+  background-image: linear-gradient(#15d3f98e, #fce3688e);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 1);
+  color: white;
+  border-color: rgba(134, 133, 133, 0.5);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-left: 10px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.info-item button:hover {
+  background-color: #0056b3;
+}
+
+.text.feedback-form {
+  display: flex;
+  flex-direction: column;
+  align-items: left;
+}
+
+.feedback-textarea {
+  width: 95%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  margin-left: auto;
+  margin-right: auto;
+  height: 50%;
+  max-height: 60%;
+  max-width: 95%;
+  resize: both; /* 允许从右下角缩放 */
+  overflow: auto; /* 确保内容溢出时显示滚动条 */
+}
+
+.text.feedback-form button {
+  padding: 10px 20px;
+  background-image: linear-gradient(#15d3f98e, #fce3688e);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 1);
+  color: white;
+  border-color: rgba(134, 133, 133, 0.5);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-left: auto;
+  font-size: 16px;
+  font-weight: bold;
+  width: 30%;
+}
+
+.button-group-feedback {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  width: auto;
+  min-width: 40%;
+  max-width: 50%;
+  margin-top: 3vh;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.text.feedback-form button {
+  padding: 10px 20px;
+  background-image: linear-gradient(#15d3f98e, #fce3688e);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 1);
+  color: white;
+  border-color: rgba(134, 133, 133, 0.5);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 16px;
+  font-weight: bold;
+  width: 30%;
+}
+
+.text.feedback-form button:hover {
+  background-color: #0056b3;
+}
+
+.welcome{
+  margin:auto;
+  text-align: center;
+}
+
 </style>

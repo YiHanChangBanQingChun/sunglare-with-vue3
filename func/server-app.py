@@ -716,6 +716,29 @@ def get_solar_angles():
         'solar_altitude': altitude
     })
 
+@app.route('/api/submit_feedback', methods=['POST'])
+def submit_feedback():
+    data = request.json
+    username = data.get('username')
+    feedback_content = data.get('feedbackContent')
+    timestamp = data.get('timestamp')
+
+    if not username or not feedback_content or not timestamp:
+        return jsonify({'message': 'Invalid data'}), 400
+
+    # 格式化时间戳，去掉无效字符
+    formatted_timestamp = timestamp.replace(':', '-').replace('T', '_').replace('Z', '')
+
+    # 创建文件名
+    filename = f"{formatted_timestamp}_{username}.txt"
+    filepath = os.path.join(feedback_dir, filename)
+
+    # 写入文件
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(feedback_content)
+
+    return jsonify({'message': 'Feedback submitted successfully'}), 200
+
 @app.route('/api/solar_angles_day', methods=['GET'])
 def get_solar_angles_day():
     area_name = request.args.get('area_name')
@@ -913,16 +936,24 @@ def get_weather():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+
     # 获取当前文件的目录
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     # print(BASE_DIR)
+
     temp_dir = os.path.join(BASE_DIR, 'tmp')
     avatar_dir = os.path.join(BASE_DIR, 'avatar')
+    feedback_dir = os.path.join(BASE_DIR, 'feedback')
+
     # 检查 avatar 目录是否存在，如果不存在则创建
     if not os.path.exists(avatar_dir):
         os.makedirs(avatar_dir)
     # 检查 tmp 目录是否存在，如果不存在则创建
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
+    # 检查 feedback 目录是否存在，如果不存在则创建
+    if not os.path.exists(feedback_dir):
+        os.makedirs(feedback_dir)
+
     # app.run(debug=True)
     app.run(host='0.0.0.0', port=5000, debug=True)
