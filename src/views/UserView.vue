@@ -15,6 +15,9 @@
     </div>
     <div class="right-panel">
       <div v-if="currentSection === 'userInfo'" class="text">
+        <div class="imagepalce-user">
+        <ImageCarousel :images="images" />
+      </div>
         <h1>用户信息</h1>
         <div class="info-item" v-for="field in fields" :key="field.name">
           <p>
@@ -82,6 +85,7 @@
 <script>
 import { mapState, mapActions } from 'vuex'
 import axios from 'axios'
+import ImageCarousel from '@/components/ImageCarousel.vue'
 
 export default {
   name: 'UserView',
@@ -124,13 +128,23 @@ export default {
         { name: 'security_question', label: '安全问题', type: 'text' },
         { name: 'birthday', label: '生日', type: 'date' }
       ],
-      feedbackContent: '' // 反馈内容
+      feedbackContent: '', // 反馈内容
+      images: [
+        { src: require('@/assets/gzhubg.jpg'), caption: '', text: '' },
+        { src: require('@/assets/gzhubg2.jpg'), caption: '', text: '' },
+        { src: require('@/assets/gzhubg3.jpg'), caption: '', text: '' },
+        { src: require('@/assets/gzhubg4.jpg'), caption: '', text: '' }
+        // { src: require('@/assets/image3.jpg'), caption: '图片3', text: '描述3' }
+      ]
     }
   },
   computed: {
     ...mapState({
       username: state => state.username
     })
+  },
+  components: {
+    ImageCarousel
   },
   methods: {
     ...mapActions(['logout', 'updateUsername']),
@@ -364,6 +378,11 @@ export default {
   position: absolute; /* 绝对定位 */
   bottom: 10px; /* 与底部保持一定距离 */
   width: 100%; /* 宽度为父容器的100% */
+}
+
+.imagepalce-user {
+  margin-bottom: 20px;
+  width: 100%;
 }
 
 /* 查询按钮样式 */
@@ -711,6 +730,7 @@ export default {
   border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 15px;
   padding: 20px;
+  padding-bottom: 0px;
   width: 100%;
   height: 100%;
   display: flex;

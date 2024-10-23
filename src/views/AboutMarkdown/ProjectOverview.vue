@@ -43,6 +43,7 @@ export default {
 - 使用深度学习语义分割的方法进行天空提取，并通过半球模型计算不同经纬、不同时间的情况下，太阳在街景的位置来判断是否受到眩光。
 ![数据处理流程图](${require('@/assets/p4.png')})
   1. 我们使用了一个开源的Python扩展包[pysolar](https://pysolar.readthedocs.io/en/latest/)来估计在任何特定时间在研究区域的样本地点的太阳位置。
+![太阳位置计算](${require('@/assets/p8.png')})
   2. 由于研究区域的纬度不大于北72°，因此不考虑大气反射的影响。[(NOAA太阳位置计算器)](https://www.esrl.noaa.gov/gmd/grad/solcalc/azel.html).
   3. 使用的主要深度学习语义分割环境是[Mxnet](https://mxnet.apache.org/versions/1.9.1/),[gluonCV](https://cv.gluon.ai/)，其模型是DeepLabV3_Cityscapes_101，这是一个使用cityscapes数据集预训练的deeplabv3+模型，在深度学习语义分割中表现出色。
 ![深度学习语义分割](${require('@/assets/p5.png')})
