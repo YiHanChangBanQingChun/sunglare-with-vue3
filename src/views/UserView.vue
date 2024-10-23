@@ -6,10 +6,11 @@
       </div>
       <h2 class="welcome">欢迎,{{ userInfo.username }}</h2>
       <div class="button-div">
-        <button @click="toggleAvatarModal">更换头像</button>
         <button @click="showSection('userInfo')">查看个人信息</button>
         <button @click="showSection('feedback')">用户反馈</button>
+        <button @click="showSection('innerinformation')">站内消息</button>
         <button @click="showPasswordModal">修改密码</button>
+        <button @click="toggleAvatarModal">更换头像</button>
         <button @click="handleLogout">退出登录</button>
       </div>
     </div>
@@ -34,12 +35,16 @@
         </div>
       </div>
       <div v-if="currentSection === 'feedback'" class="text feedback-form">
+        <h1>用户反馈</h1>
         <textarea v-model="feedbackContent" class="feedback-textarea" placeholder="请输入您的反馈内容..."></textarea>
         <div class="button-group-feedback">
           <button @click="clearFeedback" class="btn btn-secondary">清除</button>
           <button @click="submitFeedback" class="feedback-button">提交反馈</button>
         </div>
       </div>
+      <div v-if="currentSection === 'innerinformation'" class="text">
+        <h1>站内消息</h1>
+        <p>暂无消息</p>
     </div>
         <div v-if="passwordModalVisible" class="modal-overlay">
         <div class="modal">
@@ -80,6 +85,7 @@
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script>
