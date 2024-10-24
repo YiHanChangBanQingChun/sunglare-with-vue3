@@ -311,6 +311,11 @@ export default {
         id: result.id,
         label: result.label
       }
+
+      // const BasemapName = this.mapView.map.basemap.title
+      const BasemapName = this.BasemapName
+      console.log('BasemapName:', BasemapName)
+
       // 根据isStart的值，将选择的结果设置为起点或终点
       if (isStart) {
         this.selectedResultStart = simplifiedResult
@@ -322,7 +327,8 @@ export default {
           query: {
             start: JSON.stringify(simplifiedResult),
             date: this.selectedDate,
-            time: this.selectedTime
+            time: this.selectedTime,
+            BasemapLayer: BasemapName
           }
         })
       } else {
@@ -335,7 +341,8 @@ export default {
           query: {
             end: JSON.stringify(simplifiedResult),
             date: this.selectedDate,
-            time: this.selectedTime
+            time: this.selectedTime,
+            BasemapLayer: BasemapName
           }
         })
       }
@@ -431,6 +438,10 @@ export default {
           }
         }
       })
+      // 监听底图选择事件
+      basemapGallery.watch('activeBasemap', (newBasemap) => {
+        this.handleBasemapChange(newBasemap)
+      })
       // 创建 LayerList 实例
       const layerList = new LayerList({
         view: mapView
@@ -492,7 +503,55 @@ export default {
         position: 'bottom-left',
         index: 3
       })
+      this.mapView = mapView
+      const BasemapName = this.mapView.map.basemap.title
+      console.log('BasemapName old:', BasemapName)
+      // BasemapName 映射
+      const basemapMapping = {
+        '天地图-矢量（球面墨卡托投影）': 'tianditu-vector',
+        '天地图-影像（球面墨卡托投影）': 'tianditu-image',
+        '天地图-地形（球面墨卡托投影）': 'tianditu-topography'
+      }
+      this.BasemapName = basemapMapping[BasemapName] || BasemapName
+      console.log('BasemapName changed in rpv:', this.BasemapName)
       return mapView
+    },
+    // 处理底图选择
+    handleBasemapChange (basemap) {
+      const basemapMapping = {
+        '天地图-矢量（球面墨卡托投影）': 'tianditu-vector',
+        '天地图-影像（球面墨卡托投影）': 'tianditu-image',
+        '天地图-地形（球面墨卡托投影）': 'tianditu-topography'
+      }
+      // 检查 basemap.title 是否是中文
+      if (basemapMapping[basemap.title]) {
+        this.BasemapName = basemapMapping[basemap.title]
+      } else {
+        this.BasemapName = basemap.title
+      }
+      console.log('Basemap changed:', this.BasemapName)
+      const urlParams = new URLSearchParams(window.location.search)
+      urlParams.set('BasemapLayer', this.BasemapName)
+      window.history.replaceState({}, '', `${window.location.pathname}?${urlParams}`)
+    },
+    created () {
+      const BasemapLayer = this.$route.query.BasemapLayer
+      const basemapMapping = {
+        '天地图-矢量（含注记）（球面墨卡托投影）': 'tianditu-vector',
+        '天地图-影像（球面墨卡托投影）': 'tianditu-image',
+        '天地图-地形（球面墨卡托投影）': 'tianditu-topography'
+      }
+
+      // 如果有底图参数，进行解析
+      if (BasemapLayer) {
+        // 检查 BasemapLayer 是否是中文
+        if (basemapMapping[BasemapLayer]) {
+          this.BasemapName = basemapMapping[BasemapLayer]
+        } else {
+          this.BasemapName = BasemapLayer
+        }
+      }
+      console.log('BasemapLayer is', this.BasemapName)
     }
   }
 }
@@ -536,6 +595,7 @@ export default {
   border-top-right-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
   position: absolute; /* 添加相对定位 */
+  margin-left: 9px; /* 与左边界保持一定距离 */
 }
 
 /* 移除左右外边距 */
@@ -701,6 +761,7 @@ export default {
   margin-top: 90px;/* 控制时间选择框在网页垂直方向的位置 */
   padding-left: 10px;
   padding-top: 3px;
+  margin-left: 9px;
 }
 .form-group label,
 .form-group input {

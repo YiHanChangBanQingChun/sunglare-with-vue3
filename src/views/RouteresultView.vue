@@ -131,12 +131,11 @@ export default {
       ismaploading: true,
       selectedDate: '', // 用户选择的日期
       selectedTime: '', // 用户选择的时间
-      highlightedIndex: -1 // 高亮的搜索结果索引
+      highlightedIndex: -1, // 高亮的搜索结果索引
+      BasemapName: ''
     }
   },
   mounted () {
-    // 初始化地图
-    this.initMap()
     if (this.$route.query.start && this.$route.query.end) {
       // 如果URL中有起点和终点参数，解析并设置
       this.selectedResultStart = JSON.parse(this.$route.query.start)
@@ -144,6 +143,8 @@ export default {
     }
     // 解析URL参数
     this.parseUrlParams()
+    // 初始化地图
+    this.initMap()
     // 设置定时器，每隔1分钟更新时间
     setInterval(() => { this.updateTime() }, 60000)
     window.addEventListener('keydown', this.handleKeydown)
@@ -167,12 +168,14 @@ export default {
     }
   },
   methods: {
+    // 处理时间输入事件
     onTimeInputChange (event) {
       const value = event.target.value
       const [hours, minutes] = value.split(':').map(Number)
       const roundedMinutes = Math.floor(minutes / 10) * 10
       this.selectedTime = `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`
     },
+    // 检查日期是否被禁用
     isDateDisabled (date) {
       if (!date) return false
       const selected = new Date(date)
@@ -192,6 +195,7 @@ export default {
       }
       return false
     },
+    // 处理日期变更事件
     handleDateChange (event) {
       const date = event.target.value
       if (this.isDateDisabled(date)) {
@@ -200,6 +204,7 @@ export default {
         this.selectedDate = ''
       }
     },
+    // 处理键盘按下事件
     handleKeydown (event) {
       if (this.searchResults.length && this.searchQueryStart) {
         switch (event.key) {
@@ -280,7 +285,8 @@ export default {
           start: JSON.stringify(this.selectedResultStart),
           end: JSON.stringify(this.selectedResultEnd),
           date: this.selectedDate,
-          time: this.selectedTime
+          time: this.selectedTime,
+          BasemapLayer: this.BasemapName
         }
       })
     },
@@ -291,6 +297,7 @@ export default {
       const endParam = urlParams.get('end')
       const dateParam = urlParams.get('date')
       const timeParam = urlParams.get('time')
+      // const BasemapLayer = urlParams.get('BasemapLayer')
       // 如果有起点参数，进行解析
       if (startParam) {
         try {
@@ -323,6 +330,12 @@ export default {
         this.selectedTime = timeParam
         this.isTimeFromUrl = true // 设置标志位
       }
+      // 如果有底图参数，进行解析
+      // if (BasemapLayer) {
+      //   this.BasemapName = BasemapLayer
+      //   console.log('BasemapLayer open success', this.BasemapName)
+      // }
+      this.created()
     },
     // 处理搜索框输入事件
     onSearchInputChange (event, isStart) {
@@ -388,7 +401,8 @@ export default {
           start: currentStart,
           end: currentEnd,
           date: this.selectedDate,
-          time: this.selectedTime
+          time: this.selectedTime,
+          BasemapLayer: this.BasemapName
         }
       })
     },
@@ -429,7 +443,8 @@ export default {
                 default_id: defaultRoutePlanId,
                 time_based_id: timeBasedRoutePlanId,
                 date: this.selectedDate,
-                time: formattedTime
+                time: formattedTime,
+                BasemapLayer: this.BasemapName
               }
             })
           })
@@ -448,10 +463,11 @@ export default {
     // 初始化地图
     initMap () {
       const map = new Map({
-        basemap: 'tianditu-vector' // 使用适合的底图
+        // basemap: 'tianditu-vector' // 使用适合的底图
+        basemap: this.BasemapName || 'tianditu-vector' // 使用传递的底图参数或默认底图
       })
       this.map = map
-
+      console.log('BasemapLayer open success2', this.BasemapName)
       this.view = new MapView({
         container: 'viewDiv', // 使用正确的容器ID
         map: map,
@@ -479,6 +495,10 @@ export default {
             title: '"Basemaps for Developers" AND owner:geoscenedev'
           }
         }
+      })
+      // 监听底图选择事件
+      basemapGallery.watch('activeBasemap', (newBasemap) => {
+        this.handleBasemapChange(newBasemap)
       })
       // 创建 LayerList 实例
       const layerList = new LayerList({
@@ -603,6 +623,43 @@ export default {
           console.error('Error adjusting view:', err)
         })
       }
+    },
+    // 处理底图选择
+    handleBasemapChange (basemap) {
+      const basemapMapping = {
+        '天地图-矢量（球面墨卡托投影）': 'tianditu-vector',
+        '天地图-影像（球面墨卡托投影）': 'tianditu-image',
+        '天地图-地形（球面墨卡托投影）': 'tianditu-topography'
+      }
+      // 检查 basemap.title 是否是中文
+      if (basemapMapping[basemap.title]) {
+        this.BasemapName = basemapMapping[basemap.title]
+      } else {
+        this.BasemapName = basemap.title
+      }
+      console.log('Basemap changed:', this.BasemapName)
+      const urlParams = new URLSearchParams(window.location.search)
+      urlParams.set('BasemapLayer', this.BasemapName)
+      window.history.replaceState({}, '', `${window.location.pathname}?${urlParams}`)
+    },
+    created () {
+      const BasemapLayer = this.$route.query.BasemapLayer
+      const basemapMapping = {
+        '天地图-矢量（球面墨卡托投影）': 'tianditu-vector',
+        '天地图-影像（球面墨卡托投影）': 'tianditu-image',
+        '天地图-地形（球面墨卡托投影）': 'tianditu-topography'
+      }
+
+      // 如果有底图参数，进行解析
+      if (BasemapLayer) {
+        // 检查 BasemapLayer 是否是中文
+        if (basemapMapping[BasemapLayer]) {
+          this.BasemapName = basemapMapping[BasemapLayer]
+        } else {
+          this.BasemapName = BasemapLayer
+        }
+      }
+      console.log('BasemapLayer is', this.BasemapName)
     },
     // 在地图上绘制起点和终点
     drawPoints (graphicsLayer) {
@@ -787,6 +844,7 @@ export default {
   border-top-right-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
   position: absolute; /* 添加相对定位 */
+  margin-left: 9px;
 }
 
 /* 移除左右外边距 */
@@ -958,6 +1016,7 @@ export default {
   margin-top: 90px;/* 控制时间选择框在网页垂直方向的位置 */
   padding-left: 10px;
   padding-top: 3px;
+  margin-left: 9px;
 }
 
 .form-group label,

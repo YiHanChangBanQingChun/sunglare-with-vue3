@@ -178,17 +178,19 @@ export default {
       defaultRouteId: 'defaultRouteId',
       isRouteListVisible: true, // 路线列表是否可见
       totalPass: '',
-      noGlareTotalPass: ''
+      noGlareTotalPass: '',
+      BasemapName: null
     }
   },
   // 在组件挂载时初始化地图
   mounted () {
+    this.parseUrlParams()
     this.initMap()
     if (this.$route.query.start && this.$route.query.end) {
       this.selectedResultStart = JSON.parse(this.$route.query.start)
       this.selectedResultEnd = JSON.parse(this.$route.query.end)
     }
-    this.parseUrlParams()
+    // this.parseUrlParams()
     // 设置定时器，每隔1分钟更新时间
     window.addEventListener('keydown', this.handleKeydown)
   },
@@ -454,10 +456,13 @@ export default {
       // 调用 onSearch 方法重新查询路径
       this.onSearch().then(() => {
         this.parseUrlParams()
-        this.initMap()
+        this.initMap(this.BasemapName) // 传递当前的底图名称
+        console.log(this.BasemapName)
         // 确保在交换操作完成后，更新搜索框的值
         this.searchQueryStart = this.selectedResultStart.name
         this.searchQueryEnd = this.selectedResultEnd.name
+        // 更新底图
+        this.handleBasemapChange({ title: this.BasemapName })
         this.isSwapping = false // 重置标志位
       }).catch(() => {
         this.isSwapping = false // 确保在错误情况下也重置标志位
@@ -509,6 +514,8 @@ export default {
       if (timeBasedRouteIdParam) {
         this.timeBasedRouteId = timeBasedRouteIdParam
       }
+      // 如果有底图参数，进行解析
+      this.created()
     },
     // 处理搜索框输入变化事件
     onSearchInputChange (event, isStart) {
@@ -574,7 +581,8 @@ export default {
           start: currentStart,
           end: currentEnd,
           date: this.selectedDate,
-          time: this.selectedTime
+          time: this.selectedTime,
+          BasemapLayer: this.BasemapName
         }
       })
     },
@@ -615,7 +623,8 @@ export default {
                   default_id: defaultRoutePlanId,
                   time_based_id: timeBasedRoutePlanId,
                   date: this.selectedDate,
-                  time: formattedTime
+                  time: formattedTime,
+                  BasemapLayer: this.BasemapName
                 }
               })
               // if (!this.isSwapping) { // 如果不是交换操作，更新搜索框的值
@@ -640,12 +649,14 @@ export default {
       })
     },
     // 初始化地图
-    initMap () {
+    initMap (basemapName) {
       const map = new Map({
-        basemap: 'tianditu-vector' // 使用适合的底图
+        // basemap: 'tianditu-vector' // 使用适合的底图
+        // basemap: this.BasemapName || 'tianditu-vector' // 使用适合的底图
+        basemap: basemapName || this.BasemapName || 'tianditu-vector' // 使用适合的底图
       })
       this.map = map
-
+      // console.log('当前底图名称:', this.BasemapName, basemapName)
       this.view = new MapView({
         container: 'viewDiv', // 使用正确的容器ID
         map: map,
@@ -676,7 +687,10 @@ export default {
           }
         }
       })
-
+      // 监听底图选择事件
+      basemapGallery.watch('activeBasemap', (newBasemap) => {
+        this.handleBasemapChange(newBasemap)
+      })
       const compass = new Compass({
         view: this.view
       })
@@ -776,6 +790,43 @@ export default {
       }).catch((err) => {
         console.error('MapView initialization error:', err)
       })
+    },
+    // 处理底图选择
+    handleBasemapChange (basemap) {
+      const basemapMapping = {
+        '天地图-矢量（球面墨卡托投影）': 'tianditu-vector',
+        '天地图-影像（球面墨卡托投影）': 'tianditu-image',
+        '天地图-地形（球面墨卡托投影）': 'tianditu-topography'
+      }
+      // 检查 basemap.title 是否是中文
+      if (basemapMapping[basemap.title]) {
+        this.BasemapName = basemapMapping[basemap.title]
+      } else {
+        this.BasemapName = basemap.title
+      }
+      console.log('Basemap changed:', this.BasemapName)
+      const urlParams = new URLSearchParams(window.location.search)
+      urlParams.set('BasemapLayer', this.BasemapName)
+      window.history.replaceState({}, '', `${window.location.pathname}?${urlParams}`)
+    },
+    created () {
+      const BasemapLayer = this.$route.query.BasemapLayer
+      const basemapMapping = {
+        '天地图-矢量（球面墨卡托投影）': 'tianditu-vector',
+        '天地图-影像（球面墨卡托投影）': 'tianditu-image',
+        '天地图-地形（球面墨卡托投影）': 'tianditu-topography'
+      }
+
+      // 如果有底图参数，进行解析
+      if (BasemapLayer) {
+        // 检查 BasemapLayer 是否是中文
+        if (basemapMapping[BasemapLayer]) {
+          this.BasemapName = basemapMapping[BasemapLayer]
+        } else {
+          this.BasemapName = BasemapLayer
+        }
+      }
+      console.log('BasemapLayer is update', this.BasemapName)
     },
     // 调整视图以适应起点和终点
     adjustView () {
@@ -1157,6 +1208,7 @@ export default {
   border-top-right-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
   position: absolute; /* 添加相对定位 */
+  margin-left: 9px; /* 与左边界保持一定距离 */
 }
 
 /* 移除左右外边距 */
@@ -1328,6 +1380,7 @@ export default {
   margin-top: 90px;/* 控制时间选择框在网页垂直方向的位置 */
   padding-left: 10px;
   padding-top: 3px;
+  margin-left: 9px;
 }
 
 .form-group label,

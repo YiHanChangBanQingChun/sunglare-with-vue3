@@ -342,9 +342,12 @@ def execute_route_plan(start, end, table_name):
                             "path_seq": row[1],
                             "node": row[2],
                             "edge": row[3],
-                            "cost": row[4],
-                            "agg_cost": row[5],
-                            "length": row[7],
+                            # "cost": row[4],
+                            "cost": round(row[4],2),
+                            # "agg_cost": row[5],
+                            "agg_cost": round(row[5],2),
+                            "length": round(row[7],2),
+                            # "length": row[7],
                             "name": row[8],
                             "maxspeed": row[9]
                         }

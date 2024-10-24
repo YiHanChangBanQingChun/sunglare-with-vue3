@@ -8,7 +8,7 @@
       <div class="button-div">
         <button @click="showSection('userInfo')">查看个人信息</button>
         <button @click="showSection('feedback')">用户反馈</button>
-        <button @click="showSection('innerinformation')">站内消息</button>
+        <!-- <button @click="showSection('innerinformation')">站内消息</button> -->
         <button @click="showPasswordModal">修改密码</button>
         <button @click="toggleAvatarModal">更换头像</button>
         <button @click="handleLogout">退出登录</button>
