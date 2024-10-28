@@ -814,7 +814,8 @@ export default {
       const basemapMapping = {
         '天地图-矢量（球面墨卡托投影）': 'tianditu-vector',
         '天地图-影像（球面墨卡托投影）': 'tianditu-image',
-        '天地图-地形（球面墨卡托投影）': 'tianditu-topography'
+        '天地图-地形（球面墨卡托投影）': 'tianditu-topography',
+        '天地图-矢量（含注记）（球面墨卡托投影）': 'tianditu-vector'
       }
 
       // 如果有底图参数，进行解析

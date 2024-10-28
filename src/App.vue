@@ -14,7 +14,7 @@
           </h3>|
         </div>
         <!--  <h3><router-link to="/">主页</router-link></h3> |-->
-        <h3><router-link to="/lu-jing-gui-hua">路径规划</router-link></h3>|
+        <h3><router-link to="/lu-jing-gui-hua?BasemapLayer=tianditu-vector">路径规划</router-link></h3>|
         <h3><router-link to="/xuan-guang-qing-kuang">眩光状况</router-link></h3>|
         <h3><router-link to="/about/project-overview">关于</router-link></h3>|
         <h3>
@@ -335,8 +335,8 @@ nav a {
 .weather-details {
   position: fixed;
   top: 10%; /* 调整为合适的顶部位置 */
-  left: 80%;
-  transform: translateX(-50%); /* 水平居中 */
+  left: 90%;
+  transform: translateX(-90%); /* 水平居中 */
   background: white;
   border: 1px solid #ccc;
   border-radius: 5px;
