@@ -263,12 +263,12 @@ export default {
 .biao-ti h1 {
   display: inline-block; /* 使背景只在文字区域显示 */
   padding: 5px 5px; /* 添加内边距 */
-  background: rgb(255, 255, 255); /* 应用深色毛玻璃效果 */
+  background: rgba(255, 255, 255,0.5);
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   border-radius: 10px; /* 添加圆角边框 */
-  border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
-  border-radius: 5px; /* 添加圆角 */
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+  border-radius: 10px; /* 添加圆角 */
   color: rgba(109, 72, 72, 0.65); /* 修改为您想要的颜色 */
 }
 
@@ -278,12 +278,12 @@ export default {
   right: 0; /* 靠右对齐 */
   display: flex; /* 启用Flex布局 */
   align-items: center; /* 垂直居中对齐 */
-  background: rgb(255, 255, 255); /* 应用深色毛玻璃效果 */
+  background-color: rgba(255, 255, 255, 0.5);
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   border-radius: 10px; /* 添加圆角边框 */
-  border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
-  border-radius: 5px; /* 添加圆角 */
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+  border-radius: 10px; /* 添加圆角 */
   padding: 5px 10px; /* 添加内边距 */
   height: 5%;
 }
@@ -337,9 +337,11 @@ nav a {
   top: 10%; /* 调整为合适的顶部位置 */
   left: 90%;
   transform: translateX(-90%); /* 水平居中 */
-  background: white;
+  background-color: rgba(255, 255, 255, 0.5); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   border: 1px solid #ccc;
-  border-radius: 5px;
+  border-radius: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 10px;
   z-index: 100000; /* 确保它在最上面 */
@@ -358,6 +360,10 @@ nav a {
 .weather-details table {
   width: 100%;
   border-collapse: collapse;
+  background-color: rgba(255, 255, 255, 0.5); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  border-radius: 10px; /* 添加圆角 */
 }
 
 .weather-details th, .weather-details td {

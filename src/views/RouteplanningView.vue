@@ -10,7 +10,7 @@
         <div class="swap-action">
           <!-- 绑定 swap 方法到点击事件 -->
           <button @click="swap" title="切换起终点">
-            <img :src="require('@/assets/revert.png')" alt="" class="revert">
+            <img :src="require('@/assets/revert_new.png')" alt="" class="revert">
           </button>
         </div>
       </div>
@@ -588,12 +588,13 @@ export default {
   padding-right: 10px; /* 根据需要调整，确保搜索框周围有足够空间 */
   padding-left:32px;/*整个搜索框的左边空间*/
   padding-top: 6px;
-  background: #FFFFFF; /* 应用深色毛玻璃效果 */
+  background-color: rgba(255, 255, 255, 0.5);
+  opacity: 1; /* 设置透明度 */
   -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   border-top-left-radius: 10px; /* 设置圆角 */
   border-top-right-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.45); /* 添加边框 */
+  /* border: 1px solid rgba(255, 255, 255, 0.45); */
   position: absolute; /* 添加相对定位 */
   margin-left: 9px; /* 与左边界保持一定距离 */
 }
@@ -678,7 +679,9 @@ export default {
   height:28px;
   padding-top: 10px;
   padding-left: 3px;
+  background-color: rgba(255, 255, 255, 0) !important;
 }
+
 .revert-containers{
   position: absolute; /* 或使用 fixed，根据需要 */
   left: 0; /* 侧边栏靠在最左边 */
@@ -686,11 +689,12 @@ export default {
   width: 20px;
   height:85px;
   padding-left:5px;
-  background-color: #FFFFFF;
+  opacity: 1; /* 设置透明度 */
   border-radius: 10px; /* 设置圆角 */
-  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
-  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  background-repeat: repeat; /* 背景图片重复 */
+  background-size: auto; /* 保持图片的原始尺寸 */
 }
+
 .swap-action button {
   display:flex;
   flex-direction: row; /* 保持水平排列 */
@@ -699,9 +703,9 @@ export default {
   left: 5px; /* 图标距离父容器左边的距离 */
   top: 50%; /* 垂直居中对齐 */
   transform: translateY(-50%); /* 使用transform属性垂直居中 */
-  border:white;/* 边框颜色设置为白色 */
+  border: none; /* 移除按钮边框 */
   padding:0px;
-  background-color: #FFFFFF;
+  background-color: rgba(255, 255, 255, 0); /* 设置背景色为透明 */
   cursor: pointer; /* 鼠标悬停时显示指针 */
 }
 
@@ -753,16 +757,19 @@ export default {
   transform: none;
   position: absolute;
   display: block;
-  width: 390px;
+  width: 389px;
   height: 30px;
   border-bottom-left-radius: 10px; /* 设置圆角 */
   border-bottom-right-radius: 10px;
-  background-color:#FFFFFF;
+  background-color: rgba(255, 255, 255, 0.5); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   margin-top: 90px;/* 控制时间选择框在网页垂直方向的位置 */
   padding-left: 10px;
   padding-top: 3px;
   margin-left: 9px;
 }
+
 .form-group label,
 .form-group input {
   margin-right: 10px; /* 右侧外边距 */
@@ -782,7 +789,9 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: rgba(255, 255, 255, 0.8); /* 可选：添加半透明背景 */
+  background-color: rgba(255, 255, 255, 0.5); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
   transform: translate(-50%, -50%);
   z-index: 10; /* 确保覆盖层在最上层 */
 }
