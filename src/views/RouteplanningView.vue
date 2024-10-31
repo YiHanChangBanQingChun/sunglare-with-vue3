@@ -837,6 +837,9 @@ export default {
   border-top-color: antiquewhite;
   border-bottom-color: antiquewhite;
   color:rgb(109, 72, 72);
+  /* background-color: rgba(255, 255, 255, 0.5); 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
 }
 
 .geoscene-distance-measurement-2d__clear-button:hover{
@@ -846,6 +849,12 @@ export default {
   border-top-color: rgb(216, 180, 133);
   border-bottom-color: rgb(216, 180, 133);
   color: rgb(109, 72, 72);
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+}
+
+.geoscene-distance-measurement-2d__actions{
+  background-color: transparent;
 }
 
 .geoscene-layer-list__item-container{
@@ -855,6 +864,8 @@ export default {
   border-top-color: antiquewhite;
   border-bottom-color: antiquewhite;
   color:rgb(109, 72, 72);
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
 }
 
 .geoscene-layer-list__item-container:hover{
@@ -864,14 +875,22 @@ export default {
   border-top-color: rgb(216, 180, 133);
   border-bottom-color: rgb(216, 180, 133);
   color: rgb(109, 72, 72);
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
 }
 
 .geoscene-distance-measurement-2d__container{
-  width:170px;
+  width:180px;
   margin: auto;
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
 }
+
+/* 距离测量样式 */
 .geoscene-component.geoscene-distance-measurement-2d.geoscene-widget.geoscene-widget--panel{
   width:180px;
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
 }
 
 /* .geoscene-ui-bottom-right.geoscene-ui-corner{
@@ -881,9 +900,133 @@ export default {
 .geoscene-component.geoscene-basemap-gallery.geoscene-widget.geoscene-widget--panel-height-only.geoscene-basemap-gallery--grid{
   width: 200px;
   height: 200px;
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
 }
 
 .geoscene-component.geoscene-layer-list.geoscene-widget.geoscene-widget--panel{
   width:200px;
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+}
+
+.geoscene-popup__main-container.geoscene-widget.geoscene-popup--is-collapsible{
+  background-color: rgba(255, 255, 255, 0.5); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+}
+
+.geoscene-feature__content-node{
+  background-color: rgba(255, 255, 255, 0); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+}
+
+.geoscene-popup__content{
+  background-color: rgba(255, 255, 255, 0.5); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+}
+
+.geoscene-distance-measurement-2d__container {
+  background-color: rgba(255, 255, 255, 0.5); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  border-radius: 10px; /* 添加圆角 */
+  padding: 10px; /* 添加内边距 */
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
+
+.geoscene-component.geoscene-distance-measurement-2d.geoscene-widget.geoscene-widget--panel {
+  background-color: transparent; /* 应用深色毛玻璃效果 */
+  border: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+}
+
+.geoscene-ui-bottom-left.geoscene-ui-corner{
+  background-color: transparent; /* 应用深色毛玻璃效果 */
+}
+
+.geoscene-component.geoscene-zoom.geoscene-widget {
+  background-color: rgba(255, 255, 255, 0.25) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
+
+.geoscene-widget--button.geoscene-widget.geoscene-interactive {
+  background-color: rgba(255, 255, 255, 0) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
+
+.geoscene-component.geoscene-compass.geoscene-widget--button.geoscene-widget.geoscene-interactive{
+  background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
+
+.geoscene-component.geoscene-basemap-gallery.geoscene-widget.geoscene-widget--panel-height-only.geoscene-basemap-gallery--grid{
+  background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
+
+.geoscene-component.geoscene-layer-list.geoscene-widget.geoscene-widget--panel{
+  background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
+
+.geoscene-widget--button.geoscene-widget.geoscene-disabled{
+  background-color: rgba(255, 255, 255, 0.25) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
+
+.geoscene-feature__content-node{
+  background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
+
+.geoscene-feature.geoscene-widget{
+  background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
+
+.geoscene-feature__content-element{
+  background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
 }
 </style>

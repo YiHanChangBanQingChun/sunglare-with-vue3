@@ -73,11 +73,11 @@ const weatherIconMap = {
   日落: require('@/assets/weather_icon/日落.png'),
   雪: require('@/assets/weather_icon/雪.png'),
   夜多云: require('@/assets/weather_icon/夜多云.png'),
-  夜晴: require('@/assets/weather_icon/夜晴.png'),
+  夜晴: require('@/assets/weather_icon/夜晴png.png'),
   小雨: require('@/assets/weather_icon/小雨.png'),
   多云: require('@/assets/weather_icon/多云.png'),
   雨: require('@/assets/weather_icon/雨.png'),
-  尘: require('@/assets/weather_icon/尘.png'),
+  尘: require('@/assets/weather_icon/尘png.png'),
   雷: require('@/assets/weather_icon/雷.png'),
   阴: require('@/assets/weather_icon/阴.png'),
   局部阵雪: require('@/assets/weather_icon/局部阵雪.png'),
@@ -374,11 +374,15 @@ nav a {
 }
 
 .weather-details th {
-  background-color: #f9f9f9; /* 添加表头背景颜色 */
+  background-color: rgba(255, 255, 255, 0.5); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
 }
 
 .weather-details td {
-  background-color: #fff; /* 添加单元格背景颜色 */
+  background-color: rgba(255, 255, 255, 0.5); /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
 }
 
 .weather-details .forecast-item {

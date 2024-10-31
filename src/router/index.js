@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+// import HomeView from '../views/HomeView.vue'
 import AboutView from '../views/AboutView.vue'
 import ProjectOverview from '../views/AboutMarkdown/ProjectOverview.vue'
 import TechStack from '../views/AboutMarkdown/TechStack.vue'
@@ -12,7 +12,7 @@ const routes = [
   {
     path: '/',
     name: 'home',
-    component: HomeView
+    component: () => import(/* webpackChunkName: "lu-jing-gui-hua" */ '../views/RouteplanningView.vue')
   },
   {
     path: '/AboutView',
