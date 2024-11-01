@@ -58,24 +58,24 @@ export default {
 
 <style scoped>
 .carousel {
-position: relative;
-width: 100%;
-overflow: hidden;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
 }
 
 .carousel-inner {
-display: flex;
-transition: transform 0.5s ease;
+  display: flex;
+  transition: transform 0.5s ease;
 }
 
 .carousel-item {
-min-width: 100%;
-box-sizing: border-box;
+  min-width: 100%;
+  box-sizing: border-box;
 }
 
 .carousel-item img {
-width: 100%;
-display: block;
+  width: 100%;
+  display: block;
 }
 
 .image-container {
@@ -95,31 +95,31 @@ display: block;
 }
 
 .carousel-caption {
-position: absolute;
-bottom: 20px;
-left: 20px;
-color: #fff;
-background-color: rgba(0, 0, 0, 0.5);
-padding: 10px;
-border-radius: 5px;
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  color: #fff;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-radius: 5px;
 }
 
 .carousel-control {
-position: absolute;
-top: 50%;
-transform: translateY(-50%);
-background-color: rgba(0, 0, 0, 0.5);
-color: #fff;
-border: none;
-padding: 10px;
-cursor: pointer;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
 }
 
 .carousel-control.prev {
-left: 10px;
+  left: 10px;
 }
 
 .carousel-control.next {
-right: 10px;
+  right: 10px;
 }
 </style>

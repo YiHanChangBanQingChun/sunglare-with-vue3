@@ -1,131 +1,131 @@
 <template>
   <!-- 输入了起点和终点之后,还没有摁查询路径的画面 -->
-  <div class="lu-jing-gui-hua">
-    <!-- 搜索框 -->
-    <!-- 外层容器 -->
-    <div class="search-containers">
-      <!-- 交换的侧边栏 -->
-      <div class="revert-containers">
-        <div class="car"><img src='@/assets/car.png'></div>
-        <div class="swap-action">
-          <!-- 绑定 swap 方法到点击事件 -->
-          <button @click="swap" title="切换起终点">
-            <img :src="require('@/assets/revert_new.png')" alt="" class="revert">
-          </button>
-        </div>
-      </div>
-      <!-- 搜索起点的容器 -->
-      <div class="search-container start">
-        <!-- 图片 -->
-        <div class="search-icon-wrapper">
-          <img src='@/assets/pink-circle.png' alt="pink">
-        </div>
-        <!-- 输入框 -->
-        <input type="text" v-model="searchQueryStart" @input="onSearchInputChange($event, true)" placeholder="请输入起点" class="search-box search-box-start"/>
-        <!-- 搜索框内部的删除图片 -->
-        <span class="search-box-img">
-          <div class="delete" title="清空" @click="clc1">
-            <img src='@/assets/cancel.png' alt="delete1">
+    <div class="lu-jing-gui-hua">
+      <!-- 搜索框 -->
+      <!-- 外层容器 -->
+      <div class="search-containers">
+        <!-- 交换的侧边栏 -->
+        <div class="revert-containers">
+          <div class="car"><img src='@/assets/car.png'></div>
+          <div class="swap-action">
+            <!-- 绑定 swap 方法到点击事件 -->
+            <button @click="swap" title="切换起终点">
+              <img :src="require('@/assets/revert_new.png')" alt="" class="revert">
+            </button>
           </div>
-        </span>
-        <!-- 起点搜索结果展示 -->
-        <div class="search-results" v-if="searchResults.length && searchQueryStart" ref="searchResultsStart">
-    <ul>
-      <li v-for="(result, index) in searchResults" :key="index" :class="{ 'highlighted': index === highlightedIndex }" @click="selectResult(result, true)">
-        {{ result.name }}
-      </li>
-        </ul>
         </div>
-    </div>
-      <!-- 搜索终点的容器 -->
-      <div class="search-container end">
-        <!-- 图片容器 -->
-        <div class="search-icon-wrapper">
-          <img src='@/assets/green-circle.png' alt="green">
-        </div>
-        <!-- 输入框 -->
-        <input type="text" v-model="searchQueryEnd" @input="onSearchInputChange($event, false)" placeholder="请输入终点" class="search-box search-box-end"/>
-         <!-- 搜索框内部的删除图片 -->
-        <span class="search-box-img">
-          <div class="delete" title="清空" @click="clc2">
-            <img src='@/assets/cancel.png' alt="delete1">
+        <!-- 搜索起点的容器 -->
+        <div class="search-container start">
+          <!-- 图片 -->
+          <div class="search-icon-wrapper">
+            <img src='@/assets/pink-circle.png' alt="pink">
           </div>
-        </span>
-        <!-- 终点搜索结果展示 -->
-        <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd" ref="searchResultsEnd">
-    <ul>
-      <li v-for="(result, index) in searchResultsEnd" :key="index" :class="{ 'highlighted': index === highlightedIndex }" @click="selectResult(result, false)">
-        {{ result.name }}
-      </li>
+          <!-- 输入框 -->
+          <input type="text" v-model="searchQueryStart" @input="onSearchInputChange($event, true)" placeholder="请输入起点" class="search-box search-box-start"/>
+          <!-- 搜索框内部的删除图片 -->
+          <span class="search-box-img">
+            <div class="delete" title="清空" @click="clc1">
+              <img src='@/assets/cancel.png' alt="delete1">
+            </div>
+          </span>
+          <!-- 起点搜索结果展示 -->
+          <div class="search-results" v-if="searchResults.length && searchQueryStart" ref="searchResultsStart">
+      <ul>
+        <li v-for="(result, index) in searchResults" :key="index" :class="{ 'highlighted': index === highlightedIndex }" @click="selectResult(result, true)">
+          {{ result.name }}
+        </li>
           </ul>
+          </div>
+      </div>
+        <!-- 搜索终点的容器 -->
+        <div class="search-container end">
+          <!-- 图片容器 -->
+          <div class="search-icon-wrapper">
+            <img src='@/assets/green-circle.png' alt="green">
+          </div>
+          <!-- 输入框 -->
+          <input type="text" v-model="searchQueryEnd" @input="onSearchInputChange($event, false)" placeholder="请输入终点" class="search-box search-box-end"/>
+          <!-- 搜索框内部的删除图片 -->
+          <span class="search-box-img">
+            <div class="delete" title="清空" @click="clc2">
+              <img src='@/assets/cancel.png' alt="delete1">
+            </div>
+          </span>
+          <!-- 终点搜索结果展示 -->
+          <div class="search-results" v-if="searchResultsEnd.length && searchQueryEnd" ref="searchResultsEnd">
+      <ul>
+        <li v-for="(result, index) in searchResultsEnd" :key="index" :class="{ 'highlighted': index === highlightedIndex }" @click="selectResult(result, false)">
+          {{ result.name }}
+        </li>
+            </ul>
+          </div>
+        </div>
+        <div class="search-action" @click="onSearch" title="搜索">
+          <img :src="require('@/assets/search.png')" alt="" class="search">
+        </div>
+      <!-- 新的覆盖层容器 -->
+      <div v-if="isLoading" class="loader-overlay">
+        <div class="loader">
         </div>
       </div>
-      <div class="search-action" @click="onSearch" title="搜索">
-        <img :src="require('@/assets/search.png')" alt="" class="search">
-      </div>
-    <!-- 新的覆盖层容器 -->
-    <div v-if="isLoading" class="loader-overlay">
-      <div class="loader">
       </div>
     </div>
-    </div>
-  </div>
-  <!-- 地图展示 -->
-  <div id="viewDiv"></div>
-  <div v-if="ismaploading" class="maploader-overlay">
-    <div class="maploader">
-    </div>
-  </div>
-  <!-- 时间选择框和路径展示框 -->
-  <div class="main-container">
-    <!-- 时间选择框 -->
-    <div class="choose-time">
-      <div class="form-group">
-        <label for="date-input">选择日期：</label>
-        <input id="date-input" type="date" v-model="selectedDate" :min="minDate" :max="maxDate" :class="{ 'invalid-date': isDateDisabled(selectedDate) }" @change="handleDateChange">
-        <label for="time-input">选择时间：</label>
-        <input id="time-input" type="time" v-model="formattedTime" @input="onTimeInputChange" step="600"> <!-- 600秒 = 10分钟 -->
+    <!-- 地图展示 -->
+    <div id="viewDiv"></div>
+    <div v-if="ismaploading" class="maploader-overlay">
+      <div class="maploader">
       </div>
     </div>
-    <div>
-   <!-- 路线展示 -->
-   <transition name="fade">
-      <div class="routelist" v-show="isRouteListVisible">
-        <ul class="cardlist">
-          <div class="route" data-index="1" @click="highlightRoute('noGlareRouteId')">
-            <div class="introduction" :style="{ color: getColor(1) }">无眩光路径</div>
-            <p class="intro">
-              <span>用时：{{totalHours}}小时{{totalMinutes}}分钟</span> |
-              <!-- <span></span> -->
-              <span>路长：{{totalDistance}}</span>
-              <!-- <span></span> -->
-            </p>
-            <p class="intro">
-              <span>途径：{{totalPass }}</span>
-              <!-- <span></span> -->
-            </p>
-          </div>
-          <div class="route" data-index="0" @click="highlightRoute('defaultRouteId')">
-            <div class="introduction" :style="{ color: getColor(0) }">常规路径</div>
-            <p class="intro">
-              <span>用时：{{noGlareTotalHours}}小时{{noGlareTotalMinutes}}分钟</span> |
-              <!-- <span></span> -->
-              <span>路长：{{noGlareTotalDistance}}</span>
-              <!-- <span></span> -->
-            </p>
-            <p class="intro">
-              <span>途径：{{noGlareTotalPass}}</span>
-              <!-- <span></span> -->
-            </p>
-          </div>
-        </ul>
-        <span class="toggle-button" @click="toggleRouteList" title="隐藏">
-          <img src='@/assets/cancel.png' alt="delete1">
-        </span>
+    <!-- 时间选择框和路径展示框 -->
+    <div class="main-container">
+      <!-- 时间选择框 -->
+      <div class="choose-time">
+        <div class="form-group">
+          <label for="date-input">选择日期：</label>
+          <input id="date-input" type="date" v-model="selectedDate" :min="minDate" :max="maxDate" :class="{ 'invalid-date': isDateDisabled(selectedDate) }" @change="handleDateChange">
+          <label for="time-input">选择时间：</label>
+          <input id="time-input" type="time" v-model="formattedTime" @input="onTimeInputChange" step="600"> <!-- 600秒 = 10分钟 -->
+        </div>
       </div>
-    </transition>
-    <button v-if="!isRouteListVisible" @click="toggleRouteList" class="open-button">展开路线结果</button>
-  </div>
+      <div>
+    <!-- 路线展示 -->
+    <transition name="fade">
+        <div class="routelist" v-show="isRouteListVisible">
+          <ul class="cardlist">
+            <div class="route" data-index="1" @click="highlightRoute('noGlareRouteId')">
+              <div class="introduction" :style="{ color: getColor(1) }">无眩光路径</div>
+              <p class="intro">
+                <span>用时：{{totalHours}}小时{{totalMinutes}}分钟</span> |
+                <!-- <span></span> -->
+                <span>路长：{{totalDistance}}</span>
+                <!-- <span></span> -->
+              </p>
+              <p class="intro">
+                <span>途径：{{totalPass }}</span>
+                <!-- <span></span> -->
+              </p>
+            </div>
+            <div class="route" data-index="0" @click="highlightRoute('defaultRouteId')">
+              <div class="introduction" :style="{ color: getColor(0) }">常规路径</div>
+              <p class="intro">
+                <span>用时：{{noGlareTotalHours}}小时{{noGlareTotalMinutes}}分钟</span> |
+                <!-- <span></span> -->
+                <span>路长：{{noGlareTotalDistance}}</span>
+                <!-- <span></span> -->
+              </p>
+              <p class="intro">
+                <span>途径：{{noGlareTotalPass}}</span>
+                <!-- <span></span> -->
+              </p>
+            </div>
+          </ul>
+          <span class="toggle-button" @click="toggleRouteList" title="隐藏">
+            <img src='@/assets/cancel.png' alt="delete1">
+          </span>
+        </div>
+      </transition>
+      <button v-if="!isRouteListVisible" @click="toggleRouteList" class="open-button">展开路线结果</button>
+    </div>
   </div>
 </template>
 
@@ -138,12 +138,14 @@ import GraphicsLayer from '@geoscene/core/layers/GraphicsLayer'
 import FeatureLayer from '@geoscene/core/layers/FeatureLayer'
 import Extent from '@geoscene/core/geometry/Extent'
 import axios from 'axios'
-import { nextTick, markRaw } from 'vue'
+import { markRaw } from 'vue'
 import BasemapGallery from '@geoscene/core/widgets/BasemapGallery.js'
 import Compass from '@geoscene/core/widgets/Compass.js'
 import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
 import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.js'
 import LayerList from '@geoscene/core/widgets/LayerList.js'
+import { parseUrlParams, toggleRouteList, getColor, highlightRoute, onTimeInputChange, isDateDisabled, handleDateChange, selectResult, onSearchInputChange } from '@/assets/share_js/routeview_public'
+import { handleKeydown, updateTime, clc1, clc2 } from '@/assets/share_js/routeplanning_all'
 
 export default {
   name: 'RouteView',
@@ -191,7 +193,7 @@ export default {
       this.selectedResultStart = JSON.parse(this.$route.query.start)
       this.selectedResultEnd = JSON.parse(this.$route.query.end)
     }
-    this.parseUrlParams()
+    parseUrlParams(this)
     // 设置定时器，每隔1分钟更新时间
     window.addEventListener('keydown', this.handleKeydown)
   },
@@ -215,233 +217,34 @@ export default {
   },
   methods: {
     toggleRouteList () {
-      this.isRouteListVisible = !this.isRouteListVisible
+      toggleRouteList(this)
     },
-    // 获取颜色
     getColor (index) {
-      if (index === 0) {
-        return 'rgb(25, 202, 173)' // 绿色，耗时少路径
-      } else if (index === 1) {
-        return 'rgb(244, 96, 108)' // 红色，无眩光路径
-      }
-      return 'black' // 默认颜色
+      return getColor(index)
     },
-
-    // 绘制路径
     highlightRoute (routeId) {
-      // console.log('用户点击了路径:', routeId)
-      routeId = routeId === 'defaultRouteId' ? 'noGlareRouteId' : 'defaultRouteId'
-      // 如果之前有高亮的路径且不是当前点击的路径，重置其样式
-      if (this.highlightedRouteId && this.highlightedRouteId !== routeId) {
-        this.resetRouteStyle(this.highlightedRouteId)
-      }
-
-      // 如果当前点击的路径已经在闪烁中，先停止闪烁
-      if (this.blinkingTimers[routeId]) {
-        clearInterval(this.blinkingTimers[routeId])
-        delete this.blinkingTimers[routeId]
-        this.resetRouteStyle(routeId)
-      }
-
-      // 只更新被点击的路径的渲染器样式
-      const layer = this.routeLayers[routeId]
-      if (layer) {
-        const color = this.highlightedColor
-        const newRenderer = {
-          type: 'simple',
-          title: '路径',
-          symbol: {
-            type: 'simple-line',
-            color: color,
-            width: 5
-          }
-        }
-        layer.renderer = newRenderer
-      }
-
-      // 更新高亮路径 ID
-      this.highlightedRouteId = routeId
-      // 启动闪烁效果
-      this.startBlinking(routeId)
+      highlightRoute(this, routeId)
     },
-
-    // 开始闪烁
-    startBlinking (routeId) {
-      const layer = this.routeLayers[routeId]
-      if (!layer) return
-
-      let isBlinkOn = false
-      const originalColor = routeId === this.noGlareRouteId ? this.noGlareColor : this.defaultColor
-
-      // 每隔300毫秒切换一次透明度
-      const intervalId = setInterval(() => {
-        isBlinkOn = !isBlinkOn
-        const color = isBlinkOn ? this.highlightedColor : this.highlightedBlinkColor
-
-        // 更新渲染器以实现闪烁效果
-        const newRenderer = {
-          type: 'simple',
-          title: '路径',
-          symbol: {
-            type: 'simple-line',
-            color: color,
-            width: 4.5
-          }
-        }
-        layer.renderer = newRenderer
-      }, 300)
-
-      // 存储定时器 ID
-      this.blinkingTimers[routeId] = intervalId
-
-      // 三秒后停止闪烁并恢复原始颜色
-      setTimeout(() => {
-        clearInterval(this.blinkingTimers[routeId])
-        delete this.blinkingTimers[routeId]
-
-        // 恢复原始颜色
-        const finalRenderer = {
-          type: 'simple',
-          title: '路径',
-          symbol: {
-            type: 'simple-line',
-            color: this.highlightedColor, // 固定为完全不透明的浅蓝色
-            width: 4.5
-          }
-        }
-        layer.renderer = finalRenderer
-
-        // 三秒后恢复为原始颜色
-        setTimeout(() => {
-          this.resetRouteStyle(routeId, originalColor)
-        }, 3000)
-      }, 3000) // 闪烁三秒
-    },
-    resetRouteStyle (routeId, originalColor = null) {
-      // 清除任何现有的闪烁定时器
-      if (this.blinkingTimers[routeId]) {
-        clearInterval(this.blinkingTimers[routeId])
-        delete this.blinkingTimers[routeId]
-      }
-
-      // 重置路径样式为原始颜色或默认颜色
-      const layer = this.routeLayers[routeId]
-      if (layer) {
-        const isNoGlare = routeId === this.noGlareRouteId
-        // const color = (isNoGlare ? this.noGlareColor : this.defaultColor)
-        const color = (isNoGlare ? this.defaultColor : this.noGlareColor)
-        const newRenderer = {
-          type: 'simple',
-          title: '路径',
-          symbol: {
-            type: 'simple-line',
-            color: color,
-            width: isNoGlare ? 4.5 : 3
-          }
-        }
-        layer.renderer = newRenderer
-      }
-    },
-    // 绘制路径
     onTimeInputChange (event) {
-      const value = event.target.value
-      const [hours, minutes] = value.split(':').map(Number)
-      const roundedMinutes = Math.floor(minutes / 10) * 10
-      this.selectedTime = `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`
+      onTimeInputChange(this, event)
     },
-    // 判断日期是否可用
     isDateDisabled (date) {
-      if (!date) return false
-      const selected = new Date(date)
-      const month = selected.getMonth() + 1 // 月份从0开始
-      const day = selected.getDate()
-      if (month >= 1 && month <= 7 && day !== 15) {
-        return true
-      }
-      if (month === 8 && day <= 25) {
-        return true
-      }
-      if ((month === 10 || month === 12) && day !== 15) {
-        return true
-      }
-      if (month === 11 && day >= 9) {
-        return true
-      }
-      return false
+      return isDateDisabled(this, date)
     },
-    // 处理日期变化
     handleDateChange (event) {
-      const date = event.target.value
-      if (this.isDateDisabled(date)) {
-        // alert('选择的日期未进行模拟，请选择其他日期。可选日期为，1-7月的15日，8月20日-9月30日，10-12月的15日。')
-        alert('抱歉，选择的日期未进行模拟，请选择其他日期。可选日期为，9月1日-9月30日，11月1日到9日，以及其他月份的15日.')
-        this.selectedDate = ''
-      }
+      handleDateChange(this, event)
     },
-    // 处理键盘事件
     handleKeydown (event) {
-      if (this.searchResults.length && this.searchQueryStart) {
-        switch (event.key) {
-          case 'Escape':
-            this.searchResults = []
-            break
-          case 'Tab':
-            event.preventDefault()
-            this.highlightedIndex = (this.highlightedIndex + 1) % this.searchResults.length
-            nextTick(() => {
-              const highlightedElement = this.$refs.searchResultsStart.querySelector('li.highlighted')
-              if (highlightedElement) {
-                highlightedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-              }
-            })
-            break
-          case 'Enter':
-            if (this.highlightedIndex >= 0 && this.highlightedIndex < this.searchResults.length) {
-              this.selectResult(this.searchResults[this.highlightedIndex], true)
-            }
-            break
-        }
-      } else if (this.searchResultsEnd.length && this.searchQueryEnd) {
-        switch (event.key) {
-          case 'Escape':
-            this.searchResultsEnd = []
-            break
-          case 'Tab':
-            event.preventDefault()
-            this.highlightedIndex = (this.highlightedIndex + 1) % this.searchResultsEnd.length
-            nextTick(() => {
-              const highlightedElement = this.$refs.searchResultsEnd.querySelector('li.highlighted')
-              if (highlightedElement) {
-                highlightedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-              }
-            })
-            break
-          case 'Enter':
-            if (this.highlightedIndex >= 0 && this.highlightedIndex < this.searchResultsEnd.length) {
-              this.selectResult(this.searchResultsEnd[this.highlightedIndex], false)
-            }
-            break
-        }
-      }
+      handleKeydown(this, event)
     },
-    // 更新时间，日期
     updateTime () {
-      const now = new Date()
-      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-      // 只有当 selectedTime 是当前时间时，才更新
-      if (!this.isTimeFromUrl || this.selectedTime === currentTime) {
-        this.selectedTime = currentTime
-        this.isTimeFromUrl = false // 重置标志位
-      }
+      updateTime(this)
     },
-    // 清空搜索框
     clc1 () {
-      // 清空搜索框1
-      this.searchQueryStart = ''
+      clc1(this)
     },
-    // 清空搜索框2
     clc2 () {
-      this.searchQueryEnd = ''
+      clc2(this)
     },
     // 交换起点和终点
     swap () {
@@ -456,7 +259,7 @@ export default {
       this.selectedResultEnd = tempResult
       // 调用 onSearch 方法重新查询路径
       this.onSearch().then(() => {
-        this.parseUrlParams()
+        parseUrlParams(this)
         this.initMap()
         // 确保在交换操作完成后，更新搜索框的值
         this.searchQueryStart = this.selectedResultStart.name
@@ -466,124 +269,11 @@ export default {
         this.isSwapping = false // 确保在错误情况下也重置标志位
       })
     },
-    // 解析URL参数
-    parseUrlParams () {
-      const urlParams = new URLSearchParams(window.location.search)
-      const startParam = urlParams.get('start')
-      const endParam = urlParams.get('end')
-      const dateParam = urlParams.get('date')
-      const timeParam = urlParams.get('time')
-      const defaultRouteIdParam = urlParams.get('default_id')
-      const timeBasedRouteIdParam = urlParams.get('time_based_id')
-      if (startParam) {
-        try {
-          const startObj = JSON.parse(decodeURIComponent(startParam))
-          if (startObj && startObj.address) {
-            this.searchQueryStart = startObj.name
-          }
-        } catch (e) {
-          console.error('Error parsing start parameter:', e)
-        }
-      }
-      if (endParam) { // 如果有终点参数，进行解析
-        try {
-          const endObj = JSON.parse(decodeURIComponent(endParam))
-          if (endObj && endObj.address) {
-            this.searchQueryEnd = endObj.name // 绑定终点查询字符串
-          }
-        } catch (e) {
-          console.error('Error parsing end parameter:', e)
-        }
-      }
-      // 如果有日期参数，进行解析
-      if (dateParam) {
-        this.selectedDate = dateParam
-      }
-      // 如果有时间参数，进行解析
-      if (timeParam) {
-        this.selectedTime = timeParam
-        this.isTimeFromUrl = true // 设置标志位
-      }
-      // 如果有默认路径ID参数，进行解析
-      if (defaultRouteIdParam) {
-        this.defaultRouteId = defaultRouteIdParam
-      }
-      // 如果有基于时间的路径ID参数，进行解析
-      if (timeBasedRouteIdParam) {
-        this.timeBasedRouteId = timeBasedRouteIdParam
-      }
-
-      // 如果有底图参数，进行解析
-      this.created()
-    },
-    // 处理搜索框输入变化事件
     onSearchInputChange (event, isStart) {
-      const query = event.target.value
-      const searchResultsField = isStart ? 'searchResults' : 'searchResultsEnd'
-      if (query.includes("'")) {
-        console.log('输入法临时输入，不发送请求')
-        return
-      }
-      if (query.length >= 2) {
-        fetch(`${process.env.VUE_APP_API_URL}/api/search`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ searchQueryStart: query })
-        })
-          .then(response => response.json())
-          .then(data => {
-            this[searchResultsField] = data
-          })
-          .catch((error) => {
-            console.error('错误:', error)
-          })
-      } else {
-        this[searchResultsField] = []
-      }
+      onSearchInputChange(this, event, isStart)
     },
-    // 处理选择搜索结果事件
     selectResult (result, isStart = true) {
-      console.log('用户选择了搜索结果:', result)
-      const simplifiedResult = {
-        name: result.name,
-        address: result.address,
-        wgs84_latitude: result.wgs84_latitude,
-        wgs84_longitude: result.wgs84_longitude,
-        location: [result.wgs84_longitude, result.wgs84_latitude],
-        baidu_index: result.baidu_index,
-        baidu_latitude: result.baidu_latitude,
-        baidu_longitude: result.baidu_longitude,
-        id: result.id,
-        label: result.label
-      }
-      // 获取当前的起点和终点信息
-      let currentStart = this.selectedResultStart ? JSON.stringify(this.selectedResultStart) : null
-      let currentEnd = this.selectedResultEnd ? JSON.stringify(this.selectedResultEnd) : null
-      // 根据isStart参数选择起点或终点
-      if (isStart) {
-        this.selectedResultStart = simplifiedResult
-        this.searchQueryStart = simplifiedResult.name
-        this.searchResults = []
-        currentStart = JSON.stringify(simplifiedResult)
-      } else {
-        this.selectedResultEnd = simplifiedResult
-        this.searchQueryEnd = simplifiedResult.name
-        this.searchResultsEnd = []
-        currentEnd = JSON.stringify(simplifiedResult)
-      }
-      // 跳转到结果页面，带上起点和终点信息，并添加一个时间戳作为唯一查询参数
-      this.$router.push({
-        path: '/lu-jing-gui-hua/Intermediate-page',
-        query: {
-          start: currentStart,
-          end: currentEnd,
-          date: this.selectedDate,
-          time: this.selectedTime,
-          BasemapLayer: this.BasemapName
-        }
-      })
+      selectResult(this, result, isStart)
     },
     onSearch () {
       return new Promise((resolve, reject) => {
