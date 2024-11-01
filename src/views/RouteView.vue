@@ -144,8 +144,8 @@ import Compass from '@geoscene/core/widgets/Compass.js'
 import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
 import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.js'
 import LayerList from '@geoscene/core/widgets/LayerList.js'
-import { parseUrlParams, toggleRouteList, getColor, highlightRoute, onTimeInputChange, isDateDisabled, handleDateChange, selectResult, onSearchInputChange } from '@/assets/share_js/routeview_public'
-import { handleKeydown, updateTime, clc1, clc2 } from '@/assets/share_js/routeplanning_all'
+import { parseUrlParams, toggleRouteList, getColor, highlightRoute, selectResult, onSearchInputChange } from '@/assets/share_js/routeview_public'
+import { handleKeydown, updateTime, clc1, clc2, isDateDisabled, handleDateChange, onTimeInputChange } from '@/assets/share_js/routeplanning_all'
 
 export default {
   name: 'RouteView',

@@ -95,13 +95,10 @@ import FeatureLayer from '@geoscene/core/layers/FeatureLayer.js'
 import TileInfo from '@geoscene/core/layers/support/TileInfo.js'
 import BasemapGallery from '@geoscene/core/widgets/BasemapGallery.js'
 import Compass from '@geoscene/core/widgets/Compass.js'
-import { nextTick } from 'vue'
+import { handleKeydown, updateTime, clc1, clc2, isDateDisabled, handleDateChange, onTimeInputChange } from '@/assets/share_js/routeplanning_all'
 import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
 import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.js'
 import LayerList from '@geoscene/core/widgets/LayerList'
-// import Point from '@geoscene/core/geometry/Point.js'
-// import { search } from 'core-js/fn/symbol'
-// import BasemapToggle from '@geoscene/core/widgets/BasemapToggle.js'
 
 export default {
   name: 'RouteplanningView',
@@ -160,101 +157,28 @@ export default {
         console.error('MapView is not initialized.')
       }
     },
-    // 时间选择框的输入事件处理函数
     onTimeInputChange (event) {
-      const value = event.target.value
-      const [hours, minutes] = value.split(':').map(Number)
-      const roundedMinutes = Math.floor(minutes / 10) * 10
-      this.selectedTime = `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`
+      onTimeInputChange(this, event)
     },
-    // 检查日期是否不可用
     isDateDisabled (date) {
-      if (!date) return false
-      const selected = new Date(date)
-      const month = selected.getMonth() + 1 // 月份从0开始
-      const day = selected.getDate()
-      if (month >= 1 && month <= 7 && day !== 15) {
-        return true
-      }
-      if (month === 8 && day <= 25) {
-        return true
-      }
-      if ((month === 10 || month === 12) && day !== 15) {
-        return true
-      }
-      if (month === 11 && day >= 9) {
-        return true
-      }
-      return false
+      return isDateDisabled(this, date)
     },
     // 处理日期变化
     handleDateChange (event) {
-      const date = event.target.value
-      if (this.isDateDisabled(date)) {
-        // alert('选择的日期未进行模拟，请选择其他日期。可选日期为，1-7月的15日，8月20日-9月30日，10-12月的15日。')
-        alert('抱歉，选择的日期未进行模拟，请选择其他日期。可选日期为，9月1日-9月30日，11月1日到9日，以及其他月份的15日.')
-        this.selectedDate = ''
-      }
+      handleDateChange(this, event)
     },
-    // 处理键盘事件
     handleKeydown (event) {
-      if (this.searchResults.length && this.searchQueryStart) {
-        switch (event.key) {
-          case 'Escape':
-            this.searchResults = []
-            break
-          case 'Tab':
-            event.preventDefault()
-            this.highlightedIndex = (this.highlightedIndex + 1) % this.searchResults.length
-            nextTick(() => {
-              const highlightedElement = this.$refs.searchResultsStart.querySelector('li.highlighted')
-              if (highlightedElement) {
-                highlightedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-              }
-            })
-            break
-          case 'Enter':
-            if (this.highlightedIndex >= 0 && this.highlightedIndex < this.searchResults.length) {
-              this.selectResult(this.searchResults[this.highlightedIndex], true)
-            }
-            break
-        }
-      } else if (this.searchResultsEnd.length && this.searchQueryEnd) {
-        switch (event.key) {
-          case 'Escape':
-            this.searchResultsEnd = []
-            break
-          case 'Tab':
-            event.preventDefault()
-            this.highlightedIndex = (this.highlightedIndex + 1) % this.searchResultsEnd.length
-            nextTick(() => {
-              const highlightedElement = this.$refs.searchResultsEnd.querySelector('li.highlighted')
-              if (highlightedElement) {
-                highlightedElement.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-              }
-            })
-            break
-          case 'Enter':
-            if (this.highlightedIndex >= 0 && this.highlightedIndex < this.searchResultsEnd.length) {
-              this.selectResult(this.searchResultsEnd[this.highlightedIndex], false)
-            }
-            break
-        }
-      }
+      handleKeydown(this, event)
     },
     // 更新时间，日期
     updateTime () {
-      const now = new Date()
-      this.selectedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+      updateTime(this)
     },
-    // 清空搜索框
     clc1 () {
-      // 清空搜索框1
-      this.searchQueryStart = ''
+      clc1(this)
     },
-    // 清空搜索框2
     clc2 () {
-      this.searchQueryEnd = ''
+      clc2(this)
     },
     // 初始化地图
     initMap () {
