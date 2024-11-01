@@ -615,7 +615,7 @@ export default {
               this.isLoading = false
               // 使用Vue Router跳转到结果页面，并传递路径规划结果ID
               this.$router.push({
-                path: '/lu-jing-gui-hua/routesw',
+                path: '/lu-jing-gui-hua/route',
                 query: {
                   start: JSON.stringify(startWithLocation),
                   end: JSON.stringify(endWithLocation),
