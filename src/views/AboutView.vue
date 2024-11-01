@@ -25,7 +25,7 @@ export default {
 
 <style>
 body {
-  background-image: url('~@/assets/bg3.jpg');
+  background-image: url('~@/assets/image/background/bg3.jpg');
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;

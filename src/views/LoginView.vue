@@ -8,7 +8,7 @@
             <div class="login-box">
                <!-- 头像容器 -->
           <div class="avatar-container">
-            <img :src="loggedInUser.avatarUrl || require('@/assets/touxiang.png')" alt="" class="avatar">
+            <img :src="loggedInUser.avatarUrl || require('@/assets/image/avatar/touxiang.png')" alt="" class="avatar">
             <!-- 用户自定义头像按钮 -->
           </div>
           <!-- 头像上传模态框 -->
@@ -221,7 +221,7 @@ export default {
       const user = store.state.user || {} // 确保 user 是一个对象，即使是空对象
       return {
         ...user,
-        avatarUrl: require('@/assets/touxiang.png')// 提供默认头像
+        avatarUrl: require('@/assets/image/avatar/touxiang.png')// 提供默认头像
       }
     })
     // 清空注册表单，注册时调用
@@ -457,7 +457,7 @@ export default {
 
 <style>
 .deng-lu {
-  background-image: url('~@/assets/bg2.jpg'); /* 替换为你的图片路径 */
+  background-image: url('~@/assets/image/background/bg2.jpg'); /* 替换为你的图片路径 */
   background-size: cover; /* 背景图片覆盖整个元素 */
   background-repeat: no-repeat; /* 防止背景图片重复 */
   background-attachment: fixed; /* 背景图片固定，不随页面滚动 */
@@ -470,7 +470,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url('~@/assets/bg4.jpg'); /* 替换为你的图片路径 */
+  background-image: url('~@/assets/image/background/bg4.jpg'); /* 替换为你的图片路径 */
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;

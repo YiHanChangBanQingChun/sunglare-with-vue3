@@ -6,11 +6,11 @@
       <div class="search-containers">
         <!-- 交换的侧边栏 -->
         <div class="revert-containers">
-          <div class="car"><img src='@/assets/car.png'></div>
+          <div class="car"><img src='@/assets/image/map_icon/car.png'></div>
           <div class="swap-action">
             <!-- 绑定 swap 方法到点击事件 -->
             <button @click="swap" title="切换起终点">
-              <img :src="require('@/assets/revert_new.png')" alt="" class="revert">
+              <img :src="require('@/assets/image/map_icon/revert_new_dark.png')" alt="" class="revert">
             </button>
           </div>
         </div>
@@ -18,14 +18,14 @@
         <div class="search-container start">
           <!-- 图片 -->
           <div class="search-icon-wrapper">
-            <img src='@/assets/pink-circle.png' alt="pink">
+            <img src='@/assets/image/map_icon/pink-circle.png' alt="pink">
           </div>
           <!-- 输入框 -->
           <input type="text" v-model="searchQueryStart" @input="onSearchInputChange($event, true)" placeholder="请输入起点" class="search-box search-box-start"/>
           <!-- 搜索框内部的删除图片 -->
           <span class="search-box-img">
             <div class="delete" title="清空" @click="clc1">
-              <img src='@/assets/cancel.png' alt="delete1">
+              <img src='@/assets/image/map_icon/cancel.png' alt="delete1">
             </div>
           </span>
           <!-- 起点搜索结果展示 -->
@@ -41,14 +41,14 @@
         <div class="search-container end">
           <!-- 图片容器 -->
           <div class="search-icon-wrapper">
-            <img src='@/assets/green-circle.png' alt="green">
+            <img src='@/assets/image/map_icon/green-circle.png' alt="green">
           </div>
           <!-- 输入框 -->
           <input type="text" v-model="searchQueryEnd" @input="onSearchInputChange($event, false)" placeholder="请输入终点" class="search-box search-box-end"/>
           <!-- 搜索框内部的删除图片 -->
           <span class="search-box-img">
             <div class="delete" title="清空" @click="clc2">
-              <img src='@/assets/cancel.png' alt="delete1">
+              <img src='@/assets/image/map_icon/cancel.png' alt="delete1">
             </div>
           </span>
           <!-- 终点搜索结果展示 -->
@@ -61,7 +61,7 @@
           </div>
         </div>
         <div class="search-action" @click="onSearch" title="搜索">
-          <img :src="require('@/assets/search.png')" alt="" class="search">
+          <img :src="require('@/assets/image/map_icon/search.png')" alt="" class="search">
         </div>
       <!-- 新的覆盖层容器 -->
       <div v-if="isLoading" class="loader-overlay">
@@ -120,7 +120,7 @@
             </div>
           </ul>
           <span class="toggle-button" @click="toggleRouteList" title="隐藏">
-            <img src='@/assets/cancel.png' alt="delete1">
+            <img src='@/assets/image/map_icon/cancel.png' alt="delete1">
           </span>
         </div>
       </transition>
@@ -144,8 +144,8 @@ import Compass from '@geoscene/core/widgets/Compass.js'
 import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
 import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.js'
 import LayerList from '@geoscene/core/widgets/LayerList.js'
-import { parseUrlParams, toggleRouteList, getColor, highlightRoute, selectResult, onSearchInputChange } from '@/assets/share_js/routeview_public'
-import { handleKeydown, updateTime, clc1, clc2, isDateDisabled, handleDateChange, onTimeInputChange } from '@/assets/share_js/routeplanning_all'
+import { parseUrlParams, toggleRouteList, getColor, highlightRoute, selectResult, swap } from '@/assets/share_js/routeview_public'
+import { handleKeydown, updateTime, clc1, clc2, isDateDisabled, handleDateChange, onTimeInputChange, onSearchInputChange } from '@/assets/share_js/routeplanning_all'
 
 export default {
   name: 'RouteView',
@@ -246,28 +246,8 @@ export default {
     clc2 () {
       clc2(this)
     },
-    // 交换起点和终点
     swap () {
-      this.isSwapping = true // 设置标志位
-      // 交换 searchQueryStart 和 searchQueryEnd
-      const tempQuery = this.searchQueryStart
-      this.searchQueryStart = this.searchQueryEnd
-      this.searchQueryEnd = tempQuery
-      // 交换 selectedResultStart 和 selectedResultEnd
-      const tempResult = this.selectedResultStart
-      this.selectedResultStart = this.selectedResultEnd
-      this.selectedResultEnd = tempResult
-      // 调用 onSearch 方法重新查询路径
-      this.onSearch().then(() => {
-        parseUrlParams(this)
-        this.initMap()
-        // 确保在交换操作完成后，更新搜索框的值
-        this.searchQueryStart = this.selectedResultStart.name
-        this.searchQueryEnd = this.selectedResultEnd.name
-        this.isSwapping = false // 重置标志位
-      }).catch(() => {
-        this.isSwapping = false // 确保在错误情况下也重置标志位
-      })
+      swap(this)
     },
     onSearchInputChange (event, isStart) {
       onSearchInputChange(this, event, isStart)
@@ -684,7 +664,6 @@ export default {
         },
         attributes: end
       })
-      // 将起点和终点添加到图形图层
       graphicsLayer.addMany([startGraphic, endGraphic])
     },
     drawRoutes (map) {
@@ -695,13 +674,9 @@ export default {
         console.error('Route IDs are undefined.')
         return
       }
-
-      // 获取并绘制默认路径
       if (defaultRouteId) {
         this.fetchAndDrawRoute(map, defaultRouteId, [25, 202, 173], true) // 绿色，耗时少路径
       }
-
-      // 获取并绘制基于时间的路径
       if (timeBasedRouteId) {
         this.fetchAndDrawRoute(map, timeBasedRouteId, [244, 96, 108]) // 红色，无眩光路径
       }
@@ -713,8 +688,6 @@ export default {
         .then(data => {
           let totalLength = 0
           let totalCost = 0
-          // const passRoads = []
-          // const roadNamesSet = new Set()
           const roadLengths = {}
 
           const features = data.features.map((feature, index) => {
@@ -722,14 +695,6 @@ export default {
               totalLength += feature.properties.length
               totalCost += feature.properties.cost
             }
-
-            // if (!feature.properties.name.includes('未知') && !roadNamesSet.has(feature.properties.name)) {
-            //   roadNamesSet.add(feature.properties.name)
-            //   passRoads.push({
-            //     name: feature.properties.name,
-            //     length: feature.properties.length
-            //   })
-            // }
 
             if (!feature.properties.name.includes('未知')) {
               if (!roadLengths[feature.properties.name]) {
@@ -750,11 +715,6 @@ export default {
             }
           })
 
-          // 按长度排序并选出最长的三条路段
-          // passRoads.sort((a, b) => b.length - a.length)
-          // const topPassRoads = passRoads.slice(0, 3).map(road => road.name).join('->')
-
-          // 将 roadLengths 转换为数组并按长度排序，同时保持顺序
           const sortedRoads = Object.entries(roadLengths)
             .sort((a, b) => b[1].length - a[1].length || a[1].order - b[1].order)
           const topPassRoads = sortedRoads.slice(0, 3).map(road => road[0]).join('->')
@@ -817,19 +777,12 @@ export default {
             }
           })
           const rawGeojsonLayer = markRaw(geojsonLayer)
-          // 将FeatureLayer图层添加到地图上
-          // 添加到地图
           map.layers.add(rawGeojsonLayer)
-          // map.layers.add(geojsonLayer)
-          // 计算总时长（小时和分钟）
           if (totalCost < 3600) {
             totalCost += 60
           }
           const hours = Math.floor(totalCost / 3600)
-          // console.log('Hours:', hours)
           const minutes = Math.floor((totalCost % 3600) / 60)
-          // console.log('Minutes:', minutes)
-          // 计算总距离（米或千米）
           let distance
           if (totalLength < 1000) {
             distance = `${totalLength.toFixed(2)}米`

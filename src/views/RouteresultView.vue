@@ -6,11 +6,11 @@
     <div class="search-containers">
       <!-- 交换的侧边栏 -->
       <div class="revert-containers">
-        <div class="car"><img src='@/assets/car.png'></div>
+        <div class="car"><img src='@/assets/image/map_icon/car.png'></div>
         <div class="swap-action">
           <!-- 绑定 swap 方法到点击事件 -->
           <button @click="swap" title="切换起终点">
-            <img :src="require('@/assets/revert_new.png')" alt="" class="revert">
+            <img :src="require('@/assets/image/map_icon/revert_new_dark.png')" alt="" class="revert">
           </button>
         </div>
       </div>
@@ -18,14 +18,14 @@
       <div class="search-container start">
         <!-- 图片 -->
         <div class="search-icon-wrapper">
-          <img src='@/assets/pink-circle.png' alt="pink">
+          <img src='@/assets/image/map_icon/pink-circle.png' alt="pink">
         </div>
         <!-- 输入框 -->
         <input type="text" v-model="searchQueryStart" @input="onSearchInputChange($event, true)" placeholder="请输入起点" class="search-box search-box-start"/>
         <!-- 搜索框内部的删除图片 -->
         <span class="search-box-img">
           <div class="delete" title="清空" @click="clc1">
-            <img src='@/assets/cancel.png' alt="delete1">
+            <img src='@/assets/image/map_icon/cancel.png' alt="delete1">
           </div>
         </span>
         <!-- 修正后的起点搜索结果展示 -->
@@ -41,14 +41,14 @@
       <div class="search-container end">
         <!-- 图片容器 -->
         <div class="search-icon-wrapper">
-          <img src='@/assets/green-circle.png' alt="green">
+          <img src='@/assets/image/map_icon/green-circle.png' alt="green">
         </div>
         <!-- 输入框 -->
         <input type="text" v-model="searchQueryEnd" @input="onSearchInputChange($event, false)" placeholder="请输入终点" class="search-box search-box-end"/>
          <!-- 搜索框内部的删除图片 -->
         <span class="search-box-img">
           <div class="delete" title="清空" @click="clc2">
-            <img src='@/assets/cancel.png' alt="delete1">
+            <img src='@/assets/image/map_icon/cancel.png' alt="delete1">
           </div>
         </span>
         <!-- 修正后的终点搜索结果展示 -->
@@ -61,7 +61,7 @@
         </div>
       </div>
       <div class="search-action" @click="onSearch" title="搜索">
-        <img :src="require('@/assets/search.png')" alt="" class="search">
+        <img :src="require('@/assets/image/map_icon/search.png')" alt="" class="search">
       </div>
       <!-- 新的覆盖层容器 -->
       <div v-if="isLoading" class="loader-overlay">
@@ -106,7 +106,7 @@ import Compass from '@geoscene/core/widgets/Compass.js'
 import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
 import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.js'
 import LayerList from '@geoscene/core/widgets/LayerList.js'
-import { handleKeydown, updateTime, clc1, clc2, isDateDisabled, handleDateChange, onTimeInputChange } from '@/assets/share_js/routeplanning_all'
+import { handleKeydown, updateTime, clc1, clc2, isDateDisabled, handleDateChange, onTimeInputChange, onSearchInputChange } from '@/assets/share_js/routeplanning_all'
 
 export default {
   name: 'RouteresultView',
@@ -260,32 +260,8 @@ export default {
       // }
       this.created()
     },
-    // 处理搜索框输入事件
     onSearchInputChange (event, isStart) {
-      const query = event.target.value
-      const searchResultsField = isStart ? 'searchResults' : 'searchResultsEnd'
-      if (query.includes("'")) {
-        console.log('输入法临时输入，不发送请求')
-        return
-      }
-      if (query.length >= 2) {
-        fetch(`${process.env.VUE_APP_API_URL}/api/search`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ searchQueryStart: query })
-        })
-          .then(response => response.json())
-          .then(data => {
-            this[searchResultsField] = data
-          })
-          .catch((error) => {
-            console.error('错误:', error)
-          })
-      } else {
-        this[searchResultsField] = []
-      }
+      onSearchInputChange(this, event, isStart)
     },
     // 处理选择搜索结果事件
     selectResult (result, isStart = true) {

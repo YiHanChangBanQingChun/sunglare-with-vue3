@@ -194,29 +194,25 @@ export function selectResult (context, result, isStart = true) {
   })
 }
 
-export function onSearchInputChange (context, event, isStart) {
-  const query = event.target.value
-  const searchResultsField = isStart ? 'searchResults' : 'searchResultsEnd'
-  if (query.includes("'")) {
-    console.log('输入法临时输入，不发送请求')
-    return
-  }
-  if (query.length >= 2) {
-    fetch(`${process.env.VUE_APP_API_URL}/api/search`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ searchQueryStart: query })
-    })
-      .then(response => response.json())
-      .then(data => {
-        context[searchResultsField] = data
-      })
-      .catch((error) => {
-        console.error('错误:', error)
-      })
-  } else {
-    context[searchResultsField] = []
-  }
+export function swap (context) {
+  context.isSwapping = true // 设置标志位
+  // 交换 searchQueryStart 和 searchQueryEnd
+  const tempQuery = context.searchQueryStart
+  context.searchQueryStart = context.searchQueryEnd
+  context.searchQueryEnd = tempQuery
+  // 交换 selectedResultStart 和 selectedResultEnd
+  const tempResult = context.selectedResultStart
+  context.selectedResultStart = context.selectedResultEnd
+  context.selectedResultEnd = tempResult
+  // 调用 onSearch 方法重新查询路径
+  context.onSearch().then(() => {
+    parseUrlParams(context)
+    context.initMap()
+    // 确保在交换操作完成后，更新搜索框的值
+    context.searchQueryStart = context.selectedResultStart.name
+    context.searchQueryEnd = context.selectedResultEnd.name
+    context.isSwapping = false // 重置标志位
+  }).catch(() => {
+    context.isSwapping = false // 确保在错误情况下也重置标志位
+  })
 }

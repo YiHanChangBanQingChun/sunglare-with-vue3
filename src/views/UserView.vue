@@ -118,7 +118,7 @@ export default {
         confirmPassword: false
       },
       isPasswordValid: false,
-      avatarUrl: require('@/assets/touxiang1.png'), // 默认头像URL
+      avatarUrl: require('@/assets/image/avatar/touxiang1.png'), // 默认头像URL
       previewAvatarUrl: null, // 预览头像URL
       selectedFile: null, // 选中的文件
       editingField: null, // 当前正在编辑的字段
@@ -136,10 +136,10 @@ export default {
       ],
       feedbackContent: '', // 反馈内容
       images: [
-        { src: require('@/assets/gzhubg.jpg'), caption: '', text: '' },
-        { src: require('@/assets/gzhubg2.jpg'), caption: '', text: '' },
-        { src: require('@/assets/gzhubg3.jpg'), caption: '', text: '' },
-        { src: require('@/assets/gzhubg4.jpg'), caption: '', text: '' }
+        { src: require('@/assets/image/about/gzhubg.jpg'), caption: '', text: '' },
+        { src: require('@/assets/image/about/gzhubg2.jpg'), caption: '', text: '' },
+        { src: require('@/assets/image/about/gzhubg3.jpg'), caption: '', text: '' },
+        { src: require('@/assets/image/about/gzhubg4.jpg'), caption: '', text: '' }
         // { src: require('@/assets/image3.jpg'), caption: '图片3', text: '描述3' }
       ]
     }
@@ -370,7 +370,7 @@ export default {
   display: flex;
   height: 88vh;
   margin-top: 10vh;
-  background-image: url('~@/assets/bg4.jpg');
+  background-image: url('~@/assets/image/background/bg4.jpg');
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;

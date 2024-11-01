@@ -57,7 +57,7 @@
           </tbody>
         </table>
         <div class="app-cancel-icon-container">
-          <img src="@/assets/cancel.png" alt="关闭" class="app-cancel-icon" @click="hideWeatherDetailsImmediately">
+          <img src="@/assets/image/map_icon/cancel_dark.png" alt="关闭" class="app-cancel-icon" @click="hideWeatherDetailsImmediately">
         </div>
       </div>
   </div>
@@ -69,21 +69,21 @@ import { useStore } from 'vuex'
 import axios from 'axios'
 
 const weatherIconMap = {
-  日出: require('@/assets/weather_icon/日出.png'),
-  日落: require('@/assets/weather_icon/日落.png'),
-  雪: require('@/assets/weather_icon/雪.png'),
-  夜多云: require('@/assets/weather_icon/夜多云.png'),
-  夜晴: require('@/assets/weather_icon/夜晴png.png'),
-  小雨: require('@/assets/weather_icon/小雨.png'),
-  多云: require('@/assets/weather_icon/多云.png'),
-  雨: require('@/assets/weather_icon/雨.png'),
-  尘: require('@/assets/weather_icon/尘png.png'),
-  雷: require('@/assets/weather_icon/雷.png'),
-  阴: require('@/assets/weather_icon/阴.png'),
-  局部阵雪: require('@/assets/weather_icon/局部阵雪.png'),
-  强雪雹交加: require('@/assets/weather_icon/强雪雹交加.png'),
-  晴: require('@/assets/weather_icon/晴.png'),
-  未知: require('@/assets/weather_icon/未知.png')
+  日出: require('@/assets/image/weather_icon/日出.png'),
+  日落: require('@/assets/image/weather_icon/日落.png'),
+  雪: require('@/assets/image/weather_icon/雪.png'),
+  夜多云: require('@/assets/image/weather_icon/夜多云.png'),
+  夜晴: require('@/assets/image/weather_icon/夜晴png.png'),
+  小雨: require('@/assets/image/weather_icon/小雨.png'),
+  多云: require('@/assets/image/weather_icon/多云.png'),
+  雨: require('@/assets/image/weather_icon/雨.png'),
+  尘: require('@/assets/image/weather_icon/尘png.png'),
+  雷: require('@/assets/image/weather_icon/雷.png'),
+  阴: require('@/assets/image/weather_icon/阴.png'),
+  局部阵雪: require('@/assets/image/weather_icon/局部阵雪.png'),
+  强雪雹交加: require('@/assets/image/weather_icon/强雪雹交加.png'),
+  晴: require('@/assets/image/weather_icon/晴.png'),
+  未知: require('@/assets/image/weather_icon/未知.png')
 }
 
 export default {
@@ -148,7 +148,7 @@ export default {
       } else if (weather.includes('多云')) {
         return weatherIconMap['多云']
       } else {
-        return weatherIconMap[weather] || require('@/assets/weather_icon/未知.png')
+        return weatherIconMap[weather] || require('@/assets/image/weather_icon/未知.png')
       }
     },
     // 更新当前天气
@@ -192,7 +192,7 @@ export default {
       } else if (!isDaytime && this.currentWeather.includes('多云')) {
         this.currentWeatherIcon = weatherIconMap['夜多云']
       } else {
-        this.currentWeatherIcon = weatherIconMap[this.currentWeather] || require('@/assets/weather_icon/未知.png')
+        this.currentWeatherIcon = weatherIconMap[this.currentWeather] || require('@/assets/image/weather_icon/未知.png')
       }
     },
     // 显示天气详情

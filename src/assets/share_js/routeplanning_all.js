@@ -101,3 +101,30 @@ export function onTimeInputChange (context, event) {
   const roundedMinutes = Math.floor(minutes / 10) * 10
   context.selectedTime = `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`
 }
+
+export function onSearchInputChange (context, event, isStart) {
+  const query = event.target.value
+  const searchResultsField = isStart ? 'searchResults' : 'searchResultsEnd'
+  if (query.includes("'")) {
+    console.log('输入法临时输入，不发送请求')
+    return
+  }
+  if (query.length >= 2) {
+    fetch(`${process.env.VUE_APP_API_URL}/api/search`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ searchQueryStart: query })
+    })
+      .then(response => response.json())
+      .then(data => {
+        context[searchResultsField] = data
+      })
+      .catch((error) => {
+        console.error('错误:', error)
+      })
+  } else {
+    context[searchResultsField] = []
+  }
+}
