@@ -1029,4 +1029,22 @@ export default {
   box-shadow: none !important;
   border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
 }
+
+.geoscene-component.geoscene-popup.geoscene-popup--aligned-bottom-left.geoscene-popup--shadow{
+  background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
+
+.geoscene-popup__main-container.geoscene-widget{
+  background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
 </style>
