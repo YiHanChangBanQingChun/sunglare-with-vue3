@@ -622,7 +622,11 @@ export default {
         tooltip: {
           trigger: 'item',
           formatter: function (params) {
-            return `${params.seriesName}<br/>区名: ${areaName}<br/>高度角: ${params.value[0]}<br/>方位角: ${params.value[1]}`
+            return `${params.seriesName}<br/>区名: ${areaName}<br/>高度角: ${params.value[0]} °<br/>方位角: ${params.value[1]} °`
+          },
+          position: function (point, params, dom, rect, size) {
+            // 固定在右侧
+            return [point[0] + 10, '10%']
           }
         },
         angleAxis: {

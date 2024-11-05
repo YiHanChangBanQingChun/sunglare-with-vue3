@@ -715,8 +715,8 @@ def get_solar_angles():
         'longitude': longitude,
         'latitude': latitude,
         'utc_time': dt_utc.isoformat(),
-        'solar_azimuth': converted_azimuth,
-        'solar_altitude': altitude
+        'solar_azimuth': round(converted_azimuth, 3),
+        'solar_altitude': round(altitude, 3)
     })
 
 @app.route('/api/submit_feedback', methods=['POST'])
@@ -775,8 +775,8 @@ def get_solar_angles_day():
             converted_azimuth = (450 - azimuth) % 360
             solar_angles.append({
                 'time': dt.isoformat(),
-                'solar_azimuth': converted_azimuth,
-                'solar_altitude': altitude
+                'solar_azimuth': round(converted_azimuth, 3),
+                'solar_altitude': round(altitude, 3)
             })
             # print(f"时间: {dt}, 太阳方位角: {azimuth}, 太阳高度角: {altitude}")
     return jsonify(solar_angles)
