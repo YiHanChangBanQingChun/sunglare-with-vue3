@@ -141,13 +141,13 @@ def read_sunglare_points(time_csv, time_column):
 def check_sunglare_on_route(route, sunglare_points, radius=0.5):
     sunglare_points = sunglare_points.to_crs(route.crs)
     sunglare_sindex = sunglare_points.sindex
+    sunglare_count = 0
     for geom in route.geometry:
         possible_matches_index = list(sunglare_sindex.intersection(geom.bounds))
         possible_matches = sunglare_points.iloc[possible_matches_index]
         precise_matches = possible_matches[possible_matches.distance(geom) <= radius]
-        if not precise_matches.empty:
-            return True
-    return False
+        sunglare_count += len(precise_matches)
+    return sunglare_count
 
 def process_route(args):
     row, routelist_folder, other_routelist_folder, time_folder, sunglare_points = args
@@ -192,45 +192,33 @@ def calculate_sunglare_reduction_percentage(routelist_folder, other_routelist_fo
     total_sunglare_other = 0
     count = 0
 
-    # 使用多进程并行处理
-    with Manager() as manager:
-        sunglare_routelist_counts = manager.list([0] * len(combined_df))
-        sunglare_other_counts = manager.list([0] * len(combined_df))
+    # 打开 CSV 文件以追加模式写入
+    output_csv_path = os.path.join(routelist_folder, time_folder, 'sunglare_results.csv')
+    with open(output_csv_path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(combined_df.columns.tolist() + ['sunglare_routelist', 'sunglare_other', 'reduction_percentage'])
 
+        # 使用多进程并行处理
         with Pool() as pool:
             results = list(tqdm(pool.imap(process_route, [(row, routelist_folder, other_routelist_folder, time_folder, sunglare_points) for _, row in combined_df.iterrows()]), total=combined_df.shape[0], desc="Calculating sunglare reduction"))
 
         for i, (sunglare_routelist, sunglare_other) in enumerate(results):
             if sunglare_routelist is not None and sunglare_other is not None:
-                if sunglare_routelist:
-                    sunglare_routelist_counts[i] = 1
-                    total_sunglare_routelist += 1
-                if sunglare_other:
-                    sunglare_other_counts[i] = 1
-                    total_sunglare_other += 1
+                reduction_percentage = ((sunglare_other - sunglare_routelist) / sunglare_other) * 100 if sunglare_other > 0 else 0
+                row = combined_df.iloc[i].tolist() + [sunglare_routelist, sunglare_other, reduction_percentage]
+                writer.writerow(row)
+
+                total_sunglare_routelist += sunglare_routelist
+                total_sunglare_other += sunglare_other
                 count += 1
 
-        if count > 0:
-            reduction_percentage = ((total_sunglare_other - total_sunglare_routelist) / total_sunglare_other) * 100
-        else:
-            reduction_percentage = 0
-
-        # 添加新列到 combined_df
-        combined_df['sunglare_routelist'] = sunglare_routelist_counts
-        combined_df['sunglare_other'] = sunglare_other_counts
-        combined_df['reduction_percentage'] = reduction_percentage
-
-        # 保存为新的 CSV 文件
-        output_csv_path = os.path.join(routelist_folder, time_folder, 'combined_route_plans.csv')
-        combined_df.to_csv(output_csv_path, index=False)
-
-    return reduction_percentage
+    return total_sunglare_routelist, total_sunglare_other, count
 
 def main():
     # 文件夹路径
     routelist_folder = r'E:\webgislocation\analysis\routelist'
     other_routelist_folder = r'E:\webgislocation\analysis\other_routelist'
-    time_folder_list = ['5_t5_30_00', '5_t6_00_00', '5_t17_50_00']  # 替换为你选择的时间文件夹列表
+    time_folder_list = ['5_t7_00_00']  # 替换为你选择的时间文件夹列表
     time_csv = r'E:\webgislocation\time_merge\result_2024_05_15_interval_10min.csv'
 
     for time_folder in time_folder_list:
@@ -243,8 +231,13 @@ def main():
                 hour = f"0{hour}"
             time_column = f"t{hour}:{time_parts[1]}:{time_parts[2]}"
             print(f"时间列名: {time_column}")
-            reduction_percentage = calculate_sunglare_reduction_percentage(routelist_folder, other_routelist_folder, time_folder, time_csv, time_column)
-            print(f"无眩光路径减少太阳眩光的百分比: {reduction_percentage:.2f}%")
+            total_sunglare_routelist, total_sunglare_other, count = calculate_sunglare_reduction_percentage(routelist_folder, other_routelist_folder, time_folder, time_csv, time_column)
+            if count > 0:
+                reduction_percentage = ((total_sunglare_other - total_sunglare_routelist) / total_sunglare_other) * 100
+                reduction_percentage = round(reduction_percentage,3)
+                print(f"无眩光路径减少太阳眩光的总百分比: {reduction_percentage:.2f}%")
+            else:
+                print("没有有效的路径数据")
         except Exception as e:
             print(f"Error processing folder {time_folder}: {e}")
 

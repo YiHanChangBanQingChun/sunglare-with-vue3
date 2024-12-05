@@ -20,24 +20,36 @@ conn_params = {
     "host": "localhost"
 }
 
-# 时间参数
-date = '2024-05-15'
-time = '18:00:00'
-name = '5_t18_00_00'
+def runmore():
+    name_list = ['5_t18_10_00', '5_t18_20_00', '5_t18_30_00', '5_t18_40_00', '5_t18_50_00', '5_t19_00_00']
+    
+    time_list = ['18:00:00', '18:20:00', '18:30:00', '18:40:00','18:50:00', '19:00:00']
+    
+    count = len(name_list)
 
-# 根据指定日期创建文件夹
-route_with_time = os.path.join(r'E:\webgislocation\analysis\routelist', name)
-shapefile_path = r'E:\webgislocation\analysis\data\randomregion.shp'
-csv_output_path = os.path.join(route_with_time, 'route_plans.csv')
+    date = '2024-05-15'
+    for _ in count:
+        name = name_list[_]
+        time = time_list[_]
+        main(name, time, date)
 
-route_no_time = os.path.join(r'E:\webgislocation\analysis\other_routelist', name)
-route_no_time_path = os.path.join(route_no_time, 'route_plans.csv')
+def main(name, time, date):
+    # 时间参数
+    date = date
+    time = time
+    name = name
 
-# 创建文件夹
-os.makedirs(route_with_time, exist_ok=True)
-os.makedirs(route_no_time, exist_ok=True)
+    # 根据指定日期创建文件夹
+    route_with_time = os.path.join(r'E:\webgislocation\analysis\routelist', name)
+    shapefile_path = r'E:\webgislocation\analysis\data\randomregion.shp'
+    csv_output_path = os.path.join(route_with_time, 'route_plans.csv')
 
-def main():
+    route_no_time = os.path.join(r'E:\webgislocation\analysis\other_routelist', name)
+    route_no_time_path = os.path.join(route_no_time, 'route_plans.csv')
+
+    # 创建文件夹
+    os.makedirs(route_with_time, exist_ok=True)
+    os.makedirs(route_no_time, exist_ok=True)
     # 读取面要素文件
     gdf = gpd.read_file(shapefile_path)
     bounds = gdf.total_bounds  # 获取范围 [minx, miny, maxx, maxy]
@@ -80,7 +92,7 @@ def main():
         with tqdm(total=sum) as pbar:
             for start, end in random_points:
                 # 正向路径规划
-                route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(start, end, closest_table_name, is_whrd7=1)
+                route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(start, end, closest_table_name, time_obj, route_with_time)
                 if route_plan_id:
                     way = 1
                     writer.writerow([count, way, route_plan_id, start[0], start[1], end[0], end[1], total_distance, total_time, sunglaretimes])
@@ -89,7 +101,7 @@ def main():
                 pbar.update(1)
 
                 # 反向路径规划
-                route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(end, start, closest_table_name, is_whrd7=1)
+                route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(end, start, closest_table_name, time_obj, route_with_time)
                 if route_plan_id:
                     way = 0
                     writer.writerow([count, way, route_plan_id, end[0], end[1], start[0], start[1], total_distance, total_time, sunglaretimes])
@@ -98,7 +110,7 @@ def main():
                 pbar.update(1)
 
                 # 使用 whrd7 表进行正向路径规划
-                route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(start, end, "whrd7", is_whrd7=time_obj)
+                route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(start, end, "whrd7", time_obj, route_with_time)
                 if route_plan_id:
                     way = 1
                     other_temp_file_path = os.path.join(route_no_time, f"route_plan_{route_plan_id}.geojson")
@@ -113,7 +125,7 @@ def main():
                 pbar.update(1)
 
                 # 使用 whrd7 表进行反向路径规划
-                route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(end, start, "whrd7", is_whrd7=time_obj)
+                route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(end, start, "whrd7", time_obj, route_with_time)
                 if route_plan_id:
                     way = 0
                     other_temp_file_path = os.path.join(route_no_time, f"route_plan_{route_plan_id}.geojson")
@@ -129,20 +141,6 @@ def main():
                 count += 1
 
 def generate_random_point(bounds, gdf, other_point=None):
-    """
-    Parameters:
-    bounds: list, [minx, miny, maxx, maxy]
-    gdf: GeoDataFrame
-    other_point: tuple, (lng, lat)
-
-    Returns:
-    tuple, (lng, lat)
-
-    Example:
-    >>> generate_random_point([120.0, 30.0, 121.0, 31.0], gdf)
-    (120.5, 30.5)
-
-    """
     minx, miny, maxx, maxy = bounds
     while True:
         p = Point(random.uniform(minx, maxx), random.uniform(miny, maxy))
@@ -155,20 +153,6 @@ def generate_random_point(bounds, gdf, other_point=None):
                 return p.x, p.y
 
 def get_closest_table_name(month, day, hour, minute):
-    """
-    Parameters:
-    month: int, 1-12
-    day: int, 1-31
-    hour: int, 0-23
-    minute: int, 0-59
-
-    Returns:
-    str, table name
-
-    Example:
-    >>> get_closest_table_name(5, 15, 7, 20)
-    "whrd7_5_t7_20_15"
-    """
     try:
         conn = psycopg2.connect(**conn_params)
         cur = conn.cursor()
@@ -194,12 +178,10 @@ def get_closest_table_name(month, day, hour, minute):
         try:
             parts = table_name.split('_')
             if len(parts) < 5:
-                # print(f"Skipping table with unexpected format: {table_name}")
                 continue
 
             table_month = int(parts[1])
             if not parts[2].startswith('t'):
-                # print(f"Skipping table with unexpected time format: {table_name}")
                 continue
 
             table_hour = int(parts[2][1:])
@@ -211,12 +193,10 @@ def get_closest_table_name(month, day, hour, minute):
             else:
                 table_day = 15
 
-            # 仅在月份匹配时计算时间差
             if table_month == month:
                 table_time = datetime(2024, table_month, table_day, table_hour, table_minute, table_second)
                 input_time = datetime(2024, month, day, hour, minute)
                 time_diff = abs((table_time - input_time).total_seconds())
-                # print(f"Checking table: {table_name}, table_time: {table_time}, input_time: {input_time}, time_diff: {time_diff}")
 
                 if time_diff < closest_time_diff.total_seconds():
                     closest_time_diff = timedelta(seconds=time_diff)
@@ -235,16 +215,6 @@ def get_closest_table_name(month, day, hour, minute):
     return closest_table
 
 def fix_segments(geojson):
-    """
-    Parameters:
-    geojson: dict, GeoJSON
-
-    Returns:
-    dict, GeoJSON
-
-    Example:
-    >>> fix_segments(geojson)
-    """
     geojson_copy = copy.deepcopy(geojson)
     features = geojson_copy['features']
     
@@ -269,21 +239,7 @@ def fix_segments(geojson):
     
     return geojson_copy
 
-def execute_route_plan(start, end, table_name, is_whrd7=1):
-    """
-    Parameters:
-    start: tuple, (lng, lat)
-    end: tuple, (lng, lat)
-    table_name: str
-    is_whrd7: int
-
-    Returns:
-    str, str, float, float, int
-
-    Example:
-    >>> execute_route_plan((120.0, 30.0), (121.0, 31.0), "whrd7")
-
-    """
+def execute_route_plan(start, end, table_name, is_whrd7, route_with_time):
     try:
         conn = psycopg2.connect(**conn_params)
         cur = conn.cursor()
@@ -346,7 +302,6 @@ def execute_route_plan(start, end, table_name, is_whrd7=1):
                     }
                     features.append(feature)
                     total_distance += row[7]
-                    # total_time += row[4]
                     if row[4] != 99999:
                         total_time += row[4]
                     else:
@@ -354,7 +309,6 @@ def execute_route_plan(start, end, table_name, is_whrd7=1):
                 except Exception as e:
                     print(f"Error processing row: {e}")
         
-        # 统计 whrd7 表中 forward_time 为 99999 的情况
         if table_name == "whrd7":
             month = is_whrd7.month
             day = is_whrd7.day
@@ -365,7 +319,6 @@ def execute_route_plan(start, end, table_name, is_whrd7=1):
                 edge = feature["properties"]["edge"]
                 cur.execute(f"SELECT forward_time FROM {statis_table} WHERE gid = %s", (edge,))
                 forward_time = cur.fetchone()[0]
-                # print(forward_time)
                 if forward_time == 99999:
                     sunglaretimes += 1
                     print(sunglaretimes)
@@ -390,7 +343,6 @@ def execute_route_plan(start, end, table_name, is_whrd7=1):
         total_distance = round(total_distance / 1000, 2)  # 转换为公里
         total_time = round(total_time / 60, 2)  # 转换为分钟
 
-        # print(f"Route plan executed successfully, route_plan_id: {route_plan_id}, temp_file_path: {temp_file_path}")
         print(f"Route plan executed successfully, route_plan_id: {route_plan_id})")
         return route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes
     except Exception as e:
@@ -399,4 +351,4 @@ def execute_route_plan(start, end, table_name, is_whrd7=1):
 
 
 if __name__ == '__main__':
-    main()
+    runmore()
