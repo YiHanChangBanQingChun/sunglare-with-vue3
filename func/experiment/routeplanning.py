@@ -28,12 +28,14 @@ def runmore():
     count = len(name_list)
 
     date = '2024-05-15'
+
+    runningtime = 1000
     for _ in count:
         name = name_list[_]
         time = time_list[_]
-        main(name, time, date)
+        main(name, time, date, runningtime)
 
-def main(name, time, date):
+def main(name, time, date, runningtime = 1000):
     # 时间参数
     date = date
     time = time
@@ -56,7 +58,7 @@ def main(name, time, date):
 
     # 随机生成 1000 对起点和终点
     random_points = []
-    for _ in range(1000):
+    for _ in range(runningtime):
         start = generate_random_point(bounds, gdf)
         end = generate_random_point(bounds, gdf, (start[1], start[0]))
         random_points.append((start, end))
