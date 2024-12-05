@@ -448,7 +448,7 @@ from matplotlib import rcParams
 rcParams['font.family'] = 'Times New Roman'
 
 # 设置全局字体大小
-rcParams['font.size'] = 18  # 设置全局字体大小为14，可以根据需要调整
+rcParams['font.size'] =25  # 设置全局字体大小为14，可以根据需要调整
 
 # 读取 Excel 文件
 input_excel = r"E:\挑战杯\Baidu Street View dots.xlsx"
@@ -463,23 +463,23 @@ month_counts = df['month'].value_counts().sort_index()
 # 绘制 year 列的横向柱状图
 plt.figure(figsize=(10, 6))
 year_counts.plot(kind='barh', color='#1f77b4')  # 深蓝色
-plt.xlabel('Count')
+# plt.xlabel('Count')
 # plt.xlabel('Numbers of Baidu Street View panoramas')
-plt.ylabel('Year')
-plt.title('Characteristics of Baidu Street View panoramas in Wuhan by Year')
+# plt.ylabel('Year')
+# plt.title('Characteristics of Baidu Street View panoramas in Wuhan by Year')
 plt.tight_layout()
-plt.savefig(r'E:\挑战杯\year_counts.png')
+plt.savefig(r'E:\webgislocation\analysis\year_counts.png')
 plt.show()
 
 # 绘制 month 列的横向柱状图
 plt.figure(figsize=(10, 6))
 month_counts.plot(kind='barh', color='#2ca02c')  # 深绿色
-plt.xlabel('Count')
+# plt.xlabel('Count')
 # plt.xlabel('Numbers of Baidu Street View panoramas')
-plt.ylabel('Month')
-plt.title('Characteristics of Baidu Street View panoramas in Wuhan by Month')
+# plt.ylabel('Month')
+# plt.title('Characteristics of Baidu Street View panoramas in Wuhan by Month')
 plt.tight_layout()
-plt.savefig(r'E:\挑战杯\month_counts.png')
+plt.savefig(r'E:\webgislocation\analysis\month_counts.png')
 plt.show()
 
 '''
