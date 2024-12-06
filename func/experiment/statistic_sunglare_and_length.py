@@ -155,7 +155,7 @@ def draw_sunglare_heatmap(result_analyse_folder):
     # plt.savefig(os.path.join(result_analyse_folder, 'sunglare_reduction_percentage.png'))
 
 # 对每一个时间的所有路线，统计其太阳眩光在该路线的发生率，然后绘制一个折线图，x轴是时间，y轴是发生率。
-# 可以通过sunglare_results.csv中的sunglaretimes_other来计算，如果是0则表示没有发生太阳眩光，如果不是0则表示发生了太阳眩光
+# 可以通过sunglare_results.csv中的sunglare_other来计算，如果是0则表示没有发生太阳眩光，如果不是0则表示发生了太阳眩光
 # 然后再统计概率,但需要注意,中间可能会有缺失的时间,这一段区域不绘制,不需要连起来,只需要绘制有数据的时间段即可.
 # 时间分辨率为10分钟,可以设计一个算法去剔除没有时间的区域让其不绘制百分比
 def draw_sunglare_occurrence_rate(result_analyse_folder):
@@ -170,16 +170,14 @@ def draw_sunglare_occurrence_rate(result_analyse_folder):
         sunglare_results_path = os.path.join(result_analyse_folder, subfolder_name, 'sunglare_results.csv')
         if os.path.exists(sunglare_results_path):
             sunglare_results_df = pd.read_csv(sunglare_results_path)
-            sunglaretimes_other = sunglare_results_df['sunglaretimes_other']
+            sunglaretimes_other = sunglare_results_df['sunglare_other']
             sunglaretimes_others.append(sunglaretimes_other.values)
             max_length = max(max_length, len(sunglaretimes_other))
             dates.append(folder_name_to_date(subfolder_name))
-            # print(f"sunglaretimes_other: {sunglaretimes_other.values}")
     
     # 填充缺失值，使得每个时间段的sunglaretimes_other数量一致
     for i in range(len(sunglaretimes_others)):
         if len(sunglaretimes_others[i]) < max_length:
-            # 基于当前数据样本的分布来填充缺失值
             fill_values = np.random.choice(sunglaretimes_others[i][~np.isnan(sunglaretimes_others[i])], max_length - len(sunglaretimes_others[i]))
             sunglaretimes_others[i] = np.concatenate([sunglaretimes_others[i], fill_values])
 
@@ -191,35 +189,38 @@ def draw_sunglare_occurrence_rate(result_analyse_folder):
     # 计算每个时间段的太阳眩光发生率
     occurrence_rates = []
     for i in range(len(dates)):
-        occurrence_rate = np.sum(sunglaretimes_others[i] > 0) / len(sunglaretimes_others[i])
+        occurrence_rate = np.sum(sunglaretimes_others[i] > 0) / len(sunglaretimes_others[i]) * 100  # 转换为百分比
         occurrence_rates.append(occurrence_rate)
 
-    
-
     # 对于缺失的时间段,不绘制
-    # 计算时间间隔
     time_diffs = np.diff(dates)
     time_diffs = np.array([time_diff.total_seconds() / 60 for time_diff in time_diffs])
-    # 找到缺失的时间段
     missing_indices = np.where(time_diffs > 10)[0]
-    # 将缺失的时间段的发生率设置为nan
     for missing_index in missing_indices:
-        occurrence_rates[missing_index] = np.nan
+        occurrence_rates.insert(missing_index + 1, np.nan)
+        dates = np.insert(dates, missing_index + 1, dates[missing_index] + pd.Timedelta(minutes=10))
 
-    # 压缩x轴，压缩的x轴位置显示一个小折角，表示省略
     dates = [date.strftime('%H:%M') for date in dates]
 
-    # 绘制折线图
+    # 绘制折线图——cn
     plt.figure()
     plt.plot(dates, occurrence_rates, marker='o')
-    plt.title("Sunglare Occurrence Rate")
-    plt.xlabel("Time")
-    plt.ylabel("Occurrence Rate")
+    plt.title("2024年5月15日武汉市全景影像覆盖主要地区的太阳眩光发生率")
+    plt.xlabel("时间")
+    plt.ylabel("发生率 (%)")
     plt.xticks(rotation=45)
     plt.show()
-    # plt.savefig(os.path.join(result_analyse_folder, 'sunglare_occurrence_rate.png'))
+
+# 确定全局可以正常在画布显示中文
+def set_ch():
+    from pylab import mpl
+    mpl.rcParams['font.sans-serif'] = ['SimHei']  # 指定默认字体
+    mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
+    # 字体加大
+    mpl.rcParams['font.size'] = 18
 
 def main():
+    set_ch()
     # 文件夹路径
     result_analyse_folder = r'E:\webgislocation\analysis\result_analyse'
     subfolder_names = get_subfolder_names(result_analyse_folder)
