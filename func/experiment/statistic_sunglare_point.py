@@ -218,7 +218,30 @@ def main():
     # 文件夹路径
     routelist_folder = r'E:\webgislocation\analysis\routelist'
     other_routelist_folder = r'E:\webgislocation\analysis\other_routelist'
-    time_folder_list = ['5_t7_00_00']  # 替换为你选择的时间文件夹列表
+    # time_folder_list = ['5_t5_30_00', '5_t5_40_00', 
+    #                     '5_t5_50_00', '5_t6_00_00', '5_t6_10_00',
+    #                     '5_t6_20_00', '5_t6_30_00', '5_t6_40_00', 
+    #                     '5_t6_50_00', '5_t7_00_00', '5_t7_10_00', 
+    #                     '5_t7_20_00', '5_t7_30_00', '5_t17_10_00',
+    #                     '5_t17_20_00', '5_t17_30_00', '5_t17_40_00',
+    #                     '5_t17_50_00', '5_t18_00_00', '5_t18_10_00',
+    #                     '5_t18_20_00', '5_t18_30_00', '5_t18_40_00',
+    #                     '5_t18_50_00', '5_t19_00_00']
+
+    # time_folder_list = ['5_t5_30_00', '5_t5_40_00', 
+    #                 '5_t5_50_00', '5_t6_00_00', '5_t6_10_00',
+    #                 '5_t6_20_00', '5_t6_30_00', '5_t6_40_00', 
+    #                 '5_t6_50_00', '5_t7_00_00', '5_t7_10_00', 
+    #                 '5_t7_20_00', '5_t7_30_00']
+
+    # time_folder_list = ['5_t17_10_00',
+    #                     '5_t17_20_00', '5_t17_30_00', '5_t17_40_00',
+    #                     '5_t17_50_00', '5_t18_00_00', '5_t18_10_00',
+    #                     '5_t18_20_00', '5_t18_30_00', '5_t18_40_00',
+    #                     '5_t18_50_00', '5_t19_00_00']
+
+    time_folder_list = ['5_t7_40_00']
+
     time_csv = r'E:\webgislocation\time_merge\result_2024_05_15_interval_10min.csv'
 
     for time_folder in time_folder_list:
@@ -236,6 +259,7 @@ def main():
                 reduction_percentage = ((total_sunglare_other - total_sunglare_routelist) / total_sunglare_other) * 100
                 reduction_percentage = round(reduction_percentage,3)
                 print(f"无眩光路径减少太阳眩光的总百分比: {reduction_percentage:.2f}%")
+    
             else:
                 print("没有有效的路径数据")
         except Exception as e:

@@ -22,20 +22,21 @@ conn_params = {
 
 def runmore():
     name_list = ['5_t18_10_00', '5_t18_20_00', '5_t18_30_00', '5_t18_40_00', '5_t18_50_00', '5_t19_00_00']
-    
-    time_list = ['18:00:00', '18:20:00', '18:30:00', '18:40:00','18:50:00', '19:00:00']
+    time_list = ['18:00:00', '18:20:00', '18:30:00', '18:40:00', '18:50:00', '19:00:00']
     
     count = len(name_list)
 
     date = '2024-05-15'
-
     runningtime = 1000
-    for _ in count:
-        name = name_list[_]
-        time = time_list[_]
+
+    for i in range(count):
+        print(f"当前时间文件夹: {name_list[i]}")
+        name = name_list[i]
+        time = time_list[i]
         main(name, time, date, runningtime)
 
 def main(name, time, date, runningtime = 1000):
+    
     # 时间参数
     date = date
     time = time
