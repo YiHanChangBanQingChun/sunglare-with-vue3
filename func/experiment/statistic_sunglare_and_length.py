@@ -211,6 +211,311 @@ def draw_sunglare_occurrence_rate(result_analyse_folder):
     plt.xticks(rotation=45)
     plt.show()
 
+# 统计弱眩光路径相比常规路径的增加百分比，计算方法在于统计每一个时间的csv文件：distance_increase_results.csv中的
+# (distance_routelist - distance_other) / distance_other * 100，需要确保大于0，小于0忽略。
+# 所有时间计算完后,绘制一个与上折线图类似的折线图,但是y轴是增加百分比。
+def draw_sunglare_increase_percentage(result_analyse_folder):
+    # 获取所有子文件夹名字
+    subfolder_names = get_subfolder_names(result_analyse_folder)
+    # 存储所有时间的distance_increase_percentage
+    distance_increase_percentages = []
+    dates = []
+    max_length = 0
+    for subfolder_name in subfolder_names:
+        # 读取distance_increase_results.csv
+        distance_increase_results_path = os.path.join(result_analyse_folder, subfolder_name, 'distance_increase_results.csv')
+        if os.path.exists(distance_increase_results_path):
+            distance_increase_results_df = pd.read_csv(distance_increase_results_path)
+            distance_increase_percentage = distance_increase_results_df['distance_increase_percentage']
+            distance_increase_percentage = distance_increase_percentage[distance_increase_percentage >= 0]  # 忽略负值
+            distance_increase_percentages.append(distance_increase_percentage.values)
+            max_length = max(max_length, len(distance_increase_percentage))
+            dates.append(folder_name_to_date(subfolder_name))
+    
+    # 填充缺失值，使得每个时间段的distance_increase_percentage数量一致
+    for i in range(len(distance_increase_percentages)):
+        if len(distance_increase_percentages[i]) < max_length:
+            fill_values = np.random.choice(distance_increase_percentages[i][~np.isnan(distance_increase_percentages[i])], max_length - len(distance_increase_percentages[i]))
+            distance_increase_percentages[i] = np.concatenate([distance_increase_percentages[i], fill_values])
+
+    # 对日期进行排序
+    sorted_indices = np.argsort(dates)
+    dates = np.array(dates)[sorted_indices]
+    distance_increase_percentages = np.array(distance_increase_percentages)[sorted_indices]
+
+    # 筛选3σ范围内的数据
+    filtered_distance_increase_percentages = []
+    for data in distance_increase_percentages:
+        mean = np.mean(data)
+        std = np.std(data)
+        filtered_data = data[(data >= mean - 3 * std) & (data <= mean + 3 * std)]
+        filtered_distance_increase_percentages.append(filtered_data)
+
+    # 计算每个时间段的增加百分比
+    increase_percentages = []
+    for i in range(len(dates)):
+        increase_percentage = np.mean(distance_increase_percentages[i])
+        print(f"distance_increase_percentages: {round(increase_percentage,4)}")
+        increase_percentages.append(increase_percentage)
+
+    # 对于缺失的时间段,不绘制
+    time_diffs = np.diff(dates)
+    time_diffs = np.array([time_diff.total_seconds() / 60 for time_diff in time_diffs])
+    missing_indices = np.where(time_diffs > 10)[0]
+    for missing_index in missing_indices:
+        increase_percentages.insert(missing_index + 1, np.nan)
+        dates = np.insert(dates, missing_index + 1, dates[missing_index] + pd.Timedelta(minutes=10))
+
+    dates = [date.strftime('%H:%M') for date in dates]
+
+    # 绘制折线图
+    plt.figure()
+    plt.plot(dates, increase_percentages, marker='o')
+    plt.title("2024年5月15日武汉市全景影像覆盖主要地区的太阳眩光路径增加百分比")
+    plt.xlabel("时间")
+    plt.ylabel("增加百分比 (%)")
+    plt.xticks(rotation=45)
+    plt.show()
+
+# 统计弱眩光路径相比常规路径的增加百分比的数值分布小提琴图，计算方法在于统计每一个时间的csv文件：distance_increase_results.csv中的
+# (distance_routelist - distance_other) / distance_other * 100，需要确保大于0，小于等于0忽略。每一个时间都生成一个小提琴图,一共有25张,然后在一个画布上5*5排布
+# 小画布上是单独时间的所有路径增加百分比小提琴图,路径不增加忽略.
+def draw_sunglare_increase_percentage_violinplot(result_analyse_folder):
+    # 获取所有子文件夹名字
+    subfolder_names = get_subfolder_names(result_analyse_folder)
+    # 存储所有时间的distance_increase_percentage
+    distance_increase_percentages = []
+    dates = []
+    max_length = 0
+    for subfolder_name in subfolder_names:
+        # 读取distance_increase_results.csv
+        distance_increase_results_path = os.path.join(result_analyse_folder, subfolder_name, 'distance_increase_results.csv')
+        if os.path.exists(distance_increase_results_path):
+            distance_increase_results_df = pd.read_csv(distance_increase_results_path)
+            distance_routelist = distance_increase_results_df['distance_routelist']
+            distance_other = distance_increase_results_df['distance_other']
+            # 计算百分比增量
+            distance_increase_percentage = (distance_routelist - distance_other) / distance_other * 100
+            distance_increase_percentage = distance_increase_percentage[distance_increase_percentage > 0]  # 忽略负值
+            distance_increase_percentages.append(distance_increase_percentage.values)
+            max_length = max(max_length, len(distance_increase_percentage))
+            dates.append(folder_name_to_date(subfolder_name))
+    
+    # 填充缺失值，使得每个时间段的distance_increase_percentage数量一致
+    for i in range(len(distance_increase_percentages)):
+        if len(distance_increase_percentages[i]) < max_length:
+            fill_values = np.random.choice(distance_increase_percentages[i][~np.isnan(distance_increase_percentages[i])], max_length - len(distance_increase_percentages[i]))
+            distance_increase_percentages[i] = np.concatenate([distance_increase_percentages[i], fill_values])
+
+    # 对日期进行排序
+    sorted_indices = np.argsort(dates)
+    dates = np.array(dates)[sorted_indices]
+    distance_increase_percentages = np.array(distance_increase_percentages)[sorted_indices]
+
+    # 筛选3σ范围内的数据
+    filtered_distance_increase_percentages = []
+    for data in distance_increase_percentages:
+        mean = np.mean(data)
+        std = np.std(data)
+        filtered_data = data[(data >= mean - 3 * std) & (data <= mean + 3 * std)]
+        filtered_distance_increase_percentages.append(filtered_data)
+
+    # 绘制小提琴图
+    fig, axs = plt.subplots(5, 5, figsize=(20, 20))
+    for i in range(25):
+        row = i // 5
+        col = i % 5
+        if i < len(dates):
+            parts = axs[row, col].violinplot(filtered_distance_increase_percentages[i], positions=[1], widths=0.3, showmeans=True, showmedians=True)
+            axs[row, col].set_xlabel(dates[i].strftime('%H:%M'))
+            axs[row, col].set_xticks([1])
+            axs[row, col].set_xticklabels([''])
+            axs[row, col].set_xlim(0.8, 1.2)
+            if col == 0:
+                axs[row, col].set_ylabel("距离增加百分比 (%)")
+            else:
+                # axs[row, col].set_yticklabels([])
+                1
+            # 设置小提琴图的颜色
+            for pc in parts['bodies']:
+                pc.set_alpha(0.3)
+            # 设置均值和中位数的颜色，带数字
+            # for partname in ('cmeans', 'cmedians'):
+            #     vp = parts[partname]
+            #     vp.set_edgecolor('brown' if partname == 'cmeans' else 'green')
+            #     vp.set_linewidth(1.5)
+            #     vp.set_linestyle('--')
+            #     y = np.mean(filtered_distance_increase_percentages[i]) if partname == 'cmeans' else np.median(filtered_distance_increase_percentages[i])
+            #     offset = 0.7 if partname == 'cmeans' else -0.7
+            #     axs[row, col].text(1.08, y + offset, f'{y:.2f}', color=vp.get_edgecolor(), va='center')
+            # 设置均值和中位数的颜色，不带数字
+            for partname in ('cmeans', 'cmedians'):
+                vp = parts[partname]
+                vp.set_edgecolor('brown' if partname == 'cmeans' else 'green')
+                vp.set_linewidth(1.5)
+                vp.set_linestyle('--')
+            if i == 0:
+                axs[row, col].legend([parts['cmeans'], parts['cmedians']], ['均值', '中位数'], loc='upper right')
+        else:
+            axs[row, col].axis('off')
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig(r'E:\webgislocation\analysis\sunglare_increase_percentage_violinplot.png')
+
+# 统计弱眩光道路相比于常规路径眩光减少的百分比,计算方法在于统计每一个时间的csv文件：sunglare_results.csv
+# 运用公式：(sunglare_other - sunglare_routelist) / sunglare_other * 100，需要确保大于0，小于等于0忽略。
+# 所有时间计算完后,绘制一个与上折线图类似的折线图,但是y轴是减少百分比。
+def draw_sunglare_decrease_percentage(result_analyse_folder):
+    # 获取所有子文件夹名字
+    subfolder_names = get_subfolder_names(result_analyse_folder)
+    # 存储所有时间的sunglare_decrease_percentage
+    sunglare_decrease_percentages = []
+    dates = []
+    max_length = 0
+    for subfolder_name in subfolder_names:
+        # 读取sunglare_results.csv
+        sunglare_results_path = os.path.join(result_analyse_folder, subfolder_name, 'sunglare_results.csv')
+        if os.path.exists(sunglare_results_path):
+            sunglare_results_df = pd.read_csv(sunglare_results_path)
+            sunglare_other = sunglare_results_df['sunglare_other']
+            sunglare_routelist = sunglare_results_df['sunglare_routelist']
+            # 计算减少百分比
+            sunglare_decrease_percentage = (sunglare_other - sunglare_routelist) / sunglare_other * 100
+            sunglare_decrease_percentage = sunglare_decrease_percentage[sunglare_decrease_percentage > 0]  # 忽略小于等于0的值
+            sunglare_decrease_percentages.append(sunglare_decrease_percentage.values)
+            max_length = max(max_length, len(sunglare_decrease_percentage))
+            dates.append(folder_name_to_date(subfolder_name))
+    
+    # 填充缺失值，使得每个时间段的sunglare_decrease_percentage数量一致
+    for i in range(len(sunglare_decrease_percentages)):
+        if len(sunglare_decrease_percentages[i]) < max_length:
+            fill_values = np.random.choice(sunglare_decrease_percentages[i][~np.isnan(sunglare_decrease_percentages[i])], max_length - len(sunglare_decrease_percentages[i]))
+            sunglare_decrease_percentages[i] = np.concatenate([sunglare_decrease_percentages[i], fill_values])
+
+    # 对日期进行排序
+    sorted_indices = np.argsort(dates)
+    dates = np.array(dates)[sorted_indices]
+    sunglare_decrease_percentages = np.array(sunglare_decrease_percentages)[sorted_indices]
+
+    # 筛选3σ范围内的数据
+    filtered_sunglare_decrease_percentages = []
+    for data in sunglare_decrease_percentages:
+        mean = np.mean(data)
+        std = np.std(data)
+        filtered_data = data[(data >= mean - 3 * std) & (data <= mean + 3 * std)]
+        filtered_sunglare_decrease_percentages.append(filtered_data)
+
+    # 计算每个时间段的减少百分比
+    decrease_percentages = []
+    for i in range(len(dates)):
+        decrease_percentage = np.mean(filtered_sunglare_decrease_percentages[i])
+        print(f"sunglare_decrease_percentages: {round(decrease_percentage,4)}")
+        decrease_percentages.append(decrease_percentage)
+
+    # 对于缺失的时间段,不绘制
+    time_diffs = np.diff(dates)
+    time_diffs = np.array([time_diff.total_seconds() / 60 for time_diff in time_diffs])
+    missing_indices = np.where(time_diffs > 10)[0]
+    for missing_index in missing_indices:
+        decrease_percentages.insert(missing_index + 1, np.nan)
+        dates = np.insert(dates, missing_index + 1, dates[missing_index] + pd.Timedelta(minutes=10))
+
+    dates = [date.strftime('%H:%M') for date in dates]
+
+    # 绘制折线图
+    plt.figure()
+    plt.plot(dates, decrease_percentages, marker='o')
+    plt.title("2024年5月15日武汉市全景影像覆盖主要地区的太阳眩光风险下降百分比")
+    plt.xlabel("时间")
+    plt.ylabel("减少百分比 (%)")
+    plt.xticks(rotation=45)
+    plt.show()
+
+# 统计弱眩光路径相比常规路径的减少百分比的数值分布小提琴图，计算方法在于统计每一个时间的csv文件：sunglare_results.csv中的
+# (sunglare_other - sunglare_routelist) / sunglare_other * 100，需要确保大于0，小于等于0忽略。每一个时间都生成一个小提琴图,一共有25张,然后在一个画布上5*5排布
+# 小画布上是单独时间的所有路径减少百分比小提琴图,路径不减少忽略.
+def draw_sunglare_decrease_percentage_violinplot(result_analyse_folder):
+    # 获取所有子文件夹名字
+    subfolder_names = get_subfolder_names(result_analyse_folder)
+    # 存储所有时间的sunglare_decrease_percentage
+    sunglare_decrease_percentages = []
+    dates = []
+    max_length = 0
+    for subfolder_name in subfolder_names:
+        # 读取sunglare_results.csv
+        sunglare_results_path = os.path.join(result_analyse_folder, subfolder_name, 'sunglare_results.csv')
+        if os.path.exists(sunglare_results_path):
+            sunglare_results_df = pd.read_csv(sunglare_results_path)
+            sunglare_other = sunglare_results_df['sunglare_other']
+            sunglare_routelist = sunglare_results_df['sunglare_routelist']
+            # 计算减少百分比
+            sunglare_decrease_percentage = (sunglare_other - sunglare_routelist) / sunglare_other * 100
+            sunglare_decrease_percentage = sunglare_decrease_percentage[sunglare_decrease_percentage > 0]  # 忽略小于等于0的值
+            sunglare_decrease_percentages.append(sunglare_decrease_percentage.values)
+            max_length = max(max_length, len(sunglare_decrease_percentage))
+            dates.append(folder_name_to_date(subfolder_name))
+    
+    # 填充缺失值，使得每个时间段的sunglare_decrease_percentage数量一致
+    for i in range(len(sunglare_decrease_percentages)):
+        if len(sunglare_decrease_percentages[i]) < max_length:
+            fill_values = np.random.choice(sunglare_decrease_percentages[i][~np.isnan(sunglare_decrease_percentages[i])], max_length - len(sunglare_decrease_percentages[i]))
+            sunglare_decrease_percentages[i] = np.concatenate([sunglare_decrease_percentages[i], fill_values])
+
+    # 对日期进行排序
+    sorted_indices = np.argsort(dates)
+    dates = np.array(dates)[sorted_indices]
+    sunglare_decrease_percentages = np.array(sunglare_decrease_percentages)[sorted_indices]
+
+    # 筛选2σ范围内的数据
+    filtered_sunglare_decrease_percentages = []
+    for data in sunglare_decrease_percentages:
+        mean = np.mean(data)
+        std = np.std(data)
+        filtered_data = data[(data >= mean - 2 * std) & (data <= mean + 2 * std)]
+        filtered_sunglare_decrease_percentages.append(filtered_data)
+
+    # 绘制小提琴图
+    fig, axs = plt.subplots(5, 5, figsize=(20, 20))
+    for i in range(25):
+        row = i // 5
+        col = i % 5
+        if i < len(dates):
+            parts = axs[row, col].violinplot(filtered_sunglare_decrease_percentages[i], positions=[1], widths=0.3, showmeans=True, showmedians=True)
+            axs[row, col].set_xlabel(dates[i].strftime('%H:%M'))
+            axs[row, col].set_xticks([1])
+            axs[row, col].set_xticklabels([''])
+            axs[row, col].set_xlim(0.8, 1.2)
+            if col == 0:
+                axs[row, col].set_ylabel("眩光减少百分比 (%)")
+            else:
+                # axs[row, col].set_yticklabels([])
+                1
+            # 设置小提琴图的颜色
+            for pc in parts['bodies']:
+                pc.set_alpha(0.3)
+            # 设置均值和中位数的颜色,带数字
+            # for partname in ('cmeans', 'cmedians'):
+            #     vp = parts[partname]
+            #     vp.set_edgecolor('brown' if partname == 'cmeans' else 'green')
+            #     vp.set_linewidth(1.5)
+            #     vp.set_linestyle('--')
+            #     # 添加标记，均值向上移动，中位数向下移动
+            #     y = np.mean(filtered_sunglare_decrease_percentages[i]) if partname == 'cmeans' else np.median(filtered_sunglare_decrease_percentages[i])
+            #     offset = -0.5 if partname == 'cmeans' else 0.5
+            #     axs[row, col].text(1.1, y + offset, f'{y:.2f}', color=vp.get_edgecolor(), va='center')
+            # 设置均值和中位数的颜色,不带数字
+            for partname in ('cmeans', 'cmedians'):
+                vp = parts[partname]
+                vp.set_edgecolor('brown' if partname == 'cmeans' else 'green')
+                vp.set_linewidth(1.5)
+                vp.set_linestyle('--')
+            if i == 24:
+                axs[row, col].legend([parts['cmeans'], parts['cmedians']], ['均值', '中位数'], loc='upper right')
+        else:
+            axs[row, col].axis('off')
+    plt.tight_layout()
+    plt.savefig(r'E:\webgislocation\analysis\sunglare_decrease_percentage_violinplot.png')
+
 # 确定全局可以正常在画布显示中文
 def set_ch():
     from pylab import mpl
@@ -231,7 +536,11 @@ def main():
         # draw_sunglare_violinplot(result_analyse_folder, subfolder_name)
 
     # draw_sunglare_heatmap(result_analyse_folder)
-    draw_sunglare_occurrence_rate(result_analyse_folder)
+    # draw_sunglare_occurrence_rate(result_analyse_folder)
+    # draw_sunglare_increase_percentage(result_analyse_folder)
+    # draw_sunglare_increase_percentage_violinplot(result_analyse_folder)
+    # draw_sunglare_decrease_percentage(result_analyse_folder)
+    draw_sunglare_decrease_percentage_violinplot(result_analyse_folder)
 
 if __name__ == '__main__':
     main()
