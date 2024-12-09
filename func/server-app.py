@@ -863,7 +863,7 @@ def get_statistics():
 
 @app.route('/api/get_api_key', methods=['GET'])
 def get_api_key():
-    api_key = '6fcbe57360a4a9ba6bccb06ac366a3bc'  # 你的 API 密钥
+    api_key = '32bb299d6d35b28d672e86cb6c15cba6'  # 你的 API 密钥
     return jsonify({'key': api_key})
 
 @app.before_request
