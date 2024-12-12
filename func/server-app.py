@@ -29,7 +29,7 @@ import copy
 # 初始化 Flask 应用
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres1@localhost/postgis_34_sample'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:postgres1@localhost/postgis_34_sample'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # 数据库连接参数
