@@ -121,11 +121,11 @@ import os
 import csv
 import geopandas as gpd
 import pandas as pd
-from shapely.geometry import Point, Polygon, LineString
+from shapely.geometry import Point
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from multiprocessing import Pool, Manager
+from multiprocessing import Pool
 
 def read_route_plans(folder_path, time_folder):
     csv_path = os.path.join(folder_path, time_folder, 'route_plans.csv')
@@ -138,15 +138,20 @@ def read_sunglare_points(time_csv, time_column):
     sunglare_points = df[df[time_column] == 1][['50lon', '50lat']]
     return gpd.GeoDataFrame(geometry=[Point(lon, lat) for lon, lat in zip(sunglare_points['50lon'], sunglare_points['50lat'])], crs="EPSG:4326")
 
-def check_sunglare_on_route(route, sunglare_points, radius=0.5):
+def check_sunglare_on_route(route, sunglare_points, radius=0.2):
     sunglare_points = sunglare_points.to_crs(route.crs)
     sunglare_sindex = sunglare_points.sindex
     sunglare_count = 0
+    unique_points = set()
     for geom in route.geometry:
         possible_matches_index = list(sunglare_sindex.intersection(geom.bounds))
         possible_matches = sunglare_points.iloc[possible_matches_index]
         precise_matches = possible_matches[possible_matches.distance(geom) <= radius]
-        sunglare_count += len(precise_matches)
+        for point in precise_matches.geometry:
+            # 将点的坐标四舍五入到小数点后3位（约1米精度），并转换为元组
+            rounded_point = (round(point.x, 3), round(point.y, 3))
+            unique_points.add(rounded_point)
+    sunglare_count = len(unique_points)
     return sunglare_count
 
 def process_route(args):
@@ -234,13 +239,18 @@ def main():
     #                 '5_t6_50_00', '5_t7_00_00', '5_t7_10_00', 
     #                 '5_t7_20_00', '5_t7_30_00']
 
+
+
     # time_folder_list = ['5_t17_10_00',
     #                     '5_t17_20_00', '5_t17_30_00', '5_t17_40_00',
     #                     '5_t17_50_00', '5_t18_00_00', '5_t18_10_00',
     #                     '5_t18_20_00', '5_t18_30_00', '5_t18_40_00',
     #                     '5_t18_50_00', '5_t19_00_00']
 
-    time_folder_list = ['5_t7_40_00']
+    time_folder_list = [ '5_t17_40_00',
+                        '5_t17_50_00', '5_t18_00_00', '5_t18_10_00',
+                        '5_t18_20_00', '5_t18_30_00', '5_t18_40_00',
+                        '5_t18_50_00', '5_t19_00_00']
 
     time_csv = r'E:\webgislocation\time_merge\result_2024_05_15_interval_10min.csv'
 

@@ -214,7 +214,7 @@ def draw_sunglare_occurrence_rate(result_analyse_folder):
 # 统计弱眩光路径相比常规路径的增加百分比，计算方法在于统计每一个时间的csv文件：distance_increase_results.csv中的
 # (distance_routelist - distance_other) / distance_other * 100，需要确保大于0，小于0忽略。
 # 所有时间计算完后,绘制一个与上折线图类似的折线图,但是y轴是增加百分比。
-def draw_sunglare_increase_percentage(result_analyse_folder):
+def draw_distance_increase_percentage(result_analyse_folder):
     # 获取所有子文件夹名字
     subfolder_names = get_subfolder_names(result_analyse_folder)
     # 存储所有时间的distance_increase_percentage
@@ -271,7 +271,7 @@ def draw_sunglare_increase_percentage(result_analyse_folder):
     # 绘制折线图
     plt.figure()
     plt.plot(dates, increase_percentages, marker='o')
-    plt.title("2024年5月15日武汉市全景影像覆盖主要地区的太阳眩光路径增加百分比")
+    plt.title("2024年5月15日武汉市全景影像覆盖主要地区的弱眩光路径相比常规路径增加百分比")
     plt.xlabel("时间")
     plt.ylabel("增加百分比 (%)")
     plt.xticks(rotation=45)
@@ -280,7 +280,7 @@ def draw_sunglare_increase_percentage(result_analyse_folder):
 # 统计弱眩光路径相比常规路径的增加百分比的数值分布小提琴图，计算方法在于统计每一个时间的csv文件：distance_increase_results.csv中的
 # (distance_routelist - distance_other) / distance_other * 100，需要确保大于0，小于等于0忽略。每一个时间都生成一个小提琴图,一共有25张,然后在一个画布上5*5排布
 # 小画布上是单独时间的所有路径增加百分比小提琴图,路径不增加忽略.
-def draw_sunglare_increase_percentage_violinplot(result_analyse_folder):
+def draw_distance_increase_percentage_violinplot(result_analyse_folder):
     # 获取所有子文件夹名字
     subfolder_names = get_subfolder_names(result_analyse_folder)
     # 存储所有时间的distance_increase_percentage
@@ -326,7 +326,7 @@ def draw_sunglare_increase_percentage_violinplot(result_analyse_folder):
         row = i // 5
         col = i % 5
         if i < len(dates):
-            parts = axs[row, col].violinplot(filtered_distance_increase_percentages[i], positions=[1], widths=0.3, showmeans=True, showmedians=True)
+            parts = axs[row, col].violinplot(filtered_distance_increase_percentages[i], positions=[1], widths=0.3, showmeans=False, showmedians=True)
             axs[row, col].set_xlabel(dates[i].strftime('%H:%M'))
             axs[row, col].set_xticks([1])
             axs[row, col].set_xticklabels([''])
@@ -348,14 +348,22 @@ def draw_sunglare_increase_percentage_violinplot(result_analyse_folder):
             #     y = np.mean(filtered_distance_increase_percentages[i]) if partname == 'cmeans' else np.median(filtered_distance_increase_percentages[i])
             #     offset = 0.7 if partname == 'cmeans' else -0.7
             #     axs[row, col].text(1.08, y + offset, f'{y:.2f}', color=vp.get_edgecolor(), va='center')
-            # 设置均值和中位数的颜色，不带数字
-            for partname in ('cmeans', 'cmedians'):
+            # 设置均值和中位数的颜色,不带数字
+            # for partname in ('cmeans', 'cmedians'):
+            #     vp = parts[partname]
+            #     vp.set_edgecolor('brown' if partname == 'cmeans' else 'green')
+            #     vp.set_linewidth(1.5)
+            #     vp.set_linestyle('--')
+            # if i == 24:
+            #     axs[row, col].legend([parts['cmeans'], parts['cmedians']], ['均值', '中位数'], loc='upper right')
+            # 只显示中位数，不显示均值，且中位数不带数字
+            for partname in ('cmedians',):
                 vp = parts[partname]
-                vp.set_edgecolor('brown' if partname == 'cmeans' else 'green')
+                vp.set_edgecolor('green')
                 vp.set_linewidth(1.5)
                 vp.set_linestyle('--')
-            if i == 0:
-                axs[row, col].legend([parts['cmeans'], parts['cmedians']], ['均值', '中位数'], loc='upper right')
+            if i == 24:
+                axs[row, col].legend([parts['cmedians']], ['中位数'], loc='upper right')
         else:
             axs[row, col].axis('off')
     plt.tight_layout()
@@ -480,7 +488,7 @@ def draw_sunglare_decrease_percentage_violinplot(result_analyse_folder):
         row = i // 5
         col = i % 5
         if i < len(dates):
-            parts = axs[row, col].violinplot(filtered_sunglare_decrease_percentages[i], positions=[1], widths=0.3, showmeans=True, showmedians=True)
+            parts = axs[row, col].violinplot(filtered_sunglare_decrease_percentages[i], positions=[1], widths=0.3, showmeans=False, showmedians=True)
             axs[row, col].set_xlabel(dates[i].strftime('%H:%M'))
             axs[row, col].set_xticks([1])
             axs[row, col].set_xticklabels([''])
@@ -504,13 +512,22 @@ def draw_sunglare_decrease_percentage_violinplot(result_analyse_folder):
             #     offset = -0.5 if partname == 'cmeans' else 0.5
             #     axs[row, col].text(1.1, y + offset, f'{y:.2f}', color=vp.get_edgecolor(), va='center')
             # 设置均值和中位数的颜色,不带数字
-            for partname in ('cmeans', 'cmedians'):
+            # for partname in ('cmeans', 'cmedians'):
+            #     vp = parts[partname]
+            #     vp.set_edgecolor('brown' if partname == 'cmeans' else 'green')
+            #     vp.set_linewidth(1.5)
+            #     vp.set_linestyle('--')
+            # if i == 24:
+            #     axs[row, col].legend([parts['cmeans'], parts['cmedians']], ['均值', '中位数'], loc='upper right')
+            # 只显示中位数，不显示均值，且中位数不带数字
+            for partname in ('cmedians',):
                 vp = parts[partname]
-                vp.set_edgecolor('brown' if partname == 'cmeans' else 'green')
+                vp.set_edgecolor('green')
                 vp.set_linewidth(1.5)
                 vp.set_linestyle('--')
             if i == 24:
-                axs[row, col].legend([parts['cmeans'], parts['cmedians']], ['均值', '中位数'], loc='upper right')
+                axs[row, col].legend([parts['cmedians']], ['中位数'], loc='lower right')
+
         else:
             axs[row, col].axis('off')
     plt.tight_layout()
@@ -537,10 +554,10 @@ def main():
 
     # draw_sunglare_heatmap(result_analyse_folder)
     # draw_sunglare_occurrence_rate(result_analyse_folder)
-    # draw_sunglare_increase_percentage(result_analyse_folder)
-    # draw_sunglare_increase_percentage_violinplot(result_analyse_folder)
+    draw_distance_increase_percentage(result_analyse_folder)
+    # draw_distance_increase_percentage_violinplot(result_analyse_folder)
     # draw_sunglare_decrease_percentage(result_analyse_folder)
-    draw_sunglare_decrease_percentage_violinplot(result_analyse_folder)
+    # draw_sunglare_decrease_percentage_violinplot(result_analyse_folder)
 
 if __name__ == '__main__':
     main()
