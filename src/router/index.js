@@ -60,6 +60,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "yong-hu-zhong-xin" */ '../views/UserView.vue')
   },
   {
+    path: '/yong-hu-zhong-xin/shu-ju-guan-li',
+    name: 'shu-ju-guan-li',
+    component: () => import(/* webpackChunkName: "shu-ju-guan-li" */ '../views/DatamanagerView.vue')
+  },
+  {
     path: '/about',
     component: AboutView,
     children: [

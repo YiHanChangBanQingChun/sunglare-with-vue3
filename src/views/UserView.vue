@@ -8,9 +8,10 @@
       <div class="button-div">
         <button @click="showSection('userInfo')">查看个人信息</button>
         <button @click="showSection('feedback')">用户反馈</button>
-        <!-- <button @click="showSection('innerinformation')">站内消息</button> -->
+        <button @click="showSection('innerinformation')">站内消息</button>
         <button @click="showPasswordModal">修改密码</button>
         <button @click="toggleAvatarModal">更换头像</button>
+        <button @click="gotodatamanager">后台数据管理</button>
         <button @click="handleLogout">退出登录</button>
       </div>
     </div>
@@ -212,6 +213,7 @@ export default {
     cancelEdit () {
       this.editingField = null
     },
+    // 保存字段
     async saveField (field) {
       try {
         const originalUsername = this.originalUsername || this.userInfo.username
@@ -284,6 +286,10 @@ export default {
             console.error('上传头像失败:', error)
           })
       }
+    },
+    // 跳转到数据管理页面
+    gotodatamanager () {
+      this.$router.push({ name: 'shu-ju-guan-li' })
     },
     // 退出登录
     handleLogout () {

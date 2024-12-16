@@ -10,7 +10,7 @@ export default {
   data () {
     return {
       markdownContent: `
-# 项目的系统架构图：
+# 项目的系统架构图 🚀
 ------
 ![项目介绍图片](${require('@/assets/image/about/final2.png')})
       `

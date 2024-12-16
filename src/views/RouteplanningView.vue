@@ -89,7 +89,7 @@
 <script>
 // 确保这里的路径是正确的，根据你的项目结构和npm包的安装情况
 import Map from '@geoscene/core/Map.js'
-import MapView from '@geoscene/core/views/MapView.js' // 确保这个路径正确，或者检查是否正确安装了相关npm包
+import MapView from '@geoscene/core/views/MapView.js'
 import SpatialReference from '@geoscene/core/geometry/SpatialReference.js'
 import FeatureLayer from '@geoscene/core/layers/FeatureLayer.js'
 import TileInfo from '@geoscene/core/layers/support/TileInfo.js'
