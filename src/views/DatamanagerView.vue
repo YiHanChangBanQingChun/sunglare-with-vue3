@@ -1,18 +1,60 @@
+<!-- filepath: src/views/DatamanagerView.vue -->
 <template>
     <div class="datamanager">
-      <!-- 工具箱图标和文字 -->
+      <!-- 工具箱 -->
       <div class="toolbox" @click="toggleToolbox">
-        <img :src="toolboxIcon" alt="工具箱图标" class="toolbox-icon">
+        <img :src="toolboxIcon" alt="Toolbox Icon" class="toolbox-icon">
         <span class="toolbox-text">工具箱</span>
       </div>
-      <!-- 弹窗 -->
+      <!-- 工具箱网格 -->
       <div v-if="showToolboxPopup" class="toolbox-popup">
-        <p>这是一个工具箱弹窗</p>
+        <div class="toolbox-grid">
+          <div class="toolbox-item" @click="openLoadDataPopup">
+            <span>加载数据</span>
+          </div>
+          <div class="toolbox-item">
+            <span>占位功能</span>
+          </div>
+          <div class="toolbox-item">
+            <span>占位功能</span>
+          </div>
+          <div class="toolbox-item">
+            <span>占位功能</span>
+          </div>
+          <div class="toolbox-item">
+            <span>占位功能</span>
+          </div>
+          <div class="toolbox-item">
+            <span>占位功能</span>
+          </div>
+        </div>
+        <!-- 工具箱关闭按钮 -->
+        <span class="toolbox-close" @click="toggleToolbox">
+          <img src="@/assets/image/map_icon/cancel_dark.png" alt="关闭">
+        </span>
+      </div>
+      <!-- 弹窗 -->
+      <div v-if="showLoadDataPopup" class="modal-overlay">
+        <div class="modal-content">
+          <h2>加载数据</h2>
+          <div>
+            <label for="dataSelect">选择数据：</label>
+            <select id="dataSelect">
+              <option value="数据1">数据1</option>
+              <option value="数据2">数据2</option>
+              <option value="数据3">数据3</option>
+            </select>
+          </div>
+          <div class="modal-buttons">
+            <button @click="confirmLoadData">确定</button>
+            <button @click="cancelLoadData">取消</button>
+          </div>
+        </div>
       </div>
       <!-- 地图展示 -->
       <div id="viewDiv"></div>
     </div>
-  </template>
+</template>
 
 <script>
 import Map from '@geoscene/core/Map.js'
@@ -33,7 +75,8 @@ export default {
     return {
       // data
       toolboxIcon: require('@/assets/image/gis_dev_zgw_img/Toolbox_4868.png'), // 工具箱图标路径
-      showToolboxPopup: false // 控制弹窗显示
+      showToolboxPopup: false, // 控制工具箱弹窗显示
+      showLoadDataPopup: false // 控制加载数据弹窗显示
     }
   },
   methods: {
@@ -41,6 +84,16 @@ export default {
     // 切换工具箱弹窗显示状态
     toggleToolbox () {
       this.showToolboxPopup = !this.showToolboxPopup
+    },
+    openLoadDataPopup () {
+      this.showLoadDataPopup = true
+    },
+    confirmLoadData () {
+      // TODO: 添加确认加载数据的逻辑
+      this.showLoadDataPopup = false
+    },
+    cancelLoadData () {
+      this.showLoadDataPopup = false
     },
     // 初始化地图
     initMap () {
@@ -476,8 +529,9 @@ export default {
 
 .toolbox {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 1.4%;
+  left: 5px;
+  height: 5.7%;
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -492,6 +546,17 @@ export default {
   box-shadow: none !important;
   border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
   color: rgb(109, 72, 72);
+}
+
+.toolbox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3列 */
+  grid-template-rows: repeat(2, 1fr);    /* 2行 */
+  gap: 10px;                             /* 格子间距 */
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(25px);
+  padding: 10px;
+  border-radius: 10px;
 }
 
 .toolbox-icon {
@@ -521,5 +586,90 @@ export default {
   border: none !important;
   /* box-shadow: none !important; */
   border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
+
+.toolbox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3列 */
+  grid-template-rows: repeat(2, 1fr);    /* 2行 */
+  gap: 10px;                             /* 格子间距 */
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(25px);
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.toolbox-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: antiquewhite;
+  color: rgb(109, 72, 72);
+  border: 1px solid rgba(222, 222, 222, 0.45);
+  cursor: pointer;
+  border-radius: 5px;
+  height: 60px;
+}
+
+.toolbox-item:hover {
+  background-color: rgb(216, 180, 133);
+}
+
+/* 弹窗覆盖层 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* 半透明背景 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* 弹窗内容 */
+.modal-content {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(25px);
+  padding: 20px;
+  border-radius: 10px;
+  width: 300px;
+  color: rgb(109, 72, 72);
+  border: 1px solid rgba(222, 222, 222, 0.45);
+}
+
+.modal-content h2 {
+  margin-top: 0;
+}
+
+.modal-buttons {
+  margin-top: 20px;
+  text-align: right;
+}
+
+.modal-buttons button {
+  margin-left: 10px;
+  padding: 5px 10px;
+  background-color: antiquewhite;
+  border: 1px solid rgba(222, 222, 222, 0.45);
+  border-radius: 5px;
+  color: rgb(109, 72, 72);
+  cursor: pointer;
+}
+
+.modal-buttons button:hover {
+  background-color: rgb(216, 180, 133);
+}
+
+.toolbox-close {
+  display: flex;
+  justify-content: center; /* 居中对齐 */
+  margin-top: 10px;       /* 与网格有一定间距 */
+}
+
+.toolbox-close img {
+  cursor: pointer;
 }
 </style>

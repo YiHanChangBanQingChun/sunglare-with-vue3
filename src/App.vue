@@ -274,8 +274,8 @@ export default {
 
 .gong-neng-lan {
   position: absolute; /* 绝对定位 */
-  top: 2%; /* 顶部对齐 */
-  right: 0; /* 靠右对齐 */
+  top: 1.4%; /* 顶部对齐 */
+  right: 5px; /* 靠右对齐 */
   display: flex; /* 启用Flex布局 */
   align-items: center; /* 垂直居中对齐 */
   background-color: rgba(255, 255, 255, 0.5);
@@ -285,7 +285,7 @@ export default {
   border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
   border-radius: 10px; /* 添加圆角 */
   padding: 5px 10px; /* 添加内边距 */
-  height: 5%;
+  height: 5.6%;
 }
 
 nav {
