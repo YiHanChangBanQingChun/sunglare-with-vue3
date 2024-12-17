@@ -1,4 +1,3 @@
-<!-- filepath: src/views/DatamanagerView.vue -->
 <template>
     <div class="datamanager">
       <!-- 工具箱 -->
@@ -10,22 +9,22 @@
       <div v-if="showToolboxPopup" class="toolbox-popup">
         <div class="toolbox-grid">
           <div class="toolbox-item" @click="openLoadDataPopup">
-            <span>加载数据</span>
+            <img src="@/assets/image/gis_dev_zgw_img/add_data.png" alt="加载数据">
+          </div>
+          <div class="toolbox-item" @click="toggleTimeSlider"  :class="{ active: !timeSliderDisabled }">
+            <img src="@/assets/image/gis_dev_zgw_img/time_slider.png" alt="时间滑块">
           </div>
           <div class="toolbox-item">
-            <span>占位功能</span>
+            <img src="@/assets/image/gis_dev_zgw_img/filter.png" alt="过滤功能">
           </div>
           <div class="toolbox-item">
-            <span>占位功能</span>
+            <img src="@/assets/image/gis_dev_zgw_img/deal_data.png" alt="处理数据">
           </div>
           <div class="toolbox-item">
-            <span>占位功能</span>
+            <img src="@/assets/image/gis_dev_zgw_img/dot_density.png" alt="密度计算">
           </div>
           <div class="toolbox-item">
-            <span>占位功能</span>
-          </div>
-          <div class="toolbox-item">
-            <span>占位功能</span>
+            <img src="@/assets/image/gis_dev_zgw_img/select.png" alt="选择数据">
           </div>
         </div>
         <!-- 工具箱关闭按钮 -->
@@ -53,10 +52,12 @@
       </div>
       <!-- 地图展示 -->
       <div id="viewDiv"></div>
+      <div id="timeSliderDiv" class="time-slider" :style="{ maxHeight: showTimeSlider ? '30%' : '0%' }"></div>
     </div>
 </template>
 
 <script>
+import { markRaw } from 'vue'
 import Map from '@geoscene/core/Map.js'
 import MapView from '@geoscene/core/views/MapView.js'
 import SpatialReference from '@geoscene/core/geometry/SpatialReference.js'
@@ -68,15 +69,34 @@ import Compass from '@geoscene/core/widgets/Compass.js'
 import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
 import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.js'
 import LayerList from '@geoscene/core/widgets/LayerList'
+import TimeSlider from '@geoscene/core/widgets/TimeSlider.js' // 导入 TimeSlider
 
 export default {
   name: 'DatamanagerView',
   data () {
     return {
       // data
+      // resultLayer: markRaw(null),
+      resultLayer: null, // 将 resultLayer 初始化为 null，而不是 markRaw(null)
       toolboxIcon: require('@/assets/image/gis_dev_zgw_img/Toolbox_4868.png'), // 工具箱图标路径
+      BasemapName: '',
+      ismaploading: true,
+
       showToolboxPopup: false, // 控制工具箱弹窗显示
-      showLoadDataPopup: false // 控制加载数据弹窗显示
+      showLoadDataPopup: false, // 控制加载数据弹窗显示
+      showTimeSlider: false, // 添加控制时间滑块显示的状态
+      timeSliderDisabled: true, // 时间滑块是否禁用，默认禁用
+      timeSlider: null // 保存 TimeSlider 实例
+      // timeSlider: markRaw(null)
+    }
+  },
+  watch: {
+    // watch
+    timeSliderDisabled (newVal) {
+      if (this.timeSlider) {
+        this.timeSlider.disabled = newVal
+        this.timeSlider.renderNow() // 确保 UI 更新
+      }
     }
   },
   methods: {
@@ -84,6 +104,14 @@ export default {
     // 切换工具箱弹窗显示状态
     toggleToolbox () {
       this.showToolboxPopup = !this.showToolboxPopup
+    },
+    toggleTimeSlider () {
+      this.timeSliderDisabled = !this.timeSliderDisabled
+      this.showTimeSlider = !this.showTimeSlider
+      if (this.timeSlider) {
+        this.timeSlider.disabled = this.timeSliderDisabled
+        this.timeSlider.renderNow() // 触发重渲染
+      }
     },
     openLoadDataPopup () {
       this.showLoadDataPopup = true
@@ -137,8 +165,8 @@ export default {
         //   }]
         // }
       })
-      // 创建新的 FeatureLayer 实例，使用指定的 URL
-      const resultLayer = new FeatureLayer({
+      // 使用 markRaw 创建并赋值 resultLayer
+      this.resultLayer = markRaw(new FeatureLayer({
         url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_12_15_10min/FeatureServer',
         title: '分析结果',
         renderer: {
@@ -253,12 +281,12 @@ export default {
             ]
           }]
         }
-      })
+      }))
 
       // 将新的 FeatureLayer 添加到地图
-      map.add(resultLayer)
-      // 将 FeatureLayer 添加到地图
+      map.add(this.resultLayer)
       map.add(featureLayer)
+
       // 创建 MapView 实例
       const mapView = new MapView({
         map: map,
@@ -358,6 +386,125 @@ export default {
         position: 'bottom-left',
         index: 3
       })
+
+      // 创建 TimeSlider 实例并保存为非响应式
+      const timeSlider = markRaw(new TimeSlider({
+        title: '时间滑块',
+        container: 'timeSliderDiv',
+        view: mapView,
+        disabled: this.timeSliderDisabled,
+        mode: 'instant',
+        layout: 'compact',
+        fullTimeExtent: {
+          start: new Date(2024, 11, 15, 7, 20, 0),
+          end: new Date(2024, 11, 15, 17, 20, 0)
+        },
+        timeExtent: {
+          start: new Date(2024, 11, 15, 7, 20, 0),
+          end: new Date(2024, 11, 15, 7, 20, 0)
+        },
+        stops: {
+          interval: {
+            unit: 'minutes',
+            value: 10
+          }
+        }
+      }))
+      this.timeSlider = timeSlider // 保存非响应式实例
+      mapView.ui.add(timeSlider, 'bottom-left')
+
+      // 在 `timeSlider.watch` 函数中添加刷新图层的逻辑
+      //   timeSlider.watch('timeExtent', async (value) => {
+      //     const selectedTime = value.start
+      //     const hours = selectedTime.getHours().toString().padStart(2, '0')
+      //     const minutes = selectedTime.getMinutes().toString().padStart(2, '0')
+      //     const fieldName = `t${hours}:${minutes}:00`
+
+      //     console.log(`Selected Time: ${selectedTime}`)
+      //     console.log(`Field Name: ${fieldName}`)
+
+      //     // 设置过滤器，只显示对应字段为1的点
+      //     resultLayer.definitionExpression = `"${fieldName}" = 1`
+      //     console.log(`Updated definitionExpression: ${resultLayer.definitionExpression}`)
+
+      //     // 刷新图层以应用新的过滤器
+      //     try {
+      //       await resultLayer.refresh()
+      //       console.log('图层已刷新')
+      //     } catch (error) {
+      //       console.error('图层刷新失败:', error)
+      //     }
+      //   })
+
+      // 在 `timeSlider.watch` 函数中更新渲染器
+      timeSlider.watch('timeExtent', async (value) => {
+        const selectedTime = value.start
+        const hours = selectedTime.getHours().toString().padStart(2, '0')
+        const minutes = selectedTime.getMinutes().toString().padStart(2, '0')
+        const fieldName = `t${hours}:${minutes}:00`
+
+        console.log(`Selected Time: ${selectedTime}`)
+        console.log(`Field Name: ${fieldName}`)
+
+        if (this.resultLayer) {
+          // 更新渲染器基于当前时间字段
+          this.resultLayer.renderer = {
+            type: 'unique-value',
+            field: fieldName,
+            uniqueValueInfos: [
+              {
+                value: 1,
+                symbol: {
+                  type: 'simple-marker',
+                  style: 'circle',
+                  color: '#149ece',
+                  size: 6,
+                  outline: {
+                    color: 'white',
+                    width: 1
+                  }
+                },
+                label: '显示'
+              },
+              {
+                value: 2,
+                symbol: {
+                  type: 'simple-marker',
+                  style: 'circle',
+                  color: 'transparent',
+                  size: 6,
+                  outline: {
+                    color: 'transparent',
+                    width: 1
+                  }
+                },
+                label: '隐藏'
+              }
+            ],
+            defaultSymbol: {
+              type: 'simple-marker',
+              style: 'circle',
+              color: 'transparent',
+              size: 6,
+              outline: {
+                color: 'transparent',
+                width: 1
+              }
+            }
+          }
+
+          console.log(`Updated renderer based on field: ${fieldName}`)
+          // 刷新图层
+          try {
+            await this.resultLayer.refresh()
+            console.log('图层已刷新')
+          } catch (error) {
+            console.error('图层刷新失败:', error)
+          }
+        } else {
+          console.error('resultLayer 未定义')
+        }
+      })
       this.mapView = mapView
       const BasemapName = this.mapView.map.basemap.title
       console.log('BasemapName old:', BasemapName)
@@ -430,6 +577,183 @@ export default {
   margin: auto;
 }
 
+.toolbox {
+  position: absolute;
+  top: 1.4%;
+  left: 5px;
+  height: 5.7%;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 5px;
+  z-index: 1000; /* 确保工具箱在地图上方 */
+
+  background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+  color: rgb(109, 72, 72);
+}
+
+.toolbox-item.active {
+  background-color: red; /* 激活状态背景为红色 */
+}
+
+.toolbox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3列 */
+  grid-template-rows: repeat(2, 1fr);    /* 2行 */
+  gap: 10px;                             /* 格子间距 */
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(25px);
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.toolbox-icon {
+  width: 5vh; /* 限制宽度为5vh */
+  height: auto; /* 等比例缩放 */
+  margin-right: 5px;
+}
+
+.toolbox-text {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.toolbox-popup {
+  position: absolute;
+  top: 8vh; /* 弹窗显示在工具箱下方 */
+  left: 10px;
+  width: flex; /* 弹窗宽度 */
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 阴影效果 */
+  z-index: 1000; /* 确保弹窗在地图上方 */
+
+  background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  /* box-shadow: none !important; */
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+}
+
+.toolbox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3列 */
+  grid-template-rows: repeat(2, 1fr);    /* 2行 */
+  gap: 10px;                             /* 格子间距 */
+  background-color: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(25px);
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.toolbox-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* background-color: antiquewhite; */
+  background-color: rgb(216, 180, 133);
+  /* background-color: rgba(255, 255, 255, 0.5); */
+  color: rgb(109, 72, 72);
+  border: 1px solid rgba(222, 222, 222, 0.45);
+  cursor: pointer;
+  border-radius: 5px;
+  /* height: 60px; */
+  aspect-ratio: 1 / 1; /* 设置为正方形 */
+  white-space: normal; /* 允许换行 */
+  word-break: break-all; /* 允许在任何位置换行 */
+  text-align: center; /* 文本居中 */
+  max-width: 4ch; /* 每行最多两个字符 */
+  /* padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 10px;
+  padding-right: 10px; */
+  padding: 5px;
+  transition: background-color 0.3s;
+}
+
+.toolbox-item img {
+  width: 3vh; /* 设置图标宽度为40px，调整为合适大小 */
+  height: auto;
+}
+
+.toolbox-item:hover {
+  background-color: rgb(253, 185, 97);
+}
+
+/* 弹窗覆盖层 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* 半透明背景 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* 弹窗内容 */
+.modal-content {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(25px);
+  padding: 20px;
+  border-radius: 10px;
+  width: 300px;
+  color: rgb(109, 72, 72);
+  border: 1px solid rgba(222, 222, 222, 0.45);
+}
+
+.modal-content h2 {
+  margin-top: 0;
+}
+
+.modal-buttons {
+  margin-top: 20px;
+  text-align: right;
+}
+
+.modal-buttons button {
+  margin-left: 10px;
+  padding: 5px 10px;
+  background-color: antiquewhite;
+  border: 1px solid rgba(222, 222, 222, 0.45);
+  border-radius: 5px;
+  color: rgb(109, 72, 72);
+  cursor: pointer;
+}
+
+.modal-buttons button:hover {
+  background-color: rgb(216, 180, 133);
+}
+
+.toolbox-close {
+  display: flex;
+  justify-content: center; /* 居中对齐 */
+  margin-top: 10px;       /* 与网格有一定间距 */
+}
+
+.toolbox-close img {
+  cursor: pointer;
+}
+
+.time-slider {
+  position: fixed;
+  bottom: 2%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 10px; /* 添加圆角 */
+}
+
+/* 以下区域无需编辑 */
 .geoscene-distance-measurement-2d__clear-button{
   background-color: antiquewhite;
   border-left-color: antiquewhite;
@@ -648,149 +972,39 @@ export default {
   border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
 }
 
-.toolbox {
-  position: absolute;
-  top: 1.4%;
-  left: 5px;
-  height: 5.7%;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 5px;
-  border-radius: 5px;
-  z-index: 1000; /* 确保工具箱在地图上方 */
-
-  background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
-  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
-  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
-  border: none !important;
-  box-shadow: none !important;
-  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
-  color: rgb(109, 72, 72);
-}
-
-.toolbox-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3列 */
-  grid-template-rows: repeat(2, 1fr);    /* 2行 */
-  gap: 10px;                             /* 格子间距 */
-  background-color: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(25px);
-  padding: 10px;
-  border-radius: 10px;
-}
-
-.toolbox-icon {
-  width: 5vh; /* 限制宽度为5vh */
-  height: auto; /* 等比例缩放 */
-  margin-right: 5px;
-}
-
-.toolbox-text {
-  font-size: 16px;
-  font-weight: bold;
-}
-
-.toolbox-popup {
-  position: absolute;
-  top: 8vh; /* 弹窗显示在工具箱下方 */
-  left: 10px;
-  width: 200px; /* 弹窗宽度 */
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 阴影效果 */
-  z-index: 1000; /* 确保弹窗在地图上方 */
-
+.geoscene-time-slider {
+  cursor: default;
+  min-width: 45%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
   -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
   border: none !important;
   /* box-shadow: none !important; */
   border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+  border-radius: 10px; /* 添加圆角 */
+
+  /* 新增的样式 */
+  transition: max-height 0.3s ease; /* 添加过渡效果 */
+  overflow: hidden; /* 隐藏溢出内容 */
+  max-height: 0%; /* 默认隐藏 */
 }
 
-.toolbox-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 3列 */
-  grid-template-rows: repeat(2, 1fr);    /* 2行 */
-  gap: 10px;                             /* 格子间距 */
-  background-color: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(25px);
-  padding: 10px;
-  border-radius: 10px;
+/* 当显示时间滑块时的样式 */
+.geoscene-time-slider.show {
+  max-height: 30%;
 }
 
-.toolbox-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: antiquewhite;
-  color: rgb(109, 72, 72);
-  border: 1px solid rgba(222, 222, 222, 0.45);
-  cursor: pointer;
-  border-radius: 5px;
-  height: 60px;
+.geoscene-time-slider__slider {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
+  border: none !important;
+  /* box-shadow: none !important; */
+  border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
+  padding: 0 40px 0 40px;
+  border-radius: 10px; /* 添加圆角 */
 }
 
-.toolbox-item:hover {
-  background-color: rgb(216, 180, 133);
-}
-
-/* 弹窗覆盖层 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5); /* 半透明背景 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-/* 弹窗内容 */
-.modal-content {
-  background-color: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(25px);
-  padding: 20px;
-  border-radius: 10px;
-  width: 300px;
-  color: rgb(109, 72, 72);
-  border: 1px solid rgba(222, 222, 222, 0.45);
-}
-
-.modal-content h2 {
-  margin-top: 0;
-}
-
-.modal-buttons {
-  margin-top: 20px;
-  text-align: right;
-}
-
-.modal-buttons button {
-  margin-left: 10px;
-  padding: 5px 10px;
-  background-color: antiquewhite;
-  border: 1px solid rgba(222, 222, 222, 0.45);
-  border-radius: 5px;
-  color: rgb(109, 72, 72);
-  cursor: pointer;
-}
-
-.modal-buttons button:hover {
-  background-color: rgb(216, 180, 133);
-}
-
-.toolbox-close {
-  display: flex;
-  justify-content: center; /* 居中对齐 */
-  margin-top: 10px;       /* 与网格有一定间距 */
-}
-
-.toolbox-close img {
-  cursor: pointer;
-}
 </style>
