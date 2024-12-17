@@ -126,16 +126,137 @@ export default {
             }
           }
         },
+        popupEnabled: false // 禁用弹窗
+        // popupTemplate: {
+        //   content: [{
+        //     type: 'fields',
+        //     fieldInfos: [{
+        //       fieldName: '县区name',
+        //       label: '县区名称'
+        //     }]
+        //   }]
+        // }
+      })
+      // 创建新的 FeatureLayer 实例，使用指定的 URL
+      const resultLayer = new FeatureLayer({
+        url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_12_15_10min/FeatureServer',
+        title: '分析结果',
+        renderer: {
+          type: 'class-breaks', // 使用分级渲染器
+          field: 'result', // 基于 'result' 字段进行渲染
+          classBreakInfos: [
+            {
+              minValue: 0,
+              maxValue: 10,
+              symbol: {
+                type: 'simple-marker',
+                style: 'circle',
+                color: '#00FF00', // 绿色
+                size: 6,
+                outline: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              label: '0 - 10'
+            },
+            {
+              minValue: 10,
+              maxValue: 50,
+              symbol: {
+                type: 'simple-marker',
+                style: 'circle',
+                color: '#FFFF00', // 黄色
+                size: 6,
+                outline: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              label: '10 - 50'
+            },
+            {
+              minValue: 50,
+              maxValue: 100,
+              symbol: {
+                type: 'simple-marker',
+                style: 'circle',
+                color: '#FFA500', // 橙色
+                size: 6,
+                outline: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              label: '50 - 100'
+            },
+            {
+              minValue: 100,
+              maxValue: Infinity,
+              symbol: {
+                type: 'simple-marker',
+                style: 'circle',
+                color: '#FF0000', // 红色
+                size: 6,
+                outline: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              label: '> 100'
+            }
+          ]
+        },
         popupTemplate: {
+          title: '{road_name} - {result}', // 标题为 road_name 加上 result
           content: [{
             type: 'fields',
-            fieldInfos: [{
-              fieldName: '县区name',
-              label: '县区名称'
-            }]
+            fieldInfos: [
+              { fieldName: 'pid', label: 'PID' },
+              { fieldName: 't07:20:00', label: '07:20:00' },
+              { fieldName: 't07:30:00', label: '07:30:00' },
+              { fieldName: 't07:40:00', label: '07:40:00' },
+              { fieldName: 't07:50:00', label: '07:50:00' },
+              { fieldName: 't08:00:00', label: '08:00:00' },
+              { fieldName: 't08:10:00', label: '08:10:00' },
+              { fieldName: 't08:20:00', label: '08:20:00' },
+              { fieldName: 't08:30:00', label: '08:30:00' },
+              { fieldName: 't08:40:00', label: '08:40:00' },
+              { fieldName: 't08:50:00', label: '08:50:00' },
+              { fieldName: 't09:00:00', label: '09:00:00' },
+              { fieldName: 't09:10:00', label: '09:10:00' },
+              { fieldName: 't09:20:00', label: '09:20:00' },
+              { fieldName: 't09:30:00', label: '09:30:00' },
+              { fieldName: 't09:40:00', label: '09:40:00' },
+              { fieldName: 't09:50:00', label: '09:50:00' },
+              { fieldName: 't14:50:00', label: '14:50:00' },
+              { fieldName: 't15:00:00', label: '15:00:00' },
+              { fieldName: 't15:10:00', label: '15:10:00' },
+              { fieldName: 't15:20:00', label: '15:20:00' },
+              { fieldName: 't15:30:00', label: '15:30:00' },
+              { fieldName: 't15:40:00', label: '15:40:00' },
+              { fieldName: 't15:50:00', label: '15:50:00' },
+              { fieldName: 't16:00:00', label: '16:00:00' },
+              { fieldName: 't16:10:00', label: '16:10:00' },
+              { fieldName: 't16:20:00', label: '16:20:00' },
+              { fieldName: 't16:30:00', label: '16:30:00' },
+              { fieldName: 't16:40:00', label: '16:40:00' },
+              { fieldName: 't16:50:00', label: '16:50:00' },
+              { fieldName: 't17:00:00', label: '17:00:00' },
+              { fieldName: 't17:10:00', label: '17:10:00' },
+              { fieldName: 't17:20:00', label: '17:20:00' },
+              { fieldName: 'result', label: '结果' },
+              { fieldName: '50lon', label: '经度' },
+              { fieldName: '50lat', label: '纬度' },
+              { fieldName: 'near_fid', label: '近似FID' },
+              { fieldName: 'yaw', label: '偏航角' }
+            ]
           }]
         }
       })
+
+      // 将新的 FeatureLayer 添加到地图
+      map.add(resultLayer)
       // 将 FeatureLayer 添加到地图
       map.add(featureLayer)
       // 创建 MapView 实例
