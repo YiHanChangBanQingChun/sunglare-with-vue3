@@ -250,7 +250,10 @@ export default {
         series: [{
           name: '百分比',
           type: 'bar',
-          data: []
+          data: [],
+          itemStyle: {
+            color: '#3398DB' // 默认设置为蓝色
+          }
         }]
       })
       // 初始化时加载静态数据
@@ -267,9 +270,21 @@ export default {
         ]
         return monthData.map((value, index) => ({
           value: (value / total * 100).toFixed(2),
-          itemStyle: index === currentMonth - 1 ? { color: 'red' } : {}
+          month: index + 1 // 保存月份信息
         }))
       }).flat()
+
+      // 找到占比最高的柱子
+      const maxItem = seriesData.reduce((max, item) => item.value > max.value ? item : max, seriesData[0])
+
+      // 设置颜色
+      const formattedSeriesData = seriesData.map(item => ({
+        value: item.value,
+        itemStyle: {
+          color: item.month === maxItem.month ? 'red' : '#3398DB' // 占比最高的柱子为红色，其他为蓝色
+        }
+      }))
+
       this.barChart.setOption({
         title: {
           text: '眩光占比',
@@ -287,7 +302,7 @@ export default {
             formatter: '{value} %'
           }
         },
-        series: [{ data: seriesData }]
+        series: [{ data: formattedSeriesData }]
       })
     },
     // 更新静态图表
@@ -509,7 +524,7 @@ export default {
         if (this.currentTemperature !== null) {
           let color = 'green'
           if (this.currentTemperature < 10) {
-            color = 'blue'
+            color = '#3398DB'
           } else if (this.currentTemperature > 28) {
             color = 'orange'
           }
@@ -553,9 +568,9 @@ export default {
         if (response.ok) {
           const solarInfo = await response.json()
           this.solarData = [solarInfo]
-          console.log('Solar Data:', this.solarData) // 添加这行
+          // console.log('Solar Data:', this.solarData) // 添加这行
           this.updatePolarChart(areaName)
-          console.log('获取太阳角度信息成功:', solarInfo)
+          // console.log('获取太阳角度信息成功:', solarInfo)
         } else {
           const errorData = await response.json()
           console.error('获取太阳角度信息失败:', errorData.message)
@@ -603,6 +618,11 @@ export default {
     // 更新极坐标图
     updatePolarChart (areaName = '') {
       const rawData = toRaw(this.solarData).filter(item => item.solar_altitude >= 0)
+      const trajectoryData = toRaw(this.solarTrajectoryData).filter(item => item.solarAltitude >= 0)
+      const maxAltitude = Math.max(...trajectoryData.map(item => item.solarAltitude), 0)
+      console.log('最大高度角:', maxAltitude)
+      const adjustedMaxAltitude = Math.min(maxAltitude * 1.1, 90) // 扩展5%，但不超过90
+      console.log('调整后的最大高度角:', adjustedMaxAltitude)
       const option = {
         title: {
           text: `${areaName}太阳高度角和方位角`,
@@ -611,7 +631,7 @@ export default {
           top: 'top'
         },
         legend: {
-          data: ['当前太阳角度', '太阳轨迹'],
+          data: ['太阳轨迹', '当前太阳角度'],
           left: 'center',
           bottom: '0%'
         },
@@ -638,7 +658,7 @@ export default {
         },
         radiusAxis: {
           min: 0,
-          max: 90
+          max: adjustedMaxAltitude
         },
         series: [
           {
@@ -667,7 +687,7 @@ export default {
             type: 'line',
             data: this.solarTrajectoryData.map(item => [item.solarAltitude, item.solarAzimuth]),
             itemStyle: {
-              color: 'blue'
+              color: '#3398DB'
             },
             markPoint: {
               data: this.solarTrajectoryData.filter(item => item.isSunrise || item.isSunset).map(item => ({
@@ -679,7 +699,6 @@ export default {
           }
         ]
       }
-      console.log('ECharts Option:', option) // 添加这行
       this.polarChart.setOption(option)
     },
     // 获取 API 密钥

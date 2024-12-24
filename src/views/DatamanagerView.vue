@@ -105,12 +105,90 @@ export default {
     toggleToolbox () {
       this.showToolboxPopup = !this.showToolboxPopup
     },
+    // toggleTimeSlider () {
+    //   this.timeSliderDisabled = !this.timeSliderDisabled
+    //   this.showTimeSlider = !this.showTimeSlider
+    //   if (this.timeSlider) {
+    //     this.timeSlider.disabled = this.timeSliderDisabled
+    //     this.timeSlider.renderNow() // 触发重渲染
+    //   }
+    // },
     toggleTimeSlider () {
       this.timeSliderDisabled = !this.timeSliderDisabled
       this.showTimeSlider = !this.showTimeSlider
       if (this.timeSlider) {
         this.timeSlider.disabled = this.timeSliderDisabled
         this.timeSlider.renderNow() // 触发重渲染
+      }
+      if (this.timeSliderDisabled && this.resultLayer) {
+        this.resultLayer.definitionExpression = '' // 恢复地图要素的显示
+        this.resultLayer.renderer = {
+          type: 'class-breaks', // 使用分级渲染器
+          field: 'result', // 基于 'result' 字段进行渲染
+          classBreakInfos: [
+            {
+              minValue: 0,
+              maxValue: 10,
+              symbol: {
+                type: 'simple-marker',
+                style: 'circle',
+                color: '#00FF00', // 绿色
+                size: 6,
+                outline: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              label: '0 - 10'
+            },
+            {
+              minValue: 10,
+              maxValue: 50,
+              symbol: {
+                type: 'simple-marker',
+                style: 'circle',
+                color: '#FFFF00', // 黄色
+                size: 6,
+                outline: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              label: '10 - 50'
+            },
+            {
+              minValue: 50,
+              maxValue: 100,
+              symbol: {
+                type: 'simple-marker',
+                style: 'circle',
+                color: '#FFA500', // 橙色
+                size: 6,
+                outline: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              label: '50 - 100'
+            },
+            {
+              minValue: 100,
+              maxValue: Infinity,
+              symbol: {
+                type: 'simple-marker',
+                style: 'circle',
+                color: '#FF0000', // 红色
+                size: 6,
+                outline: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              label: '> 100'
+            }
+          ]
+        }
+        this.resultLayer.refresh() // 刷新图层
       }
     },
     openLoadDataPopup () {
