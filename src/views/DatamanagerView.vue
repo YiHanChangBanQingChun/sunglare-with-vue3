@@ -497,18 +497,11 @@ export default {
       //     const hours = selectedTime.getHours().toString().padStart(2, '0')
       //     const minutes = selectedTime.getMinutes().toString().padStart(2, '0')
       //     const fieldName = `t${hours}:${minutes}:00`
-
-      //     console.log(`Selected Time: ${selectedTime}`)
-      //     console.log(`Field Name: ${fieldName}`)
-
       //     // 设置过滤器，只显示对应字段为1的点
       //     resultLayer.definitionExpression = `"${fieldName}" = 1`
-      //     console.log(`Updated definitionExpression: ${resultLayer.definitionExpression}`)
-
       //     // 刷新图层以应用新的过滤器
       //     try {
       //       await resultLayer.refresh()
-      //       console.log('图层已刷新')
       //     } catch (error) {
       //       console.error('图层刷新失败:', error)
       //     }
@@ -520,9 +513,6 @@ export default {
         const hours = selectedTime.getHours().toString().padStart(2, '0')
         const minutes = selectedTime.getMinutes().toString().padStart(2, '0')
         const fieldName = `t${hours}:${minutes}:00`
-
-        console.log(`Selected Time: ${selectedTime}`)
-        console.log(`Field Name: ${fieldName}`)
 
         if (this.resultLayer) {
           // 更新渲染器基于当前时间字段
@@ -571,11 +561,9 @@ export default {
             }
           }
 
-          console.log(`Updated renderer based on field: ${fieldName}`)
           // 刷新图层
           try {
             await this.resultLayer.refresh()
-            console.log('图层已刷新')
           } catch (error) {
             console.error('图层刷新失败:', error)
           }
@@ -585,7 +573,6 @@ export default {
       })
       this.mapView = mapView
       const BasemapName = this.mapView.map.basemap.title
-      console.log('BasemapName old:', BasemapName)
       // BasemapName 映射
       const basemapMapping = {
         '天地图-矢量（球面墨卡托投影）': 'tianditu-vector',
@@ -593,7 +580,6 @@ export default {
         '天地图-地形（球面墨卡托投影）': 'tianditu-topography'
       }
       this.BasemapName = basemapMapping[BasemapName] || BasemapName
-      console.log('BasemapName changed in rpv:', this.BasemapName)
       return mapView
     },
     // 处理底图选择
@@ -609,7 +595,6 @@ export default {
       } else {
         this.BasemapName = basemap.title
       }
-      console.log('Basemap changed:', this.BasemapName)
       const urlParams = new URLSearchParams(window.location.search)
       urlParams.set('BasemapLayer', this.BasemapName)
       window.history.replaceState({}, '', `${window.location.pathname}?${urlParams}`)
@@ -631,7 +616,6 @@ export default {
           this.BasemapName = BasemapLayer
         }
       }
-      console.log('BasemapLayer is', this.BasemapName)
     }
   },
   mounted () {

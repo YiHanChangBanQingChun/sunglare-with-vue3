@@ -198,7 +198,6 @@ export default {
       onSearchInputChange(this, event, isStart)
     },
     selectResult (result, isStart = true) {
-      console.log('用户选择了搜索结果:', result)
       const simplifiedResult = {
         name: result.name,
         address: result.address,
@@ -214,7 +213,6 @@ export default {
 
       // const BasemapName = this.mapView.map.basemap.title
       const BasemapName = this.BasemapName
-      console.log('BasemapName:', BasemapName)
 
       // 根据isStart的值，将选择的结果设置为起点或终点
       if (isStart) {
@@ -405,7 +403,6 @@ export default {
       })
       this.mapView = mapView
       const BasemapName = this.mapView.map.basemap.title
-      console.log('BasemapName old:', BasemapName)
       // BasemapName 映射
       const basemapMapping = {
         '天地图-矢量（球面墨卡托投影）': 'tianditu-vector',
@@ -413,7 +410,6 @@ export default {
         '天地图-地形（球面墨卡托投影）': 'tianditu-topography'
       }
       this.BasemapName = basemapMapping[BasemapName] || BasemapName
-      console.log('BasemapName changed in rpv:', this.BasemapName)
       return mapView
     },
     // 处理底图选择
@@ -429,7 +425,6 @@ export default {
       } else {
         this.BasemapName = basemap.title
       }
-      console.log('Basemap changed:', this.BasemapName)
       const urlParams = new URLSearchParams(window.location.search)
       urlParams.set('BasemapLayer', this.BasemapName)
       window.history.replaceState({}, '', `${window.location.pathname}?${urlParams}`)
@@ -451,7 +446,6 @@ export default {
           this.BasemapName = BasemapLayer
         }
       }
-      console.log('BasemapLayer is', this.BasemapName)
     }
   }
 }

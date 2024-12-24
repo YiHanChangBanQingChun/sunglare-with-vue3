@@ -114,7 +114,6 @@ export default {
   async mounted () {
     this.initzhuzhuangtu()
     await this.fetchIframeUrl()
-    console.log('Echarts is mounted')
     await this.fetchWeatherInfo(this.selectedDistrict) // 默认加载武汉市的天气信息
     this.intervalid = setInterval(() => {
       this.fetchWeatherInfo(this.selectedDistrict)
@@ -130,7 +129,6 @@ export default {
   beforeUnmount () {
     if (this.intervalid) {
       clearInterval(this.intervalid)
-      console.log('清除定时器')
     }
   },
   methods: {
@@ -165,7 +163,6 @@ export default {
         const data = await response.json()
         if (data.url) {
           this.iframeSrc = data.url
-          console.log('获取到的iframe URL:', this.iframeSrc)
         } else {
           console.error('URL not found in response')
           this.isLoading = false // 如果没有找到 URL，停止加载动画
@@ -188,7 +185,6 @@ export default {
         const data = await response.json()
         if (data.url) {
           this.iframeSrc = data.url
-          console.log('获取到的iframe URL:', this.iframeSrc)
         } else {
           console.error('URL not found in response')
           this.isLoading = false // 如果没有找到 URL，停止加载动画
@@ -209,7 +205,6 @@ export default {
     // 处理区域选择变化事件
     handleDistrictChange () {
       clearInterval(this.intervalid)
-      console.log('选择的区域:', this.selectedDistrict)
       this.fetchWeatherInfo(this.selectedDistrict)
       this.fetchStatistics(this.selectedDistrict)
       this.intervalid = setInterval(() => {
@@ -382,7 +377,6 @@ export default {
     inityibiaopan (areaName) {
       const chartDom = document.getElementById('yibiaopan')
       const myChart = echarts.init(chartDom)
-      console.log('初始化仪表盘:', areaName)
       const option = {
         title: {
           text: '实时温度',
@@ -554,10 +548,8 @@ export default {
     },
     // 获取当前时间的太阳角度信息
     async fetchSolarAngles (areaName) {
-      console.log('获取当前时间的太阳角度信息:', areaName)
       const time = new Date().toISOString()
       const url = `${process.env.VUE_APP_API_URL}/api/solar_angles?area_name=${encodeURIComponent(areaName)}&time=${time}`
-      console.log('请求太阳角度信息:', url)
       try {
         const response = await fetch(url, {
           method: 'GET',
@@ -568,9 +560,7 @@ export default {
         if (response.ok) {
           const solarInfo = await response.json()
           this.solarData = [solarInfo]
-          // console.log('Solar Data:', this.solarData) // 添加这行
           this.updatePolarChart(areaName)
-          // console.log('获取太阳角度信息成功:', solarInfo)
         } else {
           const errorData = await response.json()
           console.error('获取太阳角度信息失败:', errorData.message)
@@ -581,10 +571,8 @@ export default {
     },
     // 获取一天内的太阳角度轨迹信息
     async fetchSolarAnglesDay (areaName) {
-      console.log('获取一天内的太阳角度轨迹信息:', areaName)
       const date = new Date().toISOString().split('T')[0]
       const url = `${process.env.VUE_APP_API_URL}/api/solar_angles_day?area_name=${encodeURIComponent(areaName)}&date=${date}`
-      console.log('请求太阳角度信息:', url)
       try {
         const response = await fetch(url, {
           method: 'GET',
@@ -601,7 +589,6 @@ export default {
             isSunset: item.is_sunset
           }))
           this.updatePolarChart(areaName)
-          console.log('获取太阳角度信息成功:', solarInfo)
         } else {
           const errorData = await response.json()
           console.error('获取太阳角度信息失败:', errorData.message)
@@ -620,9 +607,7 @@ export default {
       const rawData = toRaw(this.solarData).filter(item => item.solar_altitude >= 0)
       const trajectoryData = toRaw(this.solarTrajectoryData).filter(item => item.solarAltitude >= 0)
       const maxAltitude = Math.max(...trajectoryData.map(item => item.solarAltitude), 0)
-      console.log('最大高度角:', maxAltitude)
       const adjustedMaxAltitude = Math.min(maxAltitude * 1.1, 90) // 扩展5%，但不超过90
-      console.log('调整后的最大高度角:', adjustedMaxAltitude)
       const option = {
         title: {
           text: `${areaName}太阳高度角和方位角`,
@@ -707,7 +692,6 @@ export default {
         const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/get_api_key`)
         if (response.data && response.data.key) {
           this.apiKey = response.data.key
-          console.log('获取 API 密钥成功:', this.apiKey)
         } else {
           console.error('获取 API 密钥失败')
         }
@@ -733,7 +717,6 @@ export default {
         420116: '黄陂区',
         420117: '新洲区'
       }
-      // console.log(`选择的区域: ${districtNames[district] || '未知区域'} (${district})`)
 
       if (!this.apiKey) {
         await this.fetchApiKey() // 获取 API 密钥
@@ -752,7 +735,6 @@ export default {
           }
           this.updateWeatherInfo(weatherInfo)
           this.updatezhuzhuangtu()
-          console.log('获取天气信息成功:', weatherInfo)
           this.inityibiaopan(districtNames[district]) // 更新仪表盘
           await this.fetchSolarAngles(districtNames[district])
           await this.fetchSolarAnglesDay(districtNames[district])

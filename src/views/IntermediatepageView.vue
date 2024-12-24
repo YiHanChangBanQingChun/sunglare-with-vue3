@@ -284,11 +284,6 @@ export default {
         label: result.label
       }
       let isUpdate = false
-
-      // const BasemapName = this.mapView.map.basemap.title
-      const BasemapName = this.BasemapLayer
-      console.log('BasemapName:', BasemapName)
-
       if (isStart && this.selectedResultStart) {
         isUpdate = true
         this.selectedResultStart = simplifiedResult
@@ -377,16 +372,12 @@ export default {
           location: [this.selectedResultEnd.wgs84_longitude, this.selectedResultEnd.wgs84_latitude]
         }
         const formattedTime = this.selectedTime.length === 5 ? `${this.selectedTime}:00` : this.selectedTime
-        console.log('Formatted Time:', formattedTime) // 打印时间参数
         // 发送请求到后端进行路径规划
         axios.post(`${process.env.VUE_APP_API_URL}/api/route/plan`, { start: startWithLocation, end: endWithLocation, date: this.selectedDate, time: formattedTime })
           .then(response => {
             // 后端返回的路径规划结果ID
             const defaultRoutePlanId = response.data.default_id
             const timeBasedRoutePlanId = response.data.time_based_id
-            console.log('默认路径规划结果ID:', defaultRoutePlanId)
-            console.log('基于时间的路径规划结果ID:', timeBasedRoutePlanId)
-            console.log('路径规划成功，时间日期是:', this.selectedDate, this.selectedTime)
             // 隐藏加载动画
             this.isLoading = false
             // 使用Vue Router跳转到结果页面，并传递路径规划结果ID
@@ -673,7 +664,6 @@ export default {
       } else {
         this.BasemapName = basemap.title
       }
-      console.log('Basemap changed:', this.BasemapName)
       const urlParams = new URLSearchParams(window.location.search)
       urlParams.set('BasemapLayer', this.BasemapName)
       window.history.replaceState({}, '', `${window.location.pathname}?${urlParams}`)
@@ -696,7 +686,6 @@ export default {
           this.BasemapName = BasemapLayer
         }
       }
-      console.log('BasemapLayer is update', this.BasemapName)
     }
   }
 }

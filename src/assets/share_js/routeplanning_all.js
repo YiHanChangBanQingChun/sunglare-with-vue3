@@ -106,7 +106,6 @@ export function onSearchInputChange (context, event, isStart) {
   const query = event.target.value
   const searchResultsField = isStart ? 'searchResults' : 'searchResultsEnd'
   if (query.includes("'")) {
-    console.log('输入法临时输入，不发送请求')
     return
   }
   if (query.length >= 2) {

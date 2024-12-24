@@ -119,7 +119,6 @@ export default {
       try {
         const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/get_weather`)
         const data = response.data
-        // console.log('Weather information:', data)
         const forecast = data.forecasts[0].casts[0] // 获取当天的天气信息
         this.weatherForecasts = data.forecasts[0].casts.map(cast => ({
           ...cast,
@@ -128,7 +127,6 @@ export default {
         })) // 获取未来几天的天气信息并添加图标路径
         this.weatherInfo = forecast
         this.updateCurrentWeather()
-        console.log('Successfully fetched weather information:', this.weatherInfo)
       } catch (error) {
         console.error('Error fetching weather information:', error)
       }

@@ -156,7 +156,6 @@ export function resetRouteStyle (context, routeId, originalColor = null) {
 }
 
 export function selectResult (context, result, isStart = true) {
-  console.log('用户选择了搜索结果:', result)
   const simplifiedResult = {
     name: result.name,
     address: result.address,

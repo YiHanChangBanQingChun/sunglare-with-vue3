@@ -208,7 +208,6 @@ export default {
     }
 
     const openResetPasswordModal = () => {
-      console.log('忘记密码按钮被点击')
       showResetPasswordModal.value = true
     }
 
@@ -245,7 +244,6 @@ export default {
 
     const checkUsername = () => {
       isUsernameValid.value = validateUsername(username.value)
-      console.log('Username valid:', isUsernameValid.value)
     }
 
     watch(username, checkUsername)
@@ -261,19 +259,16 @@ export default {
 
     const checkPassword = () => {
       isPasswordValid.value = validatePassword(password.value)
-      console.log('Password valid:', isPasswordValid.value)
     }
 
     // 检查新密码
     const checkNewPassword = () => {
       isNewPasswordValid.value = validatePassword(newPassword.value)
-      console.log('New Password valid:', isNewPasswordValid.value)
     }
 
     // 检查确认密码
     const checkConfirmPassword = () => {
       isConfirmPasswordValid.value = validatePassword(confirmPassword.value)
-      console.log('Confirm Password valid:', isConfirmPasswordValid.value)
     }
     watch(password, checkPassword)
     watch(newPassword, checkNewPassword)
@@ -289,7 +284,6 @@ export default {
 
     const checkEmail = () => {
       isEmailValid.value = validateEmail(email.value)
-      console.log('Email valid:', isEmailValid.value)
     }
 
     watch(email, checkEmail)
@@ -328,9 +322,6 @@ export default {
 
         const apiUrl = `${process.env.VUE_APP_API_URL}/api/register`
 
-        console.log('API URL:', apiUrl)
-        console.log('Request Body:', requestBody)
-
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
@@ -339,16 +330,13 @@ export default {
           body: JSON.stringify(requestBody)
         })
 
-        console.log('Response Status:', response.status)
         if (response.ok) {
           const data = await response.json()
-          console.log('Response Data:', data)
           alert(data.message)
           showRegisterModal.value = false
           clearRegisterForm() // 清空注册表单
         } else if (response.status === 400) {
           const errorData = await response.json()
-          console.log('Error Data:', errorData)
           if (errorData.message === 'Username already exists') {
             alert('用户名已存在，请重新输入')
           } else {
@@ -356,7 +344,6 @@ export default {
           }
         } else {
           const errorData = await response.json()
-          console.log('Error Data:', errorData)
           alert(errorData.message)
         }
       } catch (error) {
@@ -383,8 +370,6 @@ export default {
           alert(data.message) // 弹窗提示登录成功
           // 更新Vuex Store
           store.dispatch('login', { username: loginUsername.value })
-          console.log('登录成功:', data)
-          console.log('当前登录状态:', store.state)
           setTimeout(() => {
             router.push({ name: 'yong-hu-zhong-xin' })
           }, 1000)
