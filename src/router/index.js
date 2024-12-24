@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-// import HomeView from '../views/HomeView.vue'
 import AboutView from '../views/AboutView.vue'
 import ProjectOverview from '../views/AboutMarkdown/ProjectOverview.vue'
 import TechStack from '../views/AboutMarkdown/TechStack.vue'
@@ -80,7 +79,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHistory(process.env.NODE_ENV === 'production' ? '/sunglare-with-vue3/' : '/'),
   routes
 })
 

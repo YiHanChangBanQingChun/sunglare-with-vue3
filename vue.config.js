@@ -1,7 +1,9 @@
 const { defineConfig } = require('@vue/cli-service')
 
 module.exports = defineConfig({
-  publicPath: '/sun-glare-project/',
+  publicPath: process.env.NODE_ENV === 'production'
+    ? '/sunglare-with-vue3/' // 将 <REPO_NAME> 替换为你的仓库名称
+    : '/',
   transpileDependencies: true,
   chainWebpack: (config) => {
     config.plugin('define').tap((definitions) => {
