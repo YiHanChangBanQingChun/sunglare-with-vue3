@@ -8,31 +8,31 @@
       <!-- 工具箱网格 -->
       <div v-if="showToolboxPopup" class="toolbox-popup">
         <div class="toolbox-grid">
-          <div class="toolbox-item" @click="openLoadDataPopup">
+          <div class="toolbox-item" @click="openLoadDataPopup" @mouseover="startTooltipTimer('加载数据', '加载数据功能可以帮助您导入新的数据集。', $event)" @mouseleave="hideTooltip">
             <img src="@/assets/image/gis_dev_zgw_img/add_data.png" alt="加载数据">
           </div>
-          <div class="toolbox-item" @click="toggleTimeSlider"  :class="{ active: !timeSliderDisabled }">
+          <div class="toolbox-item" @click="toggleTimeSlider" :class="{ active: !timeSliderDisabled }" @mouseover="startTooltipTimer('时间滑块', '时间滑块功能可以帮助您在不同时间段之间切换。', $event)" @mouseleave="hideTooltip">
             <img src="@/assets/image/gis_dev_zgw_img/time_slider.png" alt="时间滑块">
           </div>
-          <div class="toolbox-item">
+          <div class="toolbox-item" @mouseover="startTooltipTimer('过滤器', '过滤器功能可以帮助您筛选数据。', $event)" @mouseleave="hideTooltip">
             <img src="@/assets/image/gis_dev_zgw_img/filter.png" alt="过滤功能">
           </div>
-          <div class="toolbox-item">
+          <div class="toolbox-item" @mouseover="startTooltipTimer('处理数据', '处理数据功能可以帮助您对数据进行处理。', $event)" @mouseleave="hideTooltip">
             <img src="@/assets/image/gis_dev_zgw_img/deal_data.png" alt="处理数据">
           </div>
-          <div class="toolbox-item">
+          <div class="toolbox-item" @click="openKernelDensityPopup" @mouseover="startTooltipTimer('核密度', '核密度功能可以帮助您计算数据的密度。', $event)" @mouseleave="hideTooltip">
             <img src="@/assets/image/gis_dev_zgw_img/dot_density.png" alt="密度计算">
           </div>
-          <div class="toolbox-item">
+          <div class="toolbox-item" @mouseover="startTooltipTimer('选择数据', '选择数据功能可以帮助您选择特定的数据。', $event)" @mouseleave="hideTooltip">
             <img src="@/assets/image/gis_dev_zgw_img/select.png" alt="选择数据">
           </div>
         </div>
-        <!-- 工具箱关闭按钮 -->
+        <!-- 工作箱关闭 -->
         <span class="toolbox-close" @click="toggleToolbox">
           <img src="@/assets/image/map_icon/cancel_dark.png" alt="关闭">
         </span>
       </div>
-      <!-- 弹窗 -->
+      <!-- 弹窗1，导入数据 -->
       <div v-if="showLoadDataPopup" class="modal-overlay">
         <div class="modal-content">
           <h2>加载数据</h2>
@@ -50,9 +50,45 @@
           </div>
         </div>
       </div>
+      <div v-if="showKernelDensityPopup" class="modal-overlay">
+    <!-- 弹窗2，核密度参数 -->
+    <div class="modal-content">
+        <h2>核密度计算</h2>
+        <div>
+          <label for="kernelRadius">核半径：</label>
+          <input type="number" id="kernelRadius" v-model="kernelRadius">
+        </div>
+        <div>
+          <label for="weightField">权重字段：</label>
+          <select id="weightField" v-model="weightField">
+            <option v-for="field in availableFields" :key="field" :value="field">{{ field }}</option>
+          </select>
+        </div>
+        <div>
+          <label for="maxValue">最大值：</label>
+          <input type="number" id="maxValue" v-model="maxValue">
+        </div>
+        <div>
+          <label for="colorStops">颜色渐变：</label>
+          <input type="text" id="colorStops" v-model="colorStops" placeholder="例如: 0,255,255,255,0; 0.1,0,0,255,0.8; ...">
+        </div>
+        <div class="modal-buttons">
+          <button @click="applyKernelDensity">确定</button>
+          <button @click="cancelKernelDensity">取消</button>
+        </div>
+      </div>
+    </div>
+      <transition name="fade">
+        <div v-if="tooltipVisible" :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }" class="tooltip">
+          <h3>{{ tooltipTitle }}</h3>
+          <p>{{ tooltipText }}</p>
+        </div>
+      </transition>
       <!-- 地图展示 -->
-      <div id="viewDiv"></div>
-      <div id="timeSliderDiv" class="time-slider" :style="{ maxHeight: showTimeSlider ? '30%' : '0%' }"></div>
+      <div id="viewDiv">
+      </div>
+      <div id="timeSliderDiv" class="time-slider" :style="{ maxHeight: showTimeSlider ? '30%' : '0%' }">
+      </div>
     </div>
 </template>
 
@@ -71,13 +107,13 @@ import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.
 import LayerList from '@geoscene/core/widgets/LayerList'
 import TimeSlider from '@geoscene/core/widgets/TimeSlider.js' // 导入 TimeSlider
 
+const FEATURE_LAYER_URL = 'https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_12_15_10min/FeatureServer'
+
 export default {
   name: 'DatamanagerView',
   data () {
     return {
-      // data
-      // resultLayer: markRaw(null),
-      resultLayer: null, // 将 resultLayer 初始化为 null，而不是 markRaw(null)
+      resultLayer: null,
       toolboxIcon: require('@/assets/image/gis_dev_zgw_img/Toolbox_4868.png'), // 工具箱图标路径
       BasemapName: '',
       ismaploading: true,
@@ -86,33 +122,84 @@ export default {
       showLoadDataPopup: false, // 控制加载数据弹窗显示
       showTimeSlider: false, // 添加控制时间滑块显示的状态
       timeSliderDisabled: true, // 时间滑块是否禁用，默认禁用
-      timeSlider: null // 保存 TimeSlider 实例
-      // timeSlider: markRaw(null)
+      timeSlider: null, // 保存 TimeSlider 实例
+
+      showKernelDensityPopup: false,
+      kernelRadius: 2,
+      weightField: '',
+      maxValue: 100,
+      colorStops: '0,255,255,255,0; 0.1,0,0,255,0.8; 0.3,0,255,255,0.8; 0.5,0,255,0,0.8; 0.7,255,255,0,0.8; 0.9,255,0,0,0.8; 1,139,0,0,0.8',
+      availableFields: ['result', 't08:50:00'],
+      kernelDensityLayer: null,
+
+      tooltipVisible: false,
+      tooltipTitle: '',
+      tooltipText: '',
+      tooltipX: 0,
+      tooltipY: 0,
+      tooltipTimer: null
     }
   },
   watch: {
     // watch
-    timeSliderDisabled (newVal) {
-      if (this.timeSlider) {
-        this.timeSlider.disabled = newVal
-        this.timeSlider.renderNow() // 确保 UI 更新
-      }
+    startTooltipTimer (title, text, event) {
+      this.tooltipTitle = title
+      this.tooltipText = text
+      this.tooltipX = event.clientX + 10
+      this.tooltipY = event.clientY + 10
+      this.tooltipTimer = setTimeout(() => {
+        this.tooltipVisible = true
+      }, 1000) // 悬停一秒后显示
+    },
+    hideTooltip () {
+      clearTimeout(this.tooltipTimer)
+      this.tooltipVisible = false
     }
   },
   methods: {
-    // methods
-    // 切换工具箱弹窗显示状态
+    startTooltipTimer (title, text, event) {
+      this.tooltipTitle = title
+      this.tooltipText = text
+      this.tooltipX = event.clientX + 10
+      this.tooltipY = event.clientY + 10
+      this.tooltipTimer = setTimeout(() => {
+        this.tooltipVisible = true
+      }, 1000) // 悬停一秒后显示
+    },
+    hideTooltip () {
+      clearTimeout(this.tooltipTimer)
+      this.tooltipVisible = false
+    },
     toggleToolbox () {
       this.showToolboxPopup = !this.showToolboxPopup
     },
-    // toggleTimeSlider () {
-    //   this.timeSliderDisabled = !this.timeSliderDisabled
-    //   this.showTimeSlider = !this.showTimeSlider
-    //   if (this.timeSlider) {
-    //     this.timeSlider.disabled = this.timeSliderDisabled
-    //     this.timeSlider.renderNow() // 触发重渲染
-    //   }
-    // },
+    openKernelDensityPopup () {
+      this.showKernelDensityPopup = true
+    },
+    applyKernelDensity () {
+      this.showKernelDensityPopup = false
+      // 解析颜色渐变字符串
+      const colorStopsArray = this.colorStops.split(';').map(stop => {
+        const [ratio, r, g, b, a] = stop.split(',').map(Number)
+        return { ratio, color: `rgba(${r}, ${g}, ${b}, ${a})` }
+      })
+      // 创建核密度图层
+      this.kernelDensityLayer = markRaw(new FeatureLayer({
+        url: FEATURE_LAYER_URL, // 使用全局 URL
+        title: '核密度图层',
+        renderer: {
+          type: 'heatmap',
+          colorStops: colorStopsArray,
+          blurRadius: this.kernelRadius,
+          maxPixelIntensity: this.maxValue,
+          field: this.weightField
+        }
+      }))
+      this.mapView.map.add(this.kernelDensityLayer)
+    },
+    cancelKernelDensity () {
+      this.showKernelDensityPopup = false
+    },
     toggleTimeSlider () {
       this.timeSliderDisabled = !this.timeSliderDisabled
       this.showTimeSlider = !this.showTimeSlider
@@ -245,7 +332,8 @@ export default {
       })
       // 使用 markRaw 创建并赋值 resultLayer
       this.resultLayer = markRaw(new FeatureLayer({
-        url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_12_15_10min/FeatureServer',
+        // url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_12_15_10min/FeatureServer',
+        url: FEATURE_LAYER_URL,
         title: '分析结果',
         renderer: {
           type: 'class-breaks', // 使用分级渲染器
@@ -813,6 +901,38 @@ export default {
   left: 50%;
   transform: translateX(-50%);
   border-radius: 10px; /* 添加圆角 */
+}
+
+.tooltip {
+  position: absolute;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  pointer-events: none;
+  z-index: 1000;
+  color:rgb(109, 72, 72);
+  /* background-color: rgba(255, 255, 255, 0.5); 应用深色毛玻璃效果 */
+  -webkit-backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+  backdrop-filter: blur(25px); /* 应用毛玻璃效果 */
+}
+
+.tooltip h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.tooltip p {
+  margin: 5px 0 0;
+  font-size: 12px;
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.5s;
+}
+
+.fade-enter, .fade-leave-to /* .fade-leave-active in <2.1.8 */ {
+  opacity: 0;
 }
 
 /* 以下区域无需编辑 */
