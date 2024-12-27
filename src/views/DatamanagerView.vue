@@ -17,7 +17,7 @@
           <div class="toolbox-item" @mouseover="startTooltipTimer('过滤器', '过滤器功能可以帮助您筛选数据。', $event)" @mouseleave="hideTooltip">
             <img src="@/assets/image/gis_dev_zgw_img/filter.png" alt="过滤功能">
           </div>
-          <div class="toolbox-item" @mouseover="startTooltipTimer('处理数据', '处理数据功能可以帮助您对数据进行处理。', $event)" @mouseleave="hideTooltip">
+          <div class="toolbox-item" @click="toggleFeatureTable" @mouseover="startTooltipTimer('处理数据', '处理数据功能可以帮助您对数据进行处理。', $event)" @mouseleave="hideTooltip">
             <img src="@/assets/image/gis_dev_zgw_img/deal_data.png" alt="处理数据">
           </div>
           <div class="toolbox-item" @click="openKernelDensityPopup" @mouseover="startTooltipTimer('核密度', '核密度功能可以帮助您计算数据的密度。', $event)" @mouseleave="hideTooltip">
@@ -34,16 +34,16 @@
       </div>
       <!-- 弹窗1，导入数据 -->
       <div v-if="showLoadDataPopup" class="modal-overlay">
-        <div class="modal-content">
-          <h2>加载数据</h2>
-          <div>
-            <label for="dataSelect">选择数据：</label>
-            <select id="dataSelect">
-              <option value="数据1">数据1</option>
-              <option value="数据2">数据2</option>
-              <option value="数据3">数据3</option>
-            </select>
-          </div>
+      <div class="modal-content">
+        <h2>加载数据</h2>
+        <div>
+          <label for="dataSelect">选择数据：</label>
+          <select id="dataSelect" class="styled-select">
+            <option value="数据1">数据1</option>
+            <option value="数据2">数据2</option>
+            <option value="数据3">数据3</option>
+          </select>
+        </div>
           <div class="modal-buttons">
             <button @click="confirmLoadData">确定</button>
             <button @click="cancelLoadData">取消</button>
@@ -53,30 +53,30 @@
       <div v-if="showKernelDensityPopup" class="modal-overlay">
     <!-- 弹窗2，核密度参数 -->
     <div class="modal-content">
-        <h2>核密度计算</h2>
-        <div>
-          <label for="kernelRadius">核半径：</label>
-          <input type="number" id="kernelRadius" v-model="kernelRadius">
-        </div>
-        <div>
-          <label for="weightField">权重字段：</label>
-          <select id="weightField" v-model="weightField">
-            <option v-for="field in availableFields" :key="field" :value="field">{{ field }}</option>
-          </select>
-        </div>
-        <div>
-          <label for="maxValue">最大值：</label>
-          <input type="number" id="maxValue" v-model="maxValue">
-        </div>
-        <div>
-          <label for="colorStops">颜色渐变：</label>
-          <input type="text" id="colorStops" v-model="colorStops" placeholder="例如: 0,255,255,255,0; 0.1,0,0,255,0.8; ...">
-        </div>
-        <div class="modal-buttons">
-          <button @click="applyKernelDensity">确定</button>
-          <button @click="cancelKernelDensity">取消</button>
-        </div>
+      <h2>核密度计算</h2>
+      <div>
+        <label for="kernelRadius">核半径：</label>
+        <input type="number" id="kernelRadius" v-model="kernelRadius" class="styled-select">
       </div>
+      <div>
+        <label for="weightField">权重字段：</label>
+        <select id="weightField" v-model="weightField" class="styled-select">
+          <option v-for="field in availableFields" :key="field" :value="field">{{ field }}</option>
+        </select>
+      </div>
+      <div>
+        <label for="maxValue">最大值：</label>
+        <input type="number" id="maxValue" v-model="maxValue" class="styled-select">
+      </div>
+      <!-- <div>
+        <label for="colorStops">颜色渐变：</label>
+        <input type="text" id="colorStops" v-model="colorStops" placeholder="" class="styled-select">
+      </div> -->
+      <div class="modal-buttons">
+        <button @click="applyKernelDensity">确定</button>
+        <button @click="cancelKernelDensity">取消</button>
+      </div>
+    </div>
     </div>
       <transition name="fade">
         <div v-if="tooltipVisible" :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }" class="tooltip">
@@ -89,6 +89,7 @@
       </div>
       <div id="timeSliderDiv" class="time-slider" :style="{ maxHeight: showTimeSlider ? '30%' : '0%' }">
       </div>
+      <div v-if="showFeatureTable" id="featureTableDiv" class="feature-table"></div>
     </div>
 </template>
 
@@ -106,6 +107,7 @@ import ScaleBar from '@geoscene/core/widgets/ScaleBar.js'
 import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.js'
 import LayerList from '@geoscene/core/widgets/LayerList'
 import TimeSlider from '@geoscene/core/widgets/TimeSlider.js' // 导入 TimeSlider
+import FeatureTable from '@geoscene/core/widgets/FeatureTable.js'
 
 const FEATURE_LAYER_URL = 'https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_12_15_10min/FeatureServer'
 
@@ -118,6 +120,8 @@ export default {
       BasemapName: '',
       ismaploading: true,
 
+      featureTable: null,
+      showFeatureTable: false,
       showToolboxPopup: false, // 控制工具箱弹窗显示
       showLoadDataPopup: false, // 控制加载数据弹窗显示
       showTimeSlider: false, // 添加控制时间滑块显示的状态
@@ -183,18 +187,24 @@ export default {
         const [ratio, r, g, b, a] = stop.split(',').map(Number)
         return { ratio, color: `rgba(${r}, ${g}, ${b}, ${a})` }
       })
+
+      // 检查权重字段是否是时间字段
+      const isTimeField = /^t\d{2}_\d{2}_\d{2}$/.test(this.weightField)
+
       // 创建核密度图层
       this.kernelDensityLayer = markRaw(new FeatureLayer({
         url: FEATURE_LAYER_URL, // 使用全局 URL
         title: '核密度图层',
+        definitionExpression: isTimeField ? `${this.weightField} = 1` : '', // 过滤掉值为0的点
         renderer: {
           type: 'heatmap',
           colorStops: colorStopsArray,
           blurRadius: this.kernelRadius,
-          maxPixelIntensity: this.maxValue,
+          maxPixelIntensity: isTimeField ? 1 : this.maxValue, // 如果是时间字段，不限制最大值
           field: this.weightField
         }
       }))
+
       this.mapView.map.add(this.kernelDensityLayer)
     },
     cancelKernelDensity () {
@@ -301,6 +311,79 @@ export default {
         numLODs: 32
       })
       this.createMapView(map, tileInfo)
+      // 创建 FeatureTable 实例
+      this.$nextTick(() => {
+        this.featureTable = new FeatureTable({
+          view: this.mapView,
+          layer: this.resultLayer,
+          container: 'featureTableDiv'
+        })
+        this.$nextTick(() => {
+          const featureTableDiv = document.querySelector('.feature-table')
+          if (featureTableDiv) {
+            featureTableDiv.style.height = '0'
+          }
+        })
+      })
+    },
+    toggleFeatureTable () {
+      this.showFeatureTable = !this.showFeatureTable
+      this.$nextTick(() => {
+        const featureTableDiv = document.querySelector('.feature-table')
+        if (this.showFeatureTable) {
+          if (featureTableDiv) {
+            featureTableDiv.style.height = '100%'
+            featureTableDiv.style.width = '100%'
+          }
+          const layerList = document.querySelector('.geoscene-layer-list')
+          if (layerList) {
+            layerList.style.maxHeight = '0'
+          }
+          const basemapGallery = document.querySelector('.geoscene-basemap-gallery')
+          if (basemapGallery) {
+            basemapGallery.style.maxHeight = '0'
+          }
+        } else {
+          if (featureTableDiv) {
+            featureTableDiv.style.height = '0'
+            featureTableDiv.style.width = '0'
+          }
+          const layerList = document.querySelector('.geoscene-layer-list')
+          if (layerList) {
+            layerList.style.maxHeight = ''
+          }
+          const basemapGallery = document.querySelector('.geoscene-basemap-gallery')
+          if (basemapGallery) {
+            basemapGallery.style.maxHeight = ''
+          }
+        }
+      })
+    },
+    generateFieldInfos () {
+      const fields = this.resultLayer.fields.map(field => field.name)
+      // 测试输出字段
+      // console.log(fields)
+      const timeFields = fields.filter(field => /^t\d{2}_\d{2}_\d{2}$/.test(field))
+
+      const fixedFields = [
+        { fieldName: 'pid', label: 'PID' },
+        { fieldName: 'result', label: '结果' },
+        { fieldName: '50lon', label: '经度' },
+        { fieldName: '50lat', label: '纬度' },
+        { fieldName: 'near_fid', label: '近似FID' },
+        { fieldName: 'yaw', label: '偏航角' }
+      ]
+
+      const timeFieldInfos = timeFields.map(field => ({
+        fieldName: field,
+        label: field.replace('t', '').replace(/_/g, ':')
+      }))
+
+      // 返回所有字段
+      return {
+        fieldInfos: [...timeFieldInfos, ...fixedFields],
+        allFields: fields
+      }
     },
     // 创建地图视图
     createMapView (map, tileInfo) {
@@ -405,46 +488,7 @@ export default {
           title: '{road_name} - {result}', // 标题为 road_name 加上 result
           content: [{
             type: 'fields',
-            fieldInfos: [
-              { fieldName: 'pid', label: 'PID' },
-              { fieldName: 't07:20:00', label: '07:20:00' },
-              { fieldName: 't07:30:00', label: '07:30:00' },
-              { fieldName: 't07:40:00', label: '07:40:00' },
-              { fieldName: 't07:50:00', label: '07:50:00' },
-              { fieldName: 't08:00:00', label: '08:00:00' },
-              { fieldName: 't08:10:00', label: '08:10:00' },
-              { fieldName: 't08:20:00', label: '08:20:00' },
-              { fieldName: 't08:30:00', label: '08:30:00' },
-              { fieldName: 't08:40:00', label: '08:40:00' },
-              { fieldName: 't08:50:00', label: '08:50:00' },
-              { fieldName: 't09:00:00', label: '09:00:00' },
-              { fieldName: 't09:10:00', label: '09:10:00' },
-              { fieldName: 't09:20:00', label: '09:20:00' },
-              { fieldName: 't09:30:00', label: '09:30:00' },
-              { fieldName: 't09:40:00', label: '09:40:00' },
-              { fieldName: 't09:50:00', label: '09:50:00' },
-              { fieldName: 't14:50:00', label: '14:50:00' },
-              { fieldName: 't15:00:00', label: '15:00:00' },
-              { fieldName: 't15:10:00', label: '15:10:00' },
-              { fieldName: 't15:20:00', label: '15:20:00' },
-              { fieldName: 't15:30:00', label: '15:30:00' },
-              { fieldName: 't15:40:00', label: '15:40:00' },
-              { fieldName: 't15:50:00', label: '15:50:00' },
-              { fieldName: 't16:00:00', label: '16:00:00' },
-              { fieldName: 't16:10:00', label: '16:10:00' },
-              { fieldName: 't16:20:00', label: '16:20:00' },
-              { fieldName: 't16:30:00', label: '16:30:00' },
-              { fieldName: 't16:40:00', label: '16:40:00' },
-              { fieldName: 't16:50:00', label: '16:50:00' },
-              { fieldName: 't17:00:00', label: '17:00:00' },
-              { fieldName: 't17:10:00', label: '17:10:00' },
-              { fieldName: 't17:20:00', label: '17:20:00' },
-              { fieldName: 'result', label: '结果' },
-              { fieldName: '50lon', label: '经度' },
-              { fieldName: '50lat', label: '纬度' },
-              { fieldName: 'near_fid', label: '近似FID' },
-              { fieldName: 'yaw', label: '偏航角' }
-            ]
+            fieldInfos: []
           }]
         }
       }))
@@ -477,6 +521,12 @@ export default {
       // 监听地图视图的 `when` 事件，地图加载完成后设置 `ismaploading` 为 false
       mapView.when(() => {
         this.ismaploading = false
+        // 获取字段信息并更新 popupTemplate
+        this.resultLayer.load().then(() => {
+          const { fieldInfos, allFields } = this.generateFieldInfos(this.resultLayer.fields)
+          this.resultLayer.popupTemplate.content[0].fieldInfos = fieldInfos
+          this.availableFields = allFields // 更新 availableFields
+        })
       })
       // 创建 BasemapGallery 实例
       const basemapGallery = new BasemapGallery({
@@ -573,7 +623,8 @@ export default {
           interval: {
             unit: 'minutes',
             value: 10
-          }
+          },
+          playRate: 500
         }
       }))
       this.timeSlider = timeSlider // 保存非响应式实例
@@ -725,6 +776,20 @@ export default {
   width: 100%; /* 将宽度设置为视口宽度的100% */
   z-index: -1; /* 设置较低的z-index值，使其在App.vue的下部分 */
   margin: auto;
+}
+
+.feature-table {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 60%;
+  height: 0;
+  z-index: 1000;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(222, 222, 222, 0.45);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: height 0.3s, width 0.3s;
 }
 
 .toolbox {
@@ -933,6 +998,37 @@ export default {
 
 .fade-enter, .fade-leave-to /* .fade-leave-active in <2.1.8 */ {
   opacity: 0;
+}
+
+.styled-select {
+  position: relative;
+  padding: 8px 8px;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+  outline: none;
+  flex-grow: 1;
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  appearance: none; /* 移除默认样式 */
+  background-color: white; /* 背景颜色 */
+  background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="gray" class="bi bi-caret-down-fill" viewBox="0 0 16 16"><path d="M7.247 11.14l-4.796-5.481C2.451 5.253 2.675 5 3.054 5h9.892c.38 0 .603.253.603.659 0 .106-.03.21-.09.301l-4.796 5.48a.537.537 0 0 1-.818 0z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px 16px;
+  cursor: pointer;
+}
+
+/* 鼠标悬停时只改变边框颜色，不改变宽度 */
+.styled-select:hover {
+  border-color: rgb(109, 72, 72);
+}
+
+/* 聚焦时改变边框颜色和宽度 */
+.styled-select:focus {
+  border-width: 2px;
+  border-color: rgb(109, 72, 72);
 }
 
 /* 以下区域无需编辑 */
