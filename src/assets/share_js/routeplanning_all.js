@@ -112,7 +112,8 @@ export function onSearchInputChange (context, event, isStart) {
     fetch(`${process.env.VUE_APP_API_URL}/api/search`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
       },
       body: JSON.stringify({ searchQueryStart: query })
     })

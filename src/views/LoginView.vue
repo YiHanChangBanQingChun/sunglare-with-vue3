@@ -325,7 +325,8 @@ export default {
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
           },
           body: JSON.stringify(requestBody)
         })
@@ -358,7 +359,8 @@ export default {
         const response = await fetch(`${process.env.VUE_APP_API_URL}/api/login`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
           },
           body: JSON.stringify({
             username: loginUsername.value,

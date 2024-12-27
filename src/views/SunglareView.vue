@@ -138,7 +138,8 @@ export default {
         const response = await fetch(`${process.env.VUE_APP_API_URL}/api/get_dates`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
           }
         })
         const data = await response.json()
@@ -157,7 +158,8 @@ export default {
         const response = await fetch(`${process.env.VUE_APP_API_URL}/api/get_url_by_date?date=${date}`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
           }
         })
         const data = await response.json()
@@ -179,7 +181,8 @@ export default {
         const response = await fetch(`${process.env.VUE_APP_API_URL}/api/getapp`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
           }
         })
         const data = await response.json()
@@ -359,7 +362,8 @@ export default {
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true' // 添加请求头
           }
         })
         const data = await response.json()
@@ -554,7 +558,8 @@ export default {
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
           }
         })
         if (response.ok) {
@@ -577,7 +582,8 @@ export default {
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
           }
         })
         if (response.ok) {
