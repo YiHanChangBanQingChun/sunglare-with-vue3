@@ -371,7 +371,7 @@ export default {
 
 </script>
 
-<style>
+<style scoped>
 .yong-hu-zhong-xin {
   display: flex;
   height: 88vh;

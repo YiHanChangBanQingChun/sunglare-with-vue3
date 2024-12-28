@@ -7,26 +7,26 @@
       </div>
       <!-- 工具箱网格 -->
       <div v-if="showToolboxPopup" class="toolbox-popup">
-        <div class="toolbox-grid">
-          <div class="toolbox-item" @click="openLoadDataPopup" @mouseover="startTooltipTimer('加载数据', '加载数据功能可以帮助您导入新的数据集。', $event)" @mouseleave="hideTooltip">
-            <img src="@/assets/image/gis_dev_zgw_img/add_data.png" alt="加载数据">
-          </div>
-          <div class="toolbox-item" @click="toggleTimeSlider" :class="{ active: !timeSliderDisabled }" @mouseover="startTooltipTimer('时间滑块', '时间滑块功能可以帮助您在不同时间段之间切换。', $event)" @mouseleave="hideTooltip">
-            <img src="@/assets/image/gis_dev_zgw_img/time_slider.png" alt="时间滑块">
-          </div>
-          <div class="toolbox-item" @mouseover="startTooltipTimer('过滤器', '过滤器功能可以帮助您筛选数据。', $event)" @mouseleave="hideTooltip">
-            <img src="@/assets/image/gis_dev_zgw_img/filter.png" alt="过滤功能">
-          </div>
-          <div class="toolbox-item" @click="toggleFeatureTable" @mouseover="startTooltipTimer('处理数据', '处理数据功能可以帮助您对数据进行处理。', $event)" @mouseleave="hideTooltip">
-            <img src="@/assets/image/gis_dev_zgw_img/deal_data.png" alt="处理数据">
-          </div>
-          <div class="toolbox-item" @click="openKernelDensityPopup" @mouseover="startTooltipTimer('核密度', '核密度功能可以帮助您计算数据的密度。', $event)" @mouseleave="hideTooltip">
-            <img src="@/assets/image/gis_dev_zgw_img/dot_density.png" alt="密度计算">
-          </div>
-          <div class="toolbox-item" @mouseover="startTooltipTimer('选择数据', '选择数据功能可以帮助您选择特定的数据。', $event)" @mouseleave="hideTooltip">
-            <img src="@/assets/image/gis_dev_zgw_img/select.png" alt="选择数据">
-          </div>
+      <div class="toolbox-grid">
+        <div class="help-toolbox" @click="openLoadDataPopup" @mouseover="startTooltipTimer('加载数据', '加载数据功能可以帮助您导入新的数据集。', $event)" @mouseleave="hideTooltip">
+          <img src="@/assets/image/gis_dev_zgw_img/add_data.png" alt="加载数据">
         </div>
+        <div class="help-toolbox" @click="toggleTimeSlider" :class="{ active: !timeSliderDisabled }" @mouseover="startTooltipTimer('时间滑块', '时间滑块功能可以帮助您在不同时间段之间切换。', $event)" @mouseleave="hideTooltip">
+          <img src="@/assets/image/gis_dev_zgw_img/time_slider.png" alt="时间滑块">
+        </div>
+        <div class="help-toolbox disabled" @mouseover="startTooltipTimer('过滤器', '过滤器功能可以帮助您筛选数据。', $event)" @mouseleave="hideTooltip">
+          <img src="@/assets/image/gis_dev_zgw_img/filter.png" alt="过滤功能">
+        </div>
+        <div class="help-toolbox disabled" @mouseover="startTooltipTimer('处理数据', '处理数据功能可以帮助您对数据进行处理。', $event)" @mouseleave="hideTooltip">
+          <img src="@/assets/image/gis_dev_zgw_img/deal_data.png" alt="处理数据">
+        </div>
+        <div class="help-toolbox" @click="openKernelDensityPopup" @mouseover="startTooltipTimer('核密度', '核密度功能可以帮助您计算数据的密度。', $event)" @mouseleave="hideTooltip">
+          <img src="@/assets/image/gis_dev_zgw_img/dot_density.png" alt="密度计算">
+        </div>
+        <div class="help-toolbox disabled" @mouseover="startTooltipTimer('选择数据', '选择数据功能可以帮助您选择特定的数据。', $event)" @mouseleave="hideTooltip">
+          <img src="@/assets/image/gis_dev_zgw_img/select.png" alt="选择数据">
+        </div>
+      </div>
         <!-- 工作箱关闭 -->
         <span class="toolbox-close" @click="toggleToolbox">
           <img src="@/assets/image/map_icon/cancel_dark.png" alt="关闭">
@@ -34,16 +34,14 @@
       </div>
       <!-- 弹窗1，导入数据 -->
       <div v-if="showLoadDataPopup" class="modal-overlay">
-      <div class="modal-content">
-        <h2>加载数据</h2>
-        <div>
-          <label for="dataSelect">选择数据：</label>
-          <select id="dataSelect" class="styled-select">
-            <option value="数据1">数据1</option>
-            <option value="数据2">数据2</option>
-            <option value="数据3">数据3</option>
-          </select>
-        </div>
+        <div class="modal-content">
+          <h2>加载数据</h2>
+          <div>
+            <label for="dataSelect">选择数据：</label>
+            <select id="dataSelect" class="styled-select" v-model="selectedDate">
+              <option v-for="date in availableDates" :key="date" :value="date">{{ date }}</option>
+            </select>
+          </div>
           <div class="modal-buttons">
             <button @click="confirmLoadData">确定</button>
             <button @click="cancelLoadData">取消</button>
@@ -108,9 +106,10 @@ import DistanceMeasurement2D from '@geoscene/core/widgets/DistanceMeasurement2D.
 import LayerList from '@geoscene/core/widgets/LayerList'
 import TimeSlider from '@geoscene/core/widgets/TimeSlider.js' // 导入 TimeSlider
 import FeatureTable from '@geoscene/core/widgets/FeatureTable.js'
+import axios from 'axios'
 
-const FEATURE_LAYER_URL = 'https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_12_15_10min/FeatureServer'
-
+const FEATURE_LAYER_URL_DEFAULT = 'https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_12_15_10min/FeatureServer'
+const WHHANVILLAGE = 'https://www.geosceneonline.cn/server/rest/services/Hosted/wuhan_village/FeatureServer'
 export default {
   name: 'DatamanagerView',
   data () {
@@ -141,7 +140,10 @@ export default {
       tooltipText: '',
       tooltipX: 0,
       tooltipY: 0,
-      tooltipTimer: null
+      tooltipTimer: null,
+
+      availableDates: [],
+      selectedDate: ''
     }
   },
   watch: {
@@ -193,7 +195,7 @@ export default {
 
       // 创建核密度图层
       this.kernelDensityLayer = markRaw(new FeatureLayer({
-        url: FEATURE_LAYER_URL, // 使用全局 URL
+        url: FEATURE_LAYER_URL_DEFAULT, // 使用全局 URL
         title: '核密度图层',
         definitionExpression: isTimeField ? `${this.weightField} = 1` : '', // 过滤掉值为0的点
         renderer: {
@@ -290,10 +292,109 @@ export default {
     },
     openLoadDataPopup () {
       this.showLoadDataPopup = true
+      axios.get(`${process.env.VUE_APP_API_URL}/api/get_feature_layer_dates`)
+        .then(response => {
+          this.availableDates = response.data.dates
+          console.log('Available dates:', this.availableDates)
+        })
+        .catch(error => {
+          console.error('Error fetching dates:', error)
+        })
     },
     confirmLoadData () {
-      // TODO: 添加确认加载数据的逻辑
-      this.showLoadDataPopup = false
+      axios.get(`${process.env.VUE_APP_API_URL}/api/get_feature_layer_url_by_date`, { params: { date: this.selectedDate } })
+        .then(response => {
+          const url = response.data.url
+          console.log('Feature Layer URL:', url)
+          this.updateFeatureLayer(url)
+          this.showLoadDataPopup = false
+        })
+        .catch(error => {
+          console.error('Error fetching URL:', error)
+        })
+    },
+    updateFeatureLayer (url) {
+      if (this.resultLayer) {
+        this.mapView.map.remove(this.resultLayer)
+      }
+      this.resultLayer = markRaw(new FeatureLayer({
+        url: url,
+        title: '分析结果',
+        renderer: {
+          type: 'class-breaks',
+          field: 'result',
+          classBreakInfos: [
+            {
+              minValue: 0,
+              maxValue: 10,
+              symbol: {
+                type: 'simple-marker',
+                style: 'circle',
+                color: '#00FF00', // 绿色
+                size: 6,
+                outline: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              label: '0 - 10'
+            },
+            {
+              minValue: 10,
+              maxValue: 50,
+              symbol: {
+                type: 'simple-marker',
+                style: 'circle',
+                color: '#FFFF00', // 黄色
+                size: 6,
+                outline: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              label: '10 - 50'
+            },
+            {
+              minValue: 50,
+              maxValue: 100,
+              symbol: {
+                type: 'simple-marker',
+                style: 'circle',
+                color: '#FFA500', // 橙色
+                size: 6,
+                outline: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              label: '50 - 100'
+            },
+            {
+              minValue: 100,
+              maxValue: Infinity,
+              symbol: {
+                type: 'simple-marker',
+                style: 'circle',
+                color: '#FF0000', // 红色
+                size: 6,
+                outline: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              label: '> 100'
+            }
+          ]
+        },
+        popupTemplate: {
+          title: '{road_name} - {result}',
+          content: [{
+            type: 'fields',
+            fieldInfos: []
+          }]
+        }
+      }))
+      this.mapView.map.add(this.resultLayer)
     },
     cancelLoadData () {
       this.showLoadDataPopup = false
@@ -389,7 +490,7 @@ export default {
     createMapView (map, tileInfo) {
       // 创建 FeatureLayer 实例
       const featureLayer = new FeatureLayer({
-        url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/wuhan_village/FeatureServer',
+        url: WHHANVILLAGE,
         title: '武汉县区面',
         renderer: {
           type: 'simple', // 使用简单渲染器
@@ -416,7 +517,7 @@ export default {
       // 使用 markRaw 创建并赋值 resultLayer
       this.resultLayer = markRaw(new FeatureLayer({
         // url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_12_15_10min/FeatureServer',
-        url: FEATURE_LAYER_URL,
+        url: FEATURE_LAYER_URL_DEFAULT,
         title: '分析结果',
         renderer: {
           type: 'class-breaks', // 使用分级渲染器
@@ -813,7 +914,7 @@ export default {
   color: rgb(109, 72, 72);
 }
 
-.toolbox-item.active {
+.help-toolbox.active {
   background-color: red; /* 激活状态背景为红色 */
 }
 
@@ -868,7 +969,7 @@ export default {
   border-radius: 10px;
 }
 
-.toolbox-item {
+.help-toolbox {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -893,13 +994,24 @@ export default {
   transition: background-color 0.3s;
 }
 
-.toolbox-item img {
+.help-toolbox img {
   width: 3vh; /* 设置图标宽度为40px，调整为合适大小 */
   height: auto;
 }
 
-.toolbox-item:hover {
+.help-toolbox:hover {
   background-color: rgb(253, 185, 97);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.help-toolbox.disabled {
+  cursor: not-allowed; /* 禁用状态下的鼠标样式 */
+  opacity: 0.5; /* 禁用状态下的透明度 */
+}
+
+.help-toolbox:hover:not(.disabled) {
+  background-color: rgb(253, 185, 97);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 添加背景阴影 */
 }
 
 /* 弹窗覆盖层 */

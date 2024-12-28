@@ -442,7 +442,7 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
 .deng-lu {
   background-image: url('~@/assets/image/background/bg2.jpg'); /* 替换为你的图片路径 */
   background-size: cover; /* 背景图片覆盖整个元素 */

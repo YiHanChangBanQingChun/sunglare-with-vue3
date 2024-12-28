@@ -25,7 +25,24 @@ import requests
 import re
 import copy
 
-# step 1: create a Flask app
+
+# 时间的装饰器
+def timeit(method):
+    def timed(*args, **kw):
+        ts = datetime.now()
+        result = method(*args, **kw)
+        te = datetime.now()
+        print(f"Function {method.__name__} took: {te - ts}")
+        return result
+    return timed
+
+# 日志记录的装饰器
+def logit(method):
+    def logged(*args, **kw):
+        print(f"Calling {method.__name__} with args: {args} and kw: {kw}")
+        return method(*args, **kw)
+    return logged
+
 # 初始化 Flask 应用
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -52,16 +69,28 @@ with app.app_context():
 
 # 获取当前文件的目录
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# print(BASE_DIR)
 temp_dir = os.path.join(BASE_DIR, 'tmp')
-# print(temp_dir)
 
-# 检查 tmp 目录是否存在，如果不存在则创建
-if not os.path.exists(temp_dir):
-    os.makedirs(temp_dir)
+# 标志变量，确保 clear_temp_folder 只执行一次
+temp_folder_cleared = False
 
-# step 2: create a model
 class Location(db.Model):
+    """
+    Location model representing a geographical location with various attributes.
+    Attributes:
+        id (int): Primary key, unique identifier for the location.
+        name (str): Name of the location.
+        address (str): Address of the location.
+        baidu_longitude (float): Longitude of the location in Baidu coordinate system.
+        baidu_latitude (float): Latitude of the location in Baidu coordinate system.
+        wgs84_longitude (float): Longitude of the location in WGS84 coordinate system.
+        wgs84_latitude (float): Latitude of the location in WGS84 coordinate system.
+        baidu_index (str): Index or identifier used in Baidu maps.
+        label (str): Label or description of the location.
+        geom (Geometry): Geometric representation of the location as a point with SRID 4326.
+    Methods:
+        __repr__(): Returns a string representation of the Location instance.
+    """
     __tablename__ = 'locations'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255))
@@ -78,6 +107,19 @@ class Location(db.Model):
         return f'<Location {self.name}>'
 
 class User(db.Model):
+    """
+    User model for storing user details.
+
+    Attributes:
+        id (int): Primary key, unique identifier for the user.
+        username (str): Unique username for the user, maximum length of 50 characters.
+        password (str): User's password, maximum length of 80 characters.
+        email (str): Unique email address for the user, maximum length of 50 characters.
+        security_question (str): Security question for account recovery, maximum length of 100 characters.
+        security_answer (str): Answer to the security question, maximum length of 100 characters.
+        birthday (date): User's date of birth.
+        avatar (str, optional): File path to the user's avatar image, maximum length of 200 characters.
+    """
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
@@ -87,6 +129,44 @@ class User(db.Model):
     security_answer = db.Column(db.String(100), nullable=False)
     birthday = db.Column(db.Date, nullable=False)
     avatar = db.Column(db.String(200), nullable=True)  # 头像文件位置
+
+class Statistics(db.Model):
+    """
+    A SQLAlchemy model representing the 'statistics' table.
+
+    Attributes:
+        name (str): The name of the statistic. This field is required and has a maximum length of 50 characters.
+        count (int): The count of the statistic. This field is required.
+        t01 (int): The value for time period 01. This field is required.
+        t02 (int): The value for time period 02. This field is required.
+        t03 (int): The value for time period 03. This field is required.
+        t04 (int): The value for time period 04. This field is required.
+        t05 (int): The value for time period 05. This field is required.
+        t06 (int): The value for time period 06. This field is required.
+        t07 (int): The value for time period 07. This field is required.
+        t08 (int): The value for time period 08. This field is required.
+        t09 (int): The value for time period 09. This field is required.
+        t10 (int): The value for time period 10. This field is required.
+        t11 (int): The value for time period 11. This field is required.
+        t12 (int): The value for time period 12. This field is required.
+        id (int): The primary key of the table.
+    """
+    __tablename__ = 'statistics'
+    name = db.Column(db.String(50), nullable=False)
+    count = db.Column(db.Integer, nullable=False)
+    t01 = db.Column(db.Integer, nullable=False)
+    t02 = db.Column(db.Integer, nullable=False)
+    t03 = db.Column(db.Integer, nullable=False)
+    t04 = db.Column(db.Integer, nullable=False)
+    t05 = db.Column(db.Integer, nullable=False)
+    t06 = db.Column(db.Integer, nullable=False)
+    t07 = db.Column(db.Integer, nullable=False)
+    t08 = db.Column(db.Integer, nullable=False)
+    t09 = db.Column(db.Integer, nullable=False)
+    t10 = db.Column(db.Integer, nullable=False)
+    t11 = db.Column(db.Integer, nullable=False)
+    t12 = db.Column(db.Integer, nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
 
 areas = {
     "武汉市": {"longitude": 114.31, "latitude": 30.52},
@@ -105,71 +185,147 @@ areas = {
     "新洲区": {"longitude": 114.75, "latitude": 30.80}
 }
 
+app_url_list = [
+    {"date": "2024-09-01", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=a29dc123ec1e46e5a391e62cb43ac095"},
+    {"date": "2024-09-05", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=64e61674326e4a87954f9b790bcbeb1b"},
+    {"date": "2024-09-10", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=700280f37e0449fc9701e22103d88de4"},
+    {"date": "2024-09-15", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=957ed46de859472595081c1dfbeb72a0"},
+    {"date": "2024-09-20", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=c14dc9f9965f4e9e858e7afdd46cb75e"},
+    {"date": "2024-09-25", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=97fb5c3168814345ba994d2080315dca"},
+    # {"date": "2024-11-01", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=21896e400b9e470b8d8e6325ae1b84d3"}
+    {"date": "2024-11-01", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=c7a4f6bdbde94605b3025bc3e3919648"},
+    {"date": "2024-11-03", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=43613b5da59d41bb8c89e11c7dc353b4"},
+    {"date": "2024-11-05", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=f6529613c4284ba49b2d5ea50915522e"},
+    {"date": "2024-11-06", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=30cbc027ff0842f5bce32706f54af107"},
+    {"date": "2024-11-07", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=637c1eebae274832bf31ad1bebb174a3"},
+]
+
+feature_layer_url_list = [
+    {"date": "2024-12-15", "url": "https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_12_15_10min/FeatureServer"},
+    {"date": "2024-11-09", "url": "https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_11_09_interval_10min/FeatureServer"},
+    {"date": "2024-11-08", "url": "https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_11_08_interval_10min/FeatureServer"},
+    {"date": "2024-11-07", "url": "https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_11_07_interval_10min/FeatureServer"},
+    {"date": "2024-11-06", "url": "https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_11_06_interval_10min/FeatureServer"},
+    {"date": "2024-11-05", "url": "https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_11_05_interval_10min/FeatureServer"},
+    {"date": "2024-11-04", "url": "https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_11_04_interval_10min/FeatureServer"},
+    {"date": "2024-11-03", "url": "https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_11_03_interval_10min/FeatureServer"},
+    {"date": "2024-11-02", "url": "https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_11_02_interval_10min/FeatureServer"},
+    {"date": "2024-11-01", "url": "https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_11_01_interval_10min/FeatureServer"},
+    {"date": "2024-11-15", "url": "https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_11_15_interval_10min/FeatureServer"},
+]
+
+district_names = {
+    '420100': '武汉市',
+    '420102': '江岸区',
+    '420103': '江汉区',
+    '420104': '硚口区',
+    '420105': '汉阳区',
+    '420106': '武昌区',
+    '420107': '青山区',
+    '420111': '洪山区',
+    '420112': '东西湖区',
+    '420113': '汉南区',
+    '420114': '蔡甸区',
+    '420115': '江夏区',
+    '420116': '黄陂区',
+    '420117': '新洲区'
+}
+
 # 清空 temp 文件夹的函数
 def clear_temp_folder():
+    """
+    Clears the temporary folder by deleting it if it exists and then recreating it.
+
+    This function checks if the directory specified by `temp_dir` exists. If it does, 
+    the directory and all its contents are removed. Afterward, a new directory with 
+    the same name is created.
+
+    Raises:
+        OSError: If the directory cannot be removed or created.
+    """
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
     os.makedirs(temp_dir)
 
-# 标志变量，确保 clear_temp_folder 只执行一次
-temp_folder_cleared = False
-
-class Statistics(db.Model):
-    __tablename__ = 'statistics'
-    name = db.Column(db.String(50), nullable=False)
-    count = db.Column(db.Integer, nullable=False)
-    t01 = db.Column(db.Integer, nullable=False)
-    t02 = db.Column(db.Integer, nullable=False)
-    t03 = db.Column(db.Integer, nullable=False)
-    t04 = db.Column(db.Integer, nullable=False)
-    t05 = db.Column(db.Integer, nullable=False)
-    t06 = db.Column(db.Integer, nullable=False)
-    t07 = db.Column(db.Integer, nullable=False)
-    t08 = db.Column(db.Integer, nullable=False)
-    t09 = db.Column(db.Integer, nullable=False)
-    t10 = db.Column(db.Integer, nullable=False)
-    t11 = db.Column(db.Integer, nullable=False)
-    t12 = db.Column(db.Integer, nullable=False)
-    id = db.Column(db.Integer, primary_key=True)
-
-# step 3: crate a route
-# step 3.1: add information to the table
+# 用于测试的路由
 @app.route('/api/location', methods=['POST'])
 def add_point():
+    """
+    Adds a new geographical point to the database.
+
+    Expects a JSON payload with 'name', 'lon', and 'lat' fields.
+    The 'geom' field is constructed using the provided longitude and latitude.
+
+    Returns:
+        A JSON response with a success message and HTTP status code 201.
+    """
     data = request.json
     new_location = Location(name=data['name'], geom=f'SRID=4326;POINT({data["lon"]} {data["lat"]})')  # 使用 Location 类和正确的 geom 字段
     db.session.add(new_location)
     db.session.commit()
     return jsonify({'message': 'Point added successfully!'}), 201
 
-# step 3.2: get information from the table
 @app.route('/api/location', methods=['GET'])
 def get_points():
-    points = Location.query.all()
-    return jsonify([{'name': point.name, 'geom': str(point.geom)} for point in points])  # 修改这里
+    """
+    Retrieves all geographical points from the database.
 
-# step 3.3: renew the information to the table
+    Returns:
+        A JSON response containing a list of points with their names and geometries.
+    """
+    points = Location.query.all()
+    return jsonify([{'name': point.name, 'geom': str(point.geom)} for point in points])
+
 @app.route('/api/location/<int:id>', methods=['PUT'])
 def update_point(id):
+    """
+    Updates an existing geographical point in the database.
+
+    Expects a JSON payload with optional 'name', 'lon', and 'lat' fields.
+    The 'geom' field is updated using the provided longitude and latitude if present.
+
+    Args:
+        id (int): The ID of the point to update.
+
+    Returns:
+        A JSON response with a success message.
+    """
     point = Location.query.get_or_404(id)
     data = request.json
-    point.name = data.get('name', point.name)  # 如果提供了新的名称，则更新
+    point.name = data.get('name', point.name)  # 更新名称（如果提供）
     if 'lon' in data and 'lat' in data:
         point.geom = f'SRID=4326;POINT({data["lon"]} {data["lat"]})'  # 确保更新 geom 字段
     db.session.commit()
     return jsonify({'message': 'Point updated successfully!'})
 
-# step 3.4: delete the information from the table
+
 @app.route('/api/location/<int:id>', methods=['DELETE'])
 def delete_point(id):
+    """
+    Deletes a geographical point from the database.
+
+    Args:
+        id (int): The ID of the point to delete.
+
+    Returns:
+        A JSON response with a success message.
+    """
     point = Location.query.get_or_404(id)
     db.session.delete(point)
     db.session.commit()
     return jsonify({'message': 'Point deleted successfully!'})
 
-# step 4: search the information of poi from the table
 @app.route('/api/search', methods=['POST'])
 def search():
+    """
+    Searches for locations based on a partial name match.
+
+    Expects a JSON payload with 'searchQueryStart' field.
+    Uses case-insensitive matching to find locations whose names contain the search query.
+
+    Returns:
+        A JSON response containing a list of matching locations with their details.
+    """
     data = request.json
     search_query_start = data.get('searchQueryStart', '')
     # 使用 ILIKE 进行不区分大小写的模糊匹配
@@ -189,6 +345,18 @@ def search():
     return jsonify(locations)
 
 def get_closest_table_name(month, day, hour, minute):
+    """
+    Finds the closest table name based on the provided month, day, hour, and minute.
+    
+    Args:
+        month (int): The month of the date.
+        day (int): The day of the date.
+        hour (int): The hour of the time.
+        minute (int): The minute of the time.
+    
+    Returns:
+        str: The name of the closest table.
+    """
     # print(f"Finding closest table for month: {month:02d}, day: {day:02d}, hour: {hour:02d}, minute: {minute:02d}")
     try:
         conn = psycopg2.connect(**conn_params)
@@ -205,7 +373,7 @@ def get_closest_table_name(month, day, hour, minute):
         # print(f"Error connecting to database: {e}")
         return None
 
-    closest_table = "whrd7"  # Default to the base table
+    closest_table = "whrd7"  # 默认使用基础表
     closest_time_diff = timedelta.max
 
     # 预定义的天数列表
@@ -217,16 +385,16 @@ def get_closest_table_name(month, day, hour, minute):
             parts = table_name.split('_')
             if len(parts) < 5:
                 # print(f"Skipping table with unexpected format: {table_name}")
-                continue  # Skip tables that don't follow the expected format
+                continue  # 跳过不符合预期格式的表
 
             # 提取月份部分
             table_month = int(parts[1])
             # 检查时间部分是否以 't' 开头，并且包含 '_'
             if not parts[2].startswith('t'):
-                continue  # Skip if the time part does not follow expected format
+                continue  # 跳过时间部分不符合预期格式的表
 
             # 提取时间部分并进行分割
-            table_hour = int(parts[2][1:])  # Get the part after 't'
+            table_hour = int(parts[2][1:])  # 获取 't' 之后的部分
             table_minute = int(parts[3])
             table_second = int(parts[4])
 
@@ -254,11 +422,20 @@ def get_closest_table_name(month, day, hour, minute):
         closest_table = "whrd7"
         # print(closest_time_diff.total_seconds())
 
-
     # print(f"Closest table for {month:02d}/{closest_day:02d} {hour:02d}:{minute:02d} is {closest_table}")
     return closest_table
 
 def fix_segments(geojson):
+    """
+    Fixes disconnected segments in a GeoJSON object by ensuring that the end of one segment 
+    matches the start of the next segment.
+
+    Args:
+        geojson (dict): The GeoJSON object containing the segments to be fixed.
+
+    Returns:
+        dict: A new GeoJSON object with fixed segments.
+    """
     # 深拷贝以保证不会修改原始数据
     geojson_copy = copy.deepcopy(geojson)
     features = geojson_copy['features']
@@ -293,6 +470,17 @@ def fix_segments(geojson):
 
 
 def execute_route_plan(start, end, table_name):
+    """
+    Executes a route plan using the provided start and end points and the specified table name.
+    
+    Args:
+        start (tuple): The starting point coordinates (longitude, latitude).
+        end (tuple): The ending point coordinates (longitude, latitude).
+        table_name (str): The name of the table to use for the route plan.
+    
+    Returns:
+        tuple: A tuple containing the route plan ID and the path to the temporary file with the route plan.
+    """
     # print(f"Executing route plan for table: {table_name}, start: {start}, end: {end}")
     try:
         conn = psycopg2.connect(**conn_params)
@@ -385,6 +573,16 @@ def execute_route_plan(start, end, table_name):
 
 @app.route('/api/route/plan', methods=['POST'])
 def route_plan():
+    """
+    Handles route planning requests by calculating the default and time-based routes.
+
+    Expects a JSON payload with 'start', 'end', 'date', and 'time' fields.
+    The 'start' and 'end' fields should contain the coordinates for the route.
+    The 'date' and 'time' fields are optional and used for time-based route planning.
+
+    Returns:
+        A JSON response containing the IDs and file paths for the default and time-based routes.
+    """
     data = request.json
     start = data['start']['location']
     end = data['end']['location']
@@ -431,22 +629,52 @@ def route_plan():
 
 @app.route('/api/get_geojson/<route_id>')
 def get_geojson(route_id):
+    """
+    Retrieve a GeoJSON file for a given route ID.
+
+    Args:
+        route_id (str): The ID of the route for which to retrieve the GeoJSON file.
+
+    Returns:
+        Response: A Flask response object containing the GeoJSON file if it exists,
+                  or a JSON error message with a 404 status code if the file is not found.
+    """
     file_path = os.path.join(temp_dir, f'route_plan_{route_id}.geojson')
     if os.path.exists(file_path):
         return send_file(file_path, mimetype='application/json')
     else:
         return jsonify({"error": "File not found"}), 404
 
+# 用户加载函数
 @login_manager.user_loader
 def load_user(user_id):
+    """
+    Loads a user by their user ID.
+
+    Args:
+        user_id (int): The ID of the user to load.
+
+    Returns:
+        User: The user object if found, otherwise None.
+    """
     return User.query.get(int(user_id))
 
 @app.route('/api/register', methods=['POST'])
 def register():
+    """
+    Registers a new user.
+
+    Expects a JSON payload with 'username', 'password', 'email', 'security_question', 
+    'security_answer', and 'birthday' fields.
+
+    Returns:
+        A JSON response with a success message and HTTP status code 201 if registration is successful.
+        A JSON response with an error message and HTTP status code 400 if the username already exists.
+    """
     data = request.json
     # print("注册请求数据:", data)
 
-     # 检查用户名是否已经存在
+    # 检查用户名是否已经存在
     existing_user = User.query.filter_by(username=data['username']).first()
     if existing_user:
         return jsonify({'message': 'Username already exists'}), 400
@@ -468,6 +696,17 @@ def register():
 
 @app.route('/api/login', methods=['POST'])
 def login():
+    """
+    Handles user login requests.
+
+    Expects a JSON payload with 'username' and 'password' fields.
+    Verifies the provided credentials against the stored user data.
+
+    Returns:
+        A JSON response with a success message and HTTP status code 200 if login is successful.
+        A JSON response with an error message and HTTP status code 401 if the credentials are incorrect.
+        A JSON response with an error message and HTTP status code 500 if there is a server error.
+    """
     data = request.get_json()
     # print("接收到的登录请求数据:", data)
 
@@ -477,12 +716,10 @@ def login():
     # print(f"登录请求数据: username={username}, password={password}")
 
     user = User.query.filter_by(username=username).first()
-    if user:
-        # print(f"找到用户: {user.username}, 加密后的密码: {user.password}")
-        1
-    else:
-        # print("未找到用户")
-        1
+    # if user:
+    #     print(f"找到用户: {user.username}, 加密后的密码: {user.password}")
+    # else:
+    #     print("未找到用户")
 
     try:
         if user and bcrypt.check_password_hash(user.password, password):
@@ -497,6 +734,17 @@ def login():
 
 @app.route('/api/forget_reset_password', methods=['POST'])
 def forget_reset_password():
+    """
+    Resets the password for a user who has forgotten their password.
+
+    Expects a JSON payload with 'username', 'security_answer', and 'newPassword' fields.
+    Verifies the provided security answer and updates the password if correct.
+
+    Returns:
+        A JSON response with a success message and HTTP status code 200 if the password is reset successfully.
+        A JSON response with an error message and HTTP status code 404 if the user does not exist.
+        A JSON response with an error message and HTTP status code 400 if the security answer is incorrect or the new password does not meet the requirements.
+    """
     data = request.json
     # print("忘记密码重置请求数据:", data)
 
@@ -524,6 +772,18 @@ def forget_reset_password():
 
 @app.route('/api/reset_password', methods=['POST'])
 def reset_password():
+    """
+    Resets the password for a user.
+
+    Expects a JSON payload with 'username', 'currentPassword', and 'newPassword' fields.
+    Verifies the provided current password and updates the password if correct.
+
+    Returns:
+        A JSON response with a success message and HTTP status code 200 if the password is reset successfully.
+        A JSON response with an error message and HTTP status code 404 if the user does not exist.
+        A JSON response with an error message and HTTP status code 400 if the current password is incorrect or the new password does not meet the requirements.
+        A JSON response with an error message and HTTP status code 500 if there is a server error.
+    """
     data = request.json
     # print("重置密码请求数据:", data)
 
@@ -556,6 +816,15 @@ def reset_password():
 
 @app.route('/api/get_security_question', methods=['POST'])
 def get_security_question():
+    """
+    Retrieves the security question for a given username.
+
+    Expects a JSON payload with 'username' field.
+    Returns the security question if the user is found, otherwise returns an error message.
+
+    Returns:
+        A JSON response containing the security question or an error message.
+    """
     data = request.get_json()
     username = data.get('username')
     user = User.query.filter_by(username=username).first()
@@ -566,6 +835,15 @@ def get_security_question():
 
 @app.route('/api/verify_security_answer', methods=['POST'])
 def verify_security_answer():
+    """
+    Verifies the security answer for a given username.
+
+    Expects a JSON payload with 'username' and 'security_answer' fields.
+    Checks if the provided security answer matches the stored answer for the user.
+
+    Returns:
+        A JSON response with 'correct' set to True if the answer is correct, otherwise False.
+    """
     data = request.get_json()
     username = data.get('username')
     security_answer = data.get('security_answer')
@@ -577,6 +855,17 @@ def verify_security_answer():
 
 @app.route('/api/update_user_info', methods=['POST'])
 def update_user_info():
+    """
+    Updates user information.
+
+    Expects a JSON payload with 'username' and optional fields to update:
+    'new_username', 'email', 'security_question', 'security_answer', 'birthday', 'avatar'.
+
+    Returns:
+        A JSON response with the updated user information and HTTP status code 200 if successful.
+        A JSON response with an error message and HTTP status code 400 if the username is not provided.
+        A JSON response with an error message and HTTP status code 404 if the user does not exist.
+    """
     data = request.get_json()
     # print("更新用户信息请求数据:", data)
 
@@ -607,6 +896,18 @@ def update_user_info():
 
 @app.route('/api/check_password', methods=['POST'])
 def check_password():
+    """
+    Checks if the provided current password is correct for the given username.
+
+    Expects a JSON payload with 'username' and 'currentPassword' fields.
+    Verifies the provided current password against the stored user password hash.
+
+    Returns:
+        A JSON response with a success message and HTTP status code 200 if the password is correct.
+        A JSON response with an error message and HTTP status code 404 if the user does not exist.
+        A JSON response with an error message and HTTP status code 400 if the current password is incorrect.
+        A JSON response with an error message and HTTP status code 500 if there is a server error.
+    """
     data = request.json
     # print("检查密码请求数据:", data)
 
@@ -637,6 +938,18 @@ def check_password():
 
 @app.route('/api/user_info', methods=['GET'])
 def get_user_info():
+    """
+    Retrieve user information based on the provided username.
+
+    This function fetches user details from the database using the username
+    provided in the request arguments. If the user is found, it returns a JSON
+    response containing the user's username, email, security question, birthday,
+    and avatar. If the user is not found, it returns a JSON response with an
+    error message and a 404 status code.
+
+    Returns:
+        Response: A JSON response containing user information or an error message.
+    """
     username = request.args.get('username')
     user = User.query.filter_by(username=username).first()
     if user:
@@ -652,10 +965,30 @@ def get_user_info():
 
 @app.route('/api/avatar/<filename>', methods=['GET'])
 def get_avatar(filename):
+    """
+    从指定目录中发送头像文件。
+
+    参数:
+    filename (str): 头像文件的名称。
+
+    返回:
+    Flask响应对象: 包含头像文件的响应。
+    """
     return send_from_directory(avatar_dir, filename)
 
 @app.route('/api/upload_avatar', methods=['POST'])
 def upload_avatar():
+    """
+    Handle avatar upload for a user.
+    This function processes the uploaded avatar file, saves it to the server,
+    updates the user's avatar information in the database, and deletes the old
+    avatar file if it exists and is not the default avatar.
+    Returns:
+        Response: A JSON response indicating the success or failure of the upload.
+        - 200: Avatar uploaded successfully.
+        - 404: User not found.
+        - 400: No file uploaded.
+    """
     file = request.files['avatar']
     if file:
         filename = str(uuid.uuid4()) + os.path.splitext(file.filename)[1]
@@ -683,6 +1016,19 @@ def upload_avatar():
 
 @app.route('/api/solar_angles', methods=['GET'])
 def get_solar_angles():
+    """
+    Retrieve solar angles (azimuth and altitude) for a given area and time.
+    This function extracts the area name and time from the request arguments,
+    validates them, and calculates the solar azimuth and altitude for the specified
+    area and time. The azimuth is converted to a format where 0 degrees is east,
+    increasing counterclockwise.
+    Returns:
+        JSON response containing the area name, longitude, latitude, UTC time,
+        solar azimuth, and solar altitude. If the area is not found or the time
+        format is invalid, an appropriate error message is returned.
+    Raises:
+        ValueError: If the time format is invalid.
+    """
     area_name = request.args.get('area_name')
     area_name = unquote(area_name)  # 解码 URL 参数
     time_str = request.args.get('time')
@@ -722,6 +1068,16 @@ def get_solar_angles():
 
 @app.route('/api/submit_feedback', methods=['POST'])
 def submit_feedback():
+    """
+    Submits user feedback.
+
+    Expects a JSON payload with 'username', 'feedbackContent', and 'timestamp' fields.
+    Saves the feedback content to a file named with the timestamp and username.
+
+    Returns:
+        A JSON response with a success message and HTTP status code 200 if the feedback is submitted successfully.
+        A JSON response with an error message and HTTP status code 400 if the data is invalid.
+    """
     data = request.json
     username = data.get('username')
     feedback_content = data.get('feedbackContent')
@@ -745,6 +1101,18 @@ def submit_feedback():
 
 @app.route('/api/solar_angles_day', methods=['GET'])
 def get_solar_angles_day():
+    """
+    Retrieve solar angles (azimuth and altitude) for a given area and date throughout the day.
+    
+    This function extracts the area name and date from the request arguments,
+    validates them, and calculates the solar azimuth and altitude for the specified
+    area and date at 20-minute intervals from 5 AM to 8 PM. The azimuth is converted 
+    to a format where 0 degrees is east, increasing counterclockwise.
+    
+    Returns:
+        JSON response containing the solar angles for the specified area and date.
+        If the area is not found or the date format is invalid, an appropriate error message is returned.
+    """
     area_name = request.args.get('area_name')
     area_name = unquote(area_name)  # 解码 URL 参数
     date_str = request.args.get('date')
@@ -784,25 +1152,18 @@ def get_solar_angles_day():
 
 @app.route('/api/statistics', methods=['GET'])
 def get_statistics():
+    """
+    Retrieves statistics data for a specific district or all districts.
+
+    This function fetches statistics data from the database based on the provided
+    district code. If a district code is provided, it retrieves data for that specific
+    district. Otherwise, it retrieves data for all districts.
+
+    Returns:
+        Response: A JSON response containing the statistics data or an error message.
+    """
     district_code = request.args.get('district')
     # print(f"查询县区代码: {district_code}")
-
-    district_names = {
-        '420100': '武汉市',
-        '420102': '江岸区',
-        '420103': '江汉区',
-        '420104': '硚口区',
-        '420105': '汉阳区',
-        '420106': '武昌区',
-        '420107': '青山区',
-        '420111': '洪山区',
-        '420112': '东西湖区',
-        '420113': '汉南区',
-        '420114': '蔡甸区',
-        '420115': '江夏区',
-        '420116': '黄陂区',
-        '420117': '新洲区'
-    }
 
     district_name = district_names.get(district_code)
 
@@ -812,7 +1173,7 @@ def get_statistics():
         cur = conn.cursor()
 
         if district_name:
-            # Query for statistics data for the specific district
+            # 查询指定县区的统计数据
             query = """
             SELECT name, count, t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12
             FROM statistics
@@ -820,7 +1181,7 @@ def get_statistics():
             """
             cur.execute(query, (district_name,))
         else:
-            # Query all district statistics
+            # 查询所有县区的统计数据
             query = """
             SELECT name, count, t01, t02, t03, t04, t05, t06, t07, t08, t09, t10, t11, t12
             FROM statistics
@@ -829,7 +1190,7 @@ def get_statistics():
 
         statistics = cur.fetchall()
 
-        # Convert the result to JSON
+        # 转换为 JSON 格式
         if statistics:
             result = []
             for stat in statistics:
@@ -864,38 +1225,80 @@ def get_statistics():
 
 @app.route('/api/get_api_key', methods=['GET'])
 def get_api_key():
+    """
+    Get the API key for the application.
+
+    Returns:
+        Response: A JSON response containing the API key.
+    """
     api_key = '32bb299d6d35b28d672e86cb6c15cba6'
     return jsonify({'key': api_key})
 
 @app.before_request
 def initialize():
+    """
+    Initialize the server application by clearing the temporary folder if it has not been cleared yet.
+
+    This function checks the global variable `temp_folder_cleared`. If it is `False`, it calls the 
+    `clear_temp_folder` function to clear the temporary folder and sets `temp_folder_cleared` to `True`.
+
+    Note:
+        This function modifies the global variable `temp_folder_cleared`.
+
+    这是flask后端，在合理的位置（def下方）补充注释，函数下为英文，代码区域为中文，不要改我的代码
+    """
     global temp_folder_cleared
     if not temp_folder_cleared:
         clear_temp_folder()
         temp_folder_cleared = True
 
-url_list = [
-    {"date": "2024-09-01", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=a29dc123ec1e46e5a391e62cb43ac095"},
-    {"date": "2024-09-05", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=64e61674326e4a87954f9b790bcbeb1b"},
-    {"date": "2024-09-10", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=700280f37e0449fc9701e22103d88de4"},
-    {"date": "2024-09-15", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=957ed46de859472595081c1dfbeb72a0"},
-    {"date": "2024-09-20", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=c14dc9f9965f4e9e858e7afdd46cb75e"},
-    {"date": "2024-09-25", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=97fb5c3168814345ba994d2080315dca"},
-    # {"date": "2024-11-01", "url": "https://www.geosceneonline.cn/geoscene/apps/instant/interactivelegend/index.html?appid=21896e400b9e470b8d8e6325ae1b84d3"}
-    {"date": "2024-11-01", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=c7a4f6bdbde94605b3025bc3e3919648"},
-    {"date": "2024-11-03", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=43613b5da59d41bb8c89e11c7dc353b4"},
-    {"date": "2024-11-05", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=f6529613c4284ba49b2d5ea50915522e"},
-    {"date": "2024-11-06", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=30cbc027ff0842f5bce32706f54af107"},
-    {"date": "2024-11-07", "url": "https://www.geosceneonline.cn/geoscene/apps/webappviewer/index.html?id=637c1eebae274832bf31ad1bebb174a3"},
-]
+@app.route('/api/get_feature_layer_dates', methods=['GET'])
+def get_feature_layer_dates():
+    """
+    Retrieves the available dates for feature layers.
+
+    This function extracts the dates from the `feature_layer_url_list` and returns them
+    in a JSON response.
+
+    Returns:
+        Response: A JSON response containing the list of dates.
+    """
+    dates = [entry["date"] for entry in feature_layer_url_list]
+    return jsonify({'dates': dates})
+
+@app.route('/api/get_feature_layer_url_by_date', methods=['GET'])
+def get_feature_layer_url_by_date():
+    """
+    Retrieves the feature layer URL for a given date.
+
+    This function searches the `feature_layer_url_list` for an entry matching the
+    provided date and returns the corresponding URL in a JSON response.
+
+    Returns:
+        Response: A JSON response containing the URL or an error message.
+    """
+    date = request.args.get('date')
+    for entry in feature_layer_url_list:
+        if entry["date"] == date:
+            return jsonify({'url': entry["url"]})
+    return jsonify({'message': 'No URL found for the given date'}), 404
 
 @app.route('/api/getapp', methods=['GET'])
 def getapp():
+    """
+    Retrieves the closest application URL based on the current date.
+
+    This function compares the current date with the dates in the `app_url_list`
+    and returns the URL that is closest to the current date.
+
+    Returns:
+        Response: A JSON response containing the closest URL or an error message.
+    """
     current_date = datetime.now().date()
     
     closest_date = None
     closest_url = None
-    for entry in url_list:
+    for entry in app_url_list:
         entry_date = datetime.strptime(entry["date"], "%Y-%m-%d").date()
         if closest_date is None or abs((entry_date - current_date).days) < abs((closest_date - current_date).days):
             closest_date = entry_date
@@ -908,19 +1311,47 @@ def getapp():
 
 @app.route('/api/get_dates', methods=['GET'])
 def get_dates():
-    dates = [entry["date"] for entry in url_list]
+    """
+    Retrieves the available dates for application URLs.
+
+    This function extracts the dates from the `app_url_list` and returns them
+    in a JSON response.
+
+    Returns:
+        Response: A JSON response containing the list of dates.
+    """
+    dates = [entry["date"] for entry in app_url_list]
     return jsonify({'dates': dates})
 
 @app.route('/api/get_url_by_date', methods=['GET'])
 def get_url_by_date():
+    """
+    Retrieves the application URL for a given date.
+
+    This function searches the `app_url_list` for an entry matching the
+    provided date and returns the corresponding URL in a JSON response.
+
+    Returns:
+        Response: A JSON response containing the URL or an error message.
+    """
     date = request.args.get('date')
-    for entry in url_list:
+    for entry in app_url_list:
         if entry["date"] == date:
             return jsonify({'url': entry["url"]})
     return jsonify({'message': 'No URL found for the given date'}), 404
 
 @app.route('/api/get_weather', methods=['GET'])
 def get_weather():
+    """
+    Retrieves weather information for Wuhan city.
+
+    This function fetches the API key from the local server, constructs a request
+    to the weather API using the city code for Wuhan, and returns the weather data
+    in JSON format.
+
+    Returns:
+        Response: A JSON response containing the weather data or an error message.
+    """
     # 获取 API 密钥
     api_key_response = requests.get('http://localhost:5000/api/get_api_key')
     api_key = api_key_response.json().get('key')
