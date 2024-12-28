@@ -101,12 +101,20 @@ export default {
       isClicked: false
     }
   },
+  /**
+   * Setup function for the App component.
+   *
+   * This function initializes the store and defines reactive properties and methods
+   * for handling user authentication state and logout functionality.
+   *
+   * @returns {Object} - An object containing the reactive properties and methods.
+   */
   setup () {
-    const store = useStore()
-    const isLoggedIn = computed(() => store.state.isLoggedIn)
+    const store = useStore() // Access the Vuex store
+    const isLoggedIn = computed(() => store.state.isLoggedIn) // Reactive property for login state
 
     const handleLogout = () => {
-      store.dispatch('logout')
+      store.dispatch('logout') // Dispatch the logout action
     }
     return {
       isLoggedIn,
@@ -114,6 +122,18 @@ export default {
     }
   },
   methods: {
+    /**
+     * Fetches weather information from the API and updates the weather forecasts and current weather.
+     *
+     * This function makes an asynchronous request to the weather API endpoint defined in the environment variables.
+     * It processes the response to extract the weather forecast for the current day and the upcoming days.
+     * The weather information is then stored in the component's state and the current weather is updated.
+     *
+     * @async
+     * @function fetchWeatherInfo
+     * @returns {Promise<void>} - A promise that resolves when the weather information has been successfully fetched and processed.
+     * @throws {Error} - Throws an error if the API request fails.
+     */
     // 获取天气信息
     async fetchWeatherInfo () {
       try {
@@ -131,68 +151,80 @@ export default {
         console.error('Error fetching weather information:', error)
       }
     },
-    // 获取天气图标
+    /**
+     * Get the weather icon based on the weather description.
+     *
+     * @param {string} weather - The weather description.
+     * @returns {string} - The path to the corresponding weather icon.
+     */
     getWeatherIcon (weather) {
-      if (weather.includes('雷')) {
+      if (weather.includes('雷')) { // If the weather description contains '雷' (thunder)
         return weatherIconMap['雷']
-      } else if (weather.includes('雨')) {
+      } else if (weather.includes('雨')) { // If the weather description contains '雨' (rain)
         return weatherIconMap['雨']
-      } else if (weather.includes('冰雹')) {
+      } else if (weather.includes('冰雹')) { // If the weather description contains '冰雹' (hail)
         return weatherIconMap['强雪雹交加']
-      } else if (weather.includes('雪')) {
+      } else if (weather.includes('雪')) { // If the weather description contains '雪' (snow)
         return weatherIconMap['雪']
-      } else if (weather.includes('晴')) {
+      } else if (weather.includes('晴')) { // If the weather description contains '晴' (sunny)
         return weatherIconMap['晴']
-      } else if (weather.includes('多云')) {
+      } else if (weather.includes('多云')) { // If the weather description contains '多云' (cloudy)
         return weatherIconMap['多云']
-      } else {
-        return weatherIconMap[weather] || require('@/assets/image/weather_icon/未知.png')
+      } else { // If the weather description does not match any of the above
+        return weatherIconMap[weather] || require('@/assets/image/weather_icon/未知.png') // Return the corresponding icon or a default 'unknown' icon
       }
     },
-    // 更新当前天气
+    /**
+     * Updates the current weather information based on the current time.
+     * Determines whether it is daytime or nighttime and sets the weather, wind, and power accordingly.
+     * Handles special cases for sunrise, sunset, and specific weather conditions to set the appropriate weather icon.
+     */
     updateCurrentWeather () {
-      const currentHour = new Date().getHours()
-      // 调试
-      // const currentHour = 19
-      const currentMinute = new Date().getMinutes()
-      const isDaytime = currentHour >= 6 && currentHour < 18
+      const currentHour = new Date().getHours() // Get the current hour
+      // const currentHour = 19 // Debug: Set a specific hour for testing
+      const currentMinute = new Date().getMinutes() // Get the current minute
+      const isDaytime = currentHour >= 6 && currentHour < 18 // Determine if it is daytime
 
       if (currentHour >= 6 && currentHour < 18) {
-        // 白天
-        this.currentWeather = this.weatherInfo.dayweather
-        // 调试
-        // this.currentWeather = '多云'
-        this.currentWind = this.weatherInfo.daywind
-        this.currentPower = this.weatherInfo.daypower
+        // Daytime
+        this.currentWeather = this.weatherInfo.dayweather // Set daytime weather
+        // this.currentWeather = '多云' // Debug: Set specific weather for testing
+        this.currentWind = this.weatherInfo.daywind // Set daytime wind
+        this.currentPower = this.weatherInfo.daypower // Set daytime power
       } else {
-        // 夜晚
-        this.currentWeather = this.weatherInfo.nightweather
-        this.currentWind = this.weatherInfo.nightwind
-        this.currentPower = this.weatherInfo.nightpower
+        // Nighttime
+        this.currentWeather = this.weatherInfo.nightweather // Set nighttime weather
+        this.currentWind = this.weatherInfo.nightwind // Set nighttime wind
+        this.currentPower = this.weatherInfo.nightpower // Set nighttime power
       }
-      // 特殊情况处理
+
+      // Handle special cases for weather icons
       if (currentHour === 6 && currentMinute < 30) {
-        this.currentWeatherIcon = weatherIconMap['日出']
+        this.currentWeatherIcon = weatherIconMap['日出'] // Set icon for sunrise
       } else if (currentHour === 17 && currentMinute >= 30) {
-        this.currentWeatherIcon = weatherIconMap['日落']
+        this.currentWeatherIcon = weatherIconMap['日落'] // Set icon for sunset
       } else if (this.currentWeather.includes('雷')) {
-        this.currentWeatherIcon = weatherIconMap['雷']
+        this.currentWeatherIcon = weatherIconMap['雷'] // Set icon for thunder
       } else if (this.currentWeather.includes('雨')) {
-        this.currentWeatherIcon = weatherIconMap['雨']
+        this.currentWeatherIcon = weatherIconMap['雨'] // Set icon for rain
       } else if (this.currentWeather.includes('冰雹')) {
-        this.currentWeatherIcon = weatherIconMap['强雪雹交加']
+        this.currentWeatherIcon = weatherIconMap['强雪雹交加'] // Set icon for hail
       } else if (this.currentWeather.includes('雪')) {
-        this.currentWeatherIcon = weatherIconMap['雪']
+        this.currentWeatherIcon = weatherIconMap['雪'] // Set icon for snow
       } else if (isDaytime && this.currentWeather.includes('晴')) {
-        this.currentWeatherIcon = weatherIconMap['晴']
+        this.currentWeatherIcon = weatherIconMap['晴'] // Set icon for sunny day
       } else if (!isDaytime && this.currentWeather.includes('晴')) {
-        this.currentWeatherIcon = weatherIconMap['夜晴']
+        this.currentWeatherIcon = weatherIconMap['夜晴'] // Set icon for clear night
       } else if (!isDaytime && this.currentWeather.includes('多云')) {
-        this.currentWeatherIcon = weatherIconMap['夜多云']
+        this.currentWeatherIcon = weatherIconMap['夜多云'] // Set icon for cloudy night
       } else {
-        this.currentWeatherIcon = weatherIconMap[this.currentWeather] || require('@/assets/image/weather_icon/未知.png')
+        this.currentWeatherIcon = weatherIconMap[this.currentWeather] || require('@/assets/image/weather_icon/未知.png') // Set default icon
       }
     },
+    /**
+     * Displays the weather details.
+     * If the weather details have not been clicked, it sets the showDetails property to true.
+     */
     // 显示天气详情
     showWeatherDetails () {
       // this.showDetails = true
@@ -200,6 +232,10 @@ export default {
         this.showDetails = true
       }
     },
+    /**
+     * Hides the weather details.
+     * If the element has not been clicked, it sets showDetails to false.
+     */
     // 隐藏天气详情
     hideWeatherDetails () {
       // this.showDetails = false
@@ -207,41 +243,63 @@ export default {
         this.showDetails = false
       }
     },
+    /**
+     * Toggles the visibility of weather details.
+     *
+     * This function switches the state of `isClicked` between true and false,
+     * and sets `showDetails` to the current value of `isClicked`.
+     */
     toggleWeatherDetails () {
-      this.isClicked = !this.isClicked
-      this.showDetails = this.isClicked
+      this.isClicked = !this.isClicked // Toggle the isClicked state
+      this.showDetails = this.isClicked // Update showDetails based on isClicked state
     },
+    /**
+     * Hides the weather details immediately by setting the relevant flags to false.
+     */
     hideWeatherDetailsImmediately () {
-      this.isClicked = false
-      this.showDetails = false
+      this.isClicked = false // Set the clicked state to false
+      this.showDetails = false // Hide the weather details
     },
+    /**
+     * Checks if the current time is during daytime.
+     *
+     * This function retrieves the current hour from the system's date and time,
+     * and determines if it falls within the range of 6 AM to 6 PM.
+     *
+     * @returns {boolean} - Returns true if the current hour is between 6 AM and 6 PM, inclusive; otherwise, returns false.
+     */
     checkDaytime () {
-      const currentHour = new Date().getHours()
-      return currentHour >= 6 && currentHour < 18
+      const currentHour = new Date().getHours() // Get the current hour
+      return currentHour >= 6 && currentHour < 18 // Check if the hour is between 6 AM and 6 PM
     }
   },
   computed: {
+    /**
+     * Generates a greeting message based on the current time of day and appends the current weather.
+     *
+     * @returns {string} The greeting message with the current weather.
+     */
     greetingMessage () {
-      const currentHour = new Date().getHours()
+      const currentHour = new Date().getHours() // Get the current hour
       let greeting = ''
 
       if (currentHour >= 5 && currentHour < 8) {
-        greeting = '清晨好，武汉市'
+        greeting = '清晨好，武汉市' // Early morning greeting
       } else if (currentHour >= 8 && currentHour < 12) {
-        greeting = '早上好，武汉市'
+        greeting = '早上好，武汉市' // Morning greeting
       } else if (currentHour >= 12 && currentHour < 14) {
-        greeting = '中午好，武汉市'
+        greeting = '中午好，武汉市' // Noon greeting
       } else if (currentHour >= 14 && currentHour < 18) {
-        greeting = '下午好，武汉市'
+        greeting = '下午好，武汉市' // Afternoon greeting
       } else if (currentHour >= 18 && currentHour < 20) {
-        greeting = '傍晚好，武汉市'
+        greeting = '傍晚好，武汉市' // Evening greeting
       } else if (currentHour >= 20 && currentHour < 23) {
-        greeting = '晚上好，武汉市'
+        greeting = '晚上好，武汉市' // Night greeting
       } else {
-        greeting = '深夜好，武汉市'
+        greeting = '深夜好，武汉市' // Late night greeting
       }
 
-      return `${greeting}${this.currentWeather}`
+      return `${greeting}${this.currentWeather}` // Append the current weather to the greeting
     }
   },
   mounted () {

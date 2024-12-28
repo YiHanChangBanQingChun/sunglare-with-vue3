@@ -155,30 +155,43 @@ export default {
   },
   methods: {
     ...mapActions(['logout', 'updateUsername']),
+    /**
+     * Fetches user information from the API and updates the component state.
+     *
+     * This function makes an asynchronous request to the user information endpoint
+     * using the current username. It updates the component's userInfo, originalUsername,
+     * and avatarUrl properties based on the response. If an error occurs during the request,
+     * it logs the error to the console.
+     */
     async fetchUserInfo () {
       try {
         const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/user_info`, {
-          params: { username: this.username } // 确保使用当前用户名
+          params: { username: this.username } // Ensure the current username is used
         })
         this.userInfo = response.data
-        this.originalUsername = this.userInfo.username // 保存初始用户名
-        this.updateCurrentUsername(this.userInfo.username) // 更新当前用户名
+        this.originalUsername = this.userInfo.username // Save the initial username
+        this.updateCurrentUsername(this.userInfo.username) // Update the current username
         if (this.userInfo.avatar) {
-          this.avatarUrl = `${process.env.VUE_APP_API_URL}/api/avatar/${this.userInfo.avatar}`
+          this.avatarUrl = `${process.env.VUE_APP_API_URL}/api/avatar/${this.userInfo.avatar}` // Set the avatar URL if available
         }
       } catch (error) {
-        console.error('获取用户信息失败:', error)
+        console.error('Failed to fetch user information:', error) // Log the error if the request fails
       }
     },
-    // 清除反馈内容
+    /**
+     * Clear the feedback content.
+     */
     clearFeedback () {
-      this.feedbackContent = ''
+      this.feedbackContent = '' // Clear the feedback content
     },
-    // 提交反馈
+    /**
+     * Submit the feedback.
+     * Sends a POST request to the API with the feedback content, username, and timestamp.
+     */
     submitFeedback () {
-      const feedbackContent = this.feedbackContent
-      const username = this.username
-      const timestamp = new Date().toISOString()
+      const feedbackContent = this.feedbackContent // Get the feedback content
+      const username = this.username // Get the username
+      const timestamp = new Date().toISOString() // Get the current timestamp
 
       axios.post(`${process.env.VUE_APP_API_URL}/api/submit_feedback`, {
         username,
@@ -186,182 +199,261 @@ export default {
         timestamp
       })
         .then(response => {
-          alert('反馈提交成功, 感谢您的反馈！')
+          alert('Feedback submitted successfully, thank you for your feedback!') // Alert success message
         })
         .catch(error => {
-          console.error('反馈提交失败:', error)
-          alert('反馈提交失败, 请稍后再试。')
+          console.error('Feedback submission failed:', error) // Log the error
+          alert('Feedback submission failed, please try again later.') // Alert failure message
         })
     },
-    // 显示指定部分
+    /**
+     * Show the specified section.
+     * @param {String} section - The section to be displayed.
+     */
     showSection (section) {
-      this.currentSection = section
+      this.currentSection = section // Set the current section
     },
-    // 更新当前用户名
+    /**
+     * Update the current username.
+     * @param {String} username - The new username.
+     */
     updateCurrentUsername (username) {
-      this.currentUsername = username // 更新当前用户名
+      this.currentUsername = username // Update the current username
     },
-    // 编辑字段
+    /**
+     * Edit the specified field.
+     * @param {String} field - The field to be edited.
+     */
     editField (field) {
-      this.editingField = field
-      this.editForm[field] = this.userInfo[field]
+      this.editingField = field // Set the field being edited
+      this.editForm[field] = this.userInfo[field] // Populate the edit form with the current field value
       if (field === 'username') {
-        this.originalUsername = this.userInfo.username // 在点击编辑时保存旧用户名
+        this.originalUsername = this.userInfo.username // Save the old username when editing the username
       }
     },
-    // 取消编辑
     cancelEdit () {
-      this.editingField = null
+      this.editingField = null // Reset the editing field to null
     },
-    // 保存字段
+    /**
+     * Save the specified field for the user.
+     *
+     * This function updates the user information by sending a POST request to the server.
+     * Depending on the field being updated, it constructs the appropriate data payload.
+     *
+     * @param {string} field - The field to be saved (e.g., 'username', 'email', etc.).
+     */
     async saveField (field) {
       try {
-        const originalUsername = this.originalUsername || this.userInfo.username
+        const originalUsername = this.originalUsername || this.userInfo.username // Get the original username
         let updateData
 
         if (field === 'username') {
           updateData = {
-            username: originalUsername,
-            new_username: this.editForm.username
+            username: originalUsername, // Current username
+            new_username: this.editForm.username // New username to be updated
           }
         } else {
           updateData = {
-            username: originalUsername,
-            [field]: this.editForm[field]
+            username: originalUsername, // Current username
+            [field]: this.editForm[field] // New value for the specified field
           }
         }
 
-        await axios.post(`${process.env.VUE_APP_API_URL}/api/update_user_info`, updateData)
-        this.userInfo[field] = this.editForm[field]
-        this.editingField = null
+        await axios.post(`${process.env.VUE_APP_API_URL}/api/update_user_info`, updateData) // Send POST request to update user info
+        this.userInfo[field] = this.editForm[field] // Update local userInfo with new value
+        this.editingField = null // Reset editing field
       } catch (error) {
-        console.error('更新用户信息失败:', error)
+        console.error('Failed to update user information:', error) // Log error if update fails
       }
     },
-    // 显示提示信息
+    /**
+     * Displays the tooltip with the specified field information.
+     * @param {string} field - The field information to be displayed in the tooltip.
+     */
     showTooltip (field) {
-      this.tooltipVisible = true
-      this.tooltipField = field
+      this.tooltipVisible = true // Set tooltip visibility to true
+      this.tooltipField = field // Set the tooltip field to the provided field
     },
-    // 隐藏提示信息
+    /**
+     * Hides the tooltip and clears the field information.
+     */
     hideTooltip () {
-      this.tooltipVisible = false
-      this.tooltipField = ''
+      this.tooltipVisible = false // Set tooltip visibility to false
+      this.tooltipField = '' // Clear the tooltip field
     },
-    // 重置密码表单
+    /**
+     * This method clears the current password, new password, and confirm password fields,
+     * and resets the error states for each of these fields.
+     */
     resetPasswordForm () {
-      this.passwordForm.currentPassword = ''
-      this.passwordForm.newPassword = ''
-      this.passwordForm.confirmPassword = ''
-      this.passwordErrors.currentPassword = false
-      this.passwordErrors.newPassword = false
-      this.passwordErrors.confirmPassword = false
+      this.passwordForm.currentPassword = '' // Clear current password field
+      this.passwordForm.newPassword = '' // Clear new password field
+      this.passwordForm.confirmPassword = '' // Clear confirm password field
+      this.passwordErrors.currentPassword = false // Reset current password error state
+      this.passwordErrors.newPassword = false // Reset new password error state
+      this.passwordErrors.confirmPassword = false // Reset confirm password error state
     },
-    // 上传头像
+    /**
+     * Handle the upload of an avatar image.
+     *
+     * This function is triggered when a user selects a file to upload as their avatar.
+     * It reads the selected file and generates a preview URL for the avatar image.
+     *
+     * @param {Event} event - The event object from the file input change event.
+     */
     handleAvatarUpload (event) {
-      const file = event.target.files[0]
+      const file = event.target.files[0] // Get the first selected file
       if (file) {
-        this.selectedFile = file
+        this.selectedFile = file // Store the selected file
         const reader = new FileReader()
         reader.onload = (e) => {
-          this.previewAvatarUrl = e.target.result
+          this.previewAvatarUrl = e.target.result // Set the preview URL to the file's data URL
         }
-        reader.readAsDataURL(file)
+        reader.readAsDataURL(file) // Read the file as a data URL
       }
     },
-    // 上传头像
+    /**
+     * Uploads the user's avatar to the server.
+     *
+     * This function checks if a file is selected, then creates a FormData object
+     * containing the avatar file and the username. It sends a POST request to the
+     * server to upload the avatar. Upon successful upload, it updates the avatar URL,
+     * hides the avatar modal, and resets the selected file and preview URL. If the
+     * upload fails, it logs an error message to the console.
+     */
     uploadAvatar () {
-      if (this.selectedFile) {
+      if (this.selectedFile) { // Check if a file is selected
         const formData = new FormData()
-        formData.append('avatar', this.selectedFile)
-        formData.append('username', this.username)
+        formData.append('avatar', this.selectedFile) // Append the avatar file to formData
+        formData.append('username', this.username) // Append the username to formData
         axios.post(`${process.env.VUE_APP_API_URL}/api/upload_avatar`, formData)
           .then(response => {
-            this.avatarUrl = `${process.env.VUE_APP_API_URL}/api/avatar/${response.data.avatar}`
-            this.showAvatarModal = false
-            this.previewAvatarUrl = null
-            this.selectedFile = null
+            this.avatarUrl = `${process.env.VUE_APP_API_URL}/api/avatar/${response.data.avatar}` // Update avatar URL
+            this.showAvatarModal = false // Hide the avatar modal
+            this.previewAvatarUrl = null // Reset the preview URL
+            this.selectedFile = null // Reset the selected file
           })
           .catch(error => {
-            console.error('上传头像失败:', error)
+            console.error('Failed to upload avatar:', error) // Log error message
           })
       }
     },
-    // 跳转到数据管理页面
+    /**
+     * Navigates to the data management page.
+     */
     gotodatamanager () {
-      this.$router.push({ name: 'shu-ju-guan-li' })
+      this.$router.push({ name: 'shu-ju-guan-li' }) // Pushes the route named 'shu-ju-guan-li' to the router
     },
-    // 退出登录
+    /**
+     * Handles user logout process.
+     *
+     * This function performs the following steps:
+     * 1. Calls the `logout` method to log the user out.
+     * 2. Displays an alert message indicating successful logout.
+     * 3. Redirects the user to the 'lu-jing-gui-hua' route after a 1-second delay.
+     */
     handleLogout () {
-      this.logout()
-      alert('退出成功')
+      this.logout() // Call the logout method
+      alert('退出成功') // Show success message
       setTimeout(() => {
-        this.$router.push({ name: 'lu-jing-gui-hua' })
-      }, 1000)
+        this.$router.push({ name: 'lu-jing-gui-hua' }) // Redirect to 'lu-jing-gui-hua' route
+      }, 1000) // Delay of 1 second
     },
-    // 切换头像模态框的显示状态
+    /**
+     * Toggles the visibility state of the avatar modal.
+     * This function switches the value of `showAvatarModal` between true and false,
+     * effectively showing or hiding the avatar modal.
+     */
     toggleAvatarModal () {
-      this.showAvatarModal = !this.showAvatarModal // 切换模态框的显示状态
+      this.showAvatarModal = !this.showAvatarModal // Toggle the visibility state of the modal
     },
-    // 显示密码修改模态框
+    /**
+     * Show the password modification modal
+     */
     showPasswordModal () {
-      // 显示模态框
+      // Display the modal
       this.passwordModalVisible = true
     },
-    // 验证新密码
+    /**
+     * Validates the new password based on specific criteria.
+     * The password must be between 6 to 10 characters long and contain at least one letter and one number.
+     * Updates the `passwordErrors.newPassword` property based on the validation result.
+     */
     validateNewPassword () {
-      const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,10}$/
-      this.passwordErrors.newPassword = !regex.test(this.passwordForm.newPassword)
+      const regex = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,10}$/ // Regular expression to validate password
+      this.passwordErrors.newPassword = !regex.test(this.passwordForm.newPassword) // Update error state based on validation
     },
-    // 验证确认密码
+    /**
+     * Validates that the confirm password matches the new password.
+     * Updates the passwordErrors.confirmPassword property with the result.
+     */
     validateConfirmPassword () {
+      // Check if newPassword and confirmPassword are not the same
       this.passwordErrors.confirmPassword = this.passwordForm.newPassword !== this.passwordForm.confirmPassword
     },
-    // 验证当前密码
+    /**
+     * Validates the current password by sending a POST request to the API.
+     *
+     * This function sends the username and current password to the API endpoint
+     * specified in the environment variables. If the password is correct, it sets
+     * the `currentPassword` error flag to false. If the password is incorrect, it
+     * sets the `currentPassword` error flag to true and logs the error to the console.
+     */
     checkCurrentPassword () {
       axios.post(`${process.env.VUE_APP_API_URL}/api/check_password`, {
-        username: this.username,
-        currentPassword: this.passwordForm.currentPassword
+        username: this.username, // Username to be validated
+        currentPassword: this.passwordForm.currentPassword // Current password to be validated
       })
         .then(response => {
-          this.passwordErrors.currentPassword = false
+          this.passwordErrors.currentPassword = false // Password is correct
         })
         .catch(error => {
-          console.error('当前密码验证失败:', error) // 记录错误
-          this.passwordErrors.currentPassword = true
+          console.error('Current password validation failed:', error) // Log error
+          this.passwordErrors.currentPassword = true // Password is incorrect
         })
     },
-    // 提交密码修改请求
+    /**
+     * Submits a password change request.
+     *
+     * This function validates the new password and confirm password fields.
+     * If there are any validation errors, the form is not submitted.
+     * If validation passes, it sends a request to the server to reset the password.
+     * On success, it displays a success message, hides the password modal, and resets the form.
+     * On failure, it logs the error, displays a failure message, and resets the form.
+     */
     handleSubmitPassword () {
-      this.validateNewPassword()
-      this.validateConfirmPassword()
-      // 检查是否有错误
+      this.validateNewPassword() // Validate the new password
+      this.validateConfirmPassword() // Validate the confirm password
+      // Check for errors
       if (Object.values(this.passwordErrors).some(error => error)) {
-        return // 如果有错误，不提交表单
+        return // If there are errors, do not submit the form
       }
-      // 发送请求到服务器
+      // Send request to the server
       axios.post(`${process.env.VUE_APP_API_URL}/api/reset_password`, {
         username: this.username,
         currentPassword: this.passwordForm.currentPassword,
         newPassword: this.passwordForm.newPassword
       })
         .then(response => {
-          // 处理成功逻辑
-          alert('密码修改成功！')
+          // Handle success logic
+          alert('Password changed successfully!')
           this.passwordModalVisible = false
           this.resetPasswordForm()
         })
         .catch(error => {
-          // 处理失败逻辑
-          console.error('密码修改失败:', error)
-          alert('密码修改失败，请重试。')
+          // Handle failure logic
+          console.error('Password change failed:', error)
+          alert('Password change failed, please try again.')
           this.resetPasswordForm()
         })
     },
-    // 取消密码修改
+    /**
+     * Cancel the password change process.
+     * This function hides the password modal and resets the password form.
+     */
     cancelPasswordChange () {
-      this.passwordModalVisible = false
-      this.resetPasswordForm() // 重置表单
+      this.passwordModalVisible = false // Hide the password modal
+      this.resetPasswordForm() // Reset the password form
     }
   },
   mounted () {
