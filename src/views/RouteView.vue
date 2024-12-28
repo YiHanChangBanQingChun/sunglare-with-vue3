@@ -193,26 +193,50 @@ export default {
       this.selectedResultStart = JSON.parse(this.$route.query.start)
       this.selectedResultEnd = JSON.parse(this.$route.query.end)
     }
+    /**
+     * This function is responsible for parsing URL parameters and setting up event listeners.
+     *
+     * - `parseUrlParams(this)`: Parses the URL parameters and initializes the component state based on them.
+     * - `window.addEventListener('keydown', this.handleKeydown)`: Adds an event listener to handle keydown events.
+     *
+     * Note: A timer is set to update the time every minute.
+     */
     parseUrlParams(this)
     // 设置定时器，每隔1分钟更新时间
     window.addEventListener('keydown', this.handleKeydown)
   },
+  /**
+   * Lifecycle hook called before the component is unmounted.
+   * This function removes the 'keydown' event listener from the window object.
+   */
   beforeUnmount () {
     window.removeEventListener('keydown', this.handleKeydown)
   },
   computed: {
+    /**
+     * Returns the minimum date allowed for selection.
+     * @returns {string} The minimum date in 'YYYY-MM-DD' format.
+     */
     minDate () {
-      return '2024-01-01'
+      return '2024-01-01' // Minimum date set to January 1, 2024
     },
+    /**
+     * Returns the maximum date allowed for selection.
+     * @returns {string} The maximum date in 'YYYY-MM-DD' format.
+     */
     maxDate () {
-      return '2024-12-31'
+      return '2024-12-31' // Maximum date set to December 31, 2024
     },
+    /**
+     * Formats the selected time to the nearest 10-minute interval.
+     * @returns {string} The formatted time in 'HH:mm' format or an empty string if no time is selected.
+     */
     formattedTime () {
-      // 格式化时间为10分钟间隔
-      if (!this.selectedTime) return ''
-      const [hours, minutes] = this.selectedTime.split(':').map(Number)
-      const roundedMinutes = Math.floor(minutes / 10) * 10
-      return `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}`
+      // Format time to 10-minute intervals
+      if (!this.selectedTime) return '' // Return empty string if no time is selected
+      const [hours, minutes] = this.selectedTime.split(':').map(Number) // Split and convert time to numbers
+      const roundedMinutes = Math.floor(minutes / 10) * 10 // Round minutes to nearest 10
+      return `${String(hours).padStart(2, '0')}:${String(roundedMinutes).padStart(2, '0')}` // Format and return time
     }
   },
   methods: {
@@ -255,13 +279,24 @@ export default {
     selectResult (result, isStart = true) {
       selectResult(this, result, isStart)
     },
+    /**
+     * Function to handle the search operation for route planning.
+     * This function checks if both start and end locations are selected,
+     * constructs the necessary objects with location properties, and sends
+     * a request to the backend for route planning. It then handles the response
+     * by navigating to the results page and updating the search queries.
+     *
+     * @returns {Promise} A promise that resolves when the operation is successful,
+     *                    and rejects if there is an error or if the start/end locations
+     *                    are not selected.
+     */
     onSearch () {
       return new Promise((resolve, reject) => {
-        // 检查是否两个结果都已选择
+        // Check if both start and end locations are selected
         if (this.selectedResultStart && this.selectedResultEnd) {
-          // 显示加载动画
+          // Show loading animation
           this.isLoading = true
-          // 构造包含location属性的起点和终点对象
+          // Construct start and end objects with location properties
           const startWithLocation = {
             ...this.selectedResultStart,
             location: [this.selectedResultStart.wgs84_longitude, this.selectedResultStart.wgs84_latitude]
@@ -271,15 +306,15 @@ export default {
             location: [this.selectedResultEnd.wgs84_longitude, this.selectedResultEnd.wgs84_latitude]
           }
           const formattedTime = this.selectedTime.length === 5 ? `${this.selectedTime}:00` : this.selectedTime
-          // 发送请求到后端进行路径规划
+          // Send request to backend for route planning
           axios.post(`${process.env.VUE_APP_API_URL}/api/route/plan`, { start: startWithLocation, end: endWithLocation, date: this.selectedDate, time: formattedTime })
             .then(response => {
-              // 后端返回的路径规划结果ID
+              // Route planning result IDs returned from backend
               const defaultRoutePlanId = response.data.default_id
               const timeBasedRoutePlanId = response.data.time_based_id
-              // 隐藏加载动画
+              // Hide loading animation
               this.isLoading = false
-              // 使用Vue Router跳转到结果页面，并传递路径规划结果ID
+              // Navigate to results page using Vue Router and pass route planning result IDs
               this.$router.push({
                 path: '/lu-jing-gui-hua/routesw',
                 query: {
@@ -292,39 +327,46 @@ export default {
                   BasemapLayer: this.BasemapName
                 }
               })
-              // 更新搜索框的值
+              // Update search box values
               this.searchQueryStart = startWithLocation.name
               this.searchQueryEnd = endWithLocation.name
               resolve()
             })
             .catch(error => {
               console.error(error)
-              // 隐藏加载动画
+              // Hide loading animation
               this.isLoading = false
-              // 错误处理，例如显示提示信息
+              // Error handling, e.g., show a prompt message
               alert('路径规划失败，请稍后再试。')
               reject(error)
             })
         } else {
-          // 如果起点或终点未选择，显示提示信息
+          // If start or end location is not selected, show a prompt message
           alert('请确保起点和终点都已选择。')
           reject(new Error('请确保起点和终点都已选择。'))
         }
       })
     },
-    // 初始化地图
+    /**
+     * Initializes the map with the specified basemap and sets up various map components.
+     *
+     * @param {string} basemapName - The name of the basemap to use. If not provided, defaults to 'tianditu-vector'.
+     *
+     * Initializes the map and view with the specified basemap and default settings.
+     * Sets up various map components including BasemapGallery, Compass, ScaleBar, DistanceMeasurement2D, and LayerList.
+     * Adds a GraphicsLayer for drawing points and a FeatureLayer for displaying county boundaries.
+     * Adjusts the view and draws points and routes once the view is ready.
+     */
     initMap (basemapName) {
       const map = new Map({
-        // basemap: 'tianditu-vector' // 使用适合的底图
-        // basemap: this.BasemapName || 'tianditu-vector' // 使用适合的底图
-        basemap: basemapName || this.BasemapName || 'tianditu-vector' // 使用适合的底图
+        basemap: basemapName || this.BasemapName || 'tianditu-vector' // Use the appropriate basemap
       })
       this.map = map
       this.view = new MapView({
-        container: 'viewDiv', // 使用正确的容器ID
+        container: 'viewDiv', // Use the correct container ID
         map: map,
-        center: [114.3, 30.7], // 默认中心点坐标
-        zoom: 4, // 默认缩放级别
+        center: [114.3, 30.7], // Default center coordinates
+        zoom: 4, // Default zoom level
         constraints: {
           geometry: {
             type: 'extent',
@@ -336,12 +378,10 @@ export default {
           minScale: 500,
           maxScale: 2000000,
           rotationEnabled: false,
-          // 假设tileInfo.lods已经在某处定义，否则这里需要调整
-          // lods: tileInfo.lods,
           snapToZoom: false
         }
       })
-      // 创建 BasemapGallery 实例
+      // Create BasemapGallery instance
       const basemapGallery = new BasemapGallery({
         view: this.view,
         source: {
@@ -350,20 +390,20 @@ export default {
           }
         }
       })
-      // 监听底图选择事件
+      // Listen for basemap selection events
       basemapGallery.watch('activeBasemap', (newBasemap) => {
         this.handleBasemapChange(newBasemap)
       })
       const compass = new Compass({
         view: this.view
       })
-      // 创建 ScaleBar 实例
+      // Create ScaleBar instance
       const scaleBar = new ScaleBar({
         view: this.view,
-        unit: 'metric', // 使用公制单位
-        style: 'ruler' // 使用标尺样式
+        unit: 'metric', // Use metric units
+        style: 'ruler' // Use ruler style
       })
-      // 创建 DistanceMeasurement2D 实例
+      // Create DistanceMeasurement2D instance
       const distanceMeasurement2D = new DistanceMeasurement2D({
         view: this.view,
         unit: 'metric',
@@ -371,63 +411,61 @@ export default {
           metric: ['kilometers', 'meters'],
           nonMetric: ['miles', 'feet']
         },
-        iconClass: 'esri-icon-measure-line' // 设置图标类
+        iconClass: 'esri-icon-measure-line' // Set icon class
       })
-      // 创建 LayerList 实例
+      // Create LayerList instance
       const layerList = new LayerList({
         view: this.view
       })
-      // 将 DistanceMeasurement2D 添加到地图视图的左下角
+      // Add DistanceMeasurement2D to the bottom-left corner of the map view
       this.view.ui.add(distanceMeasurement2D, {
         position: 'bottom-leading',
-        index: 0 // 确保它在最上面
+        index: 0 // Ensure it is on top
       })
-      // 将 BasemapGallery 添加到地图视图的右下角
+      // Add BasemapGallery to the bottom-right corner of the map view
       this.view.ui.add(basemapGallery, {
         position: 'bottom-right',
         index: 0
       })
-      // 将 LayerList 添加到地图视图的右下角
+      // Add LayerList to the bottom-right corner of the map view
       this.view.ui.add(layerList, {
         position: 'bottom-right',
         index: 1
       })
-      // 移动缩放控件到左下角
+      // Move zoom control to the bottom-left corner
       this.view.ui.move('zoom', {
         position: 'bottom-left',
         index: 1
       })
-      // 将指南针添加到地图视图的左下角
+      // Add compass to the bottom-left corner of the map view
       this.view.ui.add(compass, {
         position: 'bottom-left',
         index: 2
       })
-      // 将 ScaleBar 添加到地图视图的左下角
+      // Add ScaleBar to the bottom-left corner of the map view
       this.view.ui.add(scaleBar, {
         position: 'bottom-left',
         index: 3
       })
 
-      // 创建一个新的GraphicsLayer实例，以便在地图上绘制点
-      const graphicsLayer = new GraphicsLayer(
-        {
-          title: '起点与终点'
-        }
-      )
+      // Create a new GraphicsLayer instance for drawing points
+      const graphicsLayer = new GraphicsLayer({
+        title: '起点与终点' // Title for the layer
+      })
       map.add(graphicsLayer)
 
-      // 创建 FeatureLayer 实例
+      // Create FeatureLayer instance
       const featureLayer = new FeatureLayer({
         url: 'https://www.geosceneonline.cn/server/rest/services/Hosted/wuhan_village/FeatureServer',
-        title: '武汉县区面', // 设置图层名称
+        title: '武汉县区面', // Set layer name
         renderer: {
-          type: 'simple', // 使用简单渲染器
+          type: 'simple', // Use simple renderer
           title: '县区边界',
           symbol: {
-            type: 'simple-fill', // 使用简单填充符号
-            color: [0, 0, 0, 0], // 填充颜色透明
+            type: 'simple-fill', // Use simple fill symbol
+            color: [0, 0, 0, 0], // Transparent fill color
             outline: {
-              color: [0, 0, 0, 1], // 轮廓颜色红色
+              color: [0, 0, 0, 1], // Red outline color
               width: 1
             }
           }
@@ -437,12 +475,12 @@ export default {
             type: 'fields',
             fieldInfos: [{
               fieldName: '县区name',
-              label: '县区名称'
+              label: '县区名称' // Field label
             }]
           }]
         }
       })
-      // 将 FeatureLayer 添加到地图
+      // Add FeatureLayer to the map
       map.add(featureLayer)
       map.add(graphicsLayer)
 
@@ -454,22 +492,25 @@ export default {
         console.error('MapView initialization error:', err)
       })
     },
-    // 处理底图选择
+    /**
+     * @param {Object} basemap - The basemap object containing the title of the selected basemap.
+     * @param {string} basemap.title - The title of the selected basemap.
+     */
     handleBasemapChange (basemap) {
       const basemapMapping = {
-        '天地图-矢量（球面墨卡托投影）': 'tianditu-vector',
-        '天地图-影像（球面墨卡托投影）': 'tianditu-image',
-        '天地图-地形（球面墨卡托投影）': 'tianditu-topography'
+        '天地图-矢量（球面墨卡托投影）': 'tianditu-vector', // Mapping for vector basemap
+        '天地图-影像（球面墨卡托投影）': 'tianditu-image', // Mapping for image basemap
+        '天地图-地形（球面墨卡托投影）': 'tianditu-topography' // Mapping for topography basemap
       }
-      // 检查 basemap.title 是否是中文
+      // Check if basemap.title is in Chinese and map it to internal name
       if (basemapMapping[basemap.title]) {
         this.BasemapName = basemapMapping[basemap.title]
       } else {
-        this.BasemapName = basemap.title
+        this.BasemapName = basemap.title // Use the original title if no mapping is found
       }
       const urlParams = new URLSearchParams(window.location.search)
-      urlParams.set('BasemapLayer', this.BasemapName)
-      window.history.replaceState({}, '', `${window.location.pathname}?${urlParams}`)
+      urlParams.set('BasemapLayer', this.BasemapName) // Update URL parameter with the selected basemap
+      window.history.replaceState({}, '', `${window.location.pathname}?${urlParams}`) // Modify the URL without reloading the page
     },
     created () {
       const BasemapLayer = this.$route.query.BasemapLayer
