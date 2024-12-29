@@ -6,7 +6,7 @@
     <div class="gong-neng-lan">
       <nav>
         <h3 v-if="weatherInfo" @mouseover="showWeatherDetails" @mouseleave="hideWeatherDetails" @click="toggleWeatherDetails">
-            <router-link to="">{{ greetingMessage }}</router-link>
+            <router-link to="/shu-ju-guan-li">{{ greetingMessage }}</router-link>
         </h3>
         <div class="weather-info" @mouseover="showWeatherDetails" @mouseleave="hideWeatherDetails" @click="toggleWeatherDetails">
           <h3 v-if="weatherInfo">
