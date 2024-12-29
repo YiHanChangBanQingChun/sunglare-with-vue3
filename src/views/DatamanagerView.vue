@@ -1,32 +1,35 @@
 <template>
     <div class="datamanager">
       <!-- 工具箱 -->
-      <div class="toolbox" @click="toggleToolbox">
+      <div class="toolbox" @click="toggleToolbox" ref="toolbox">
         <img :src="toolboxIcon" alt="Toolbox Icon" class="toolbox-icon">
         <span class="toolbox-text">工具箱</span>
       </div>
       <!-- 工具箱网格 -->
-      <div v-if="showToolboxPopup" class="toolbox-popup">
-      <div class="toolbox-grid">
-        <div class="help-toolbox" @click="openLoadDataPopup" @mouseover="startTooltipTimer('加载数据', '加载数据功能可以帮助您导入新的数据集。', $event)" @mouseleave="hideTooltip">
-          <img src="@/assets/image/gis_dev_zgw_img/add_data.png" alt="加载数据">
+      <div v-if="toolboxVisible" class="toolbox-popup" ref="toolboxPopup">
+        <div class="toolbox-grid">
+          <div class="help-toolbox" @click="openLoadDataPopup" @mouseover="startTooltipTimer('加载数据', '加载数据功能可以帮助您导入新的数据集。', $event)" @mouseleave="hideTooltip">
+            <img src="@/assets/image/gis_dev_zgw_img/add_data.png" alt="加载数据">
+          </div>
+          <div class="help-toolbox" @click="toggleTimeSlider" :class="{ active: !timeSliderDisabled }" @mouseover="startTooltipTimer('时间滑块', '时间滑块功能可以帮助您在不同时间段之间切换。', $event)" @mouseleave="hideTooltip">
+            <img src="@/assets/image/gis_dev_zgw_img/time_slider.png" alt="时间滑块">
+          </div>
+          <div class="help-toolbox" @click="openFilterPopup" @mouseover="startTooltipTimer('过滤器', '过滤器功能可以帮助您筛选数据。', $event)" @mouseleave="hideTooltip">
+            <img src="@/assets/image/gis_dev_zgw_img/filter.png" alt="过滤功能">
+          </div>
+          <div class="help-toolbox" @click="openKernelDensityPopup" @mouseover="startTooltipTimer('核密度', '核密度功能可以帮助您计算数据的密度。', $event)" @mouseleave="hideTooltip">
+            <img src="@/assets/image/gis_dev_zgw_img/dot_density.png" alt="密度计算">
+          </div>
+          <!-- <div class="help-toolbox" @click="openDataTable" @mouseover="startTooltipTimer('处理数据', '处理数据功能可以帮助您对数据进行处理。', $event)" @mouseleave="hideTooltip">
+            <img src="@/assets/image/gis_dev_zgw_img/deal_data.png" alt="处理数据">
+          </div> -->
+          <div class="help-toolbox" @click="openDataTable" :class="dataTableIconClass" @mouseover="startTooltipTimer('处理数据', '处理数据功能可以帮助您对数据进行处理。', $event)" @mouseleave="hideTooltip">
+            <img src="@/assets/image/gis_dev_zgw_img/deal_data.png" alt="处理数据">
+          </div>
+          <div class="help-toolbox disabled" @click="openSelectDataPopup" @mouseover="startTooltipTimer('选择数据', '选择数据功能可以帮助您选择特定的数据。', $event)" @mouseleave="hideTooltip">
+            <img src="@/assets/image/gis_dev_zgw_img/select.png" alt="选择数据">
+          </div>
         </div>
-        <div class="help-toolbox" @click="toggleTimeSlider" :class="{ active: !timeSliderDisabled }" @mouseover="startTooltipTimer('时间滑块', '时间滑块功能可以帮助您在不同时间段之间切换。', $event)" @mouseleave="hideTooltip">
-          <img src="@/assets/image/gis_dev_zgw_img/time_slider.png" alt="时间滑块">
-        </div>
-        <div class="help-toolbox disabled" @mouseover="startTooltipTimer('过滤器', '过滤器功能可以帮助您筛选数据。', $event)" @mouseleave="hideTooltip">
-          <img src="@/assets/image/gis_dev_zgw_img/filter.png" alt="过滤功能">
-        </div>
-        <div class="help-toolbox disabled" @mouseover="startTooltipTimer('处理数据', '处理数据功能可以帮助您对数据进行处理。', $event)" @mouseleave="hideTooltip">
-          <img src="@/assets/image/gis_dev_zgw_img/deal_data.png" alt="处理数据">
-        </div>
-        <div class="help-toolbox" @click="openKernelDensityPopup" @mouseover="startTooltipTimer('核密度', '核密度功能可以帮助您计算数据的密度。', $event)" @mouseleave="hideTooltip">
-          <img src="@/assets/image/gis_dev_zgw_img/dot_density.png" alt="密度计算">
-        </div>
-        <div class="help-toolbox disabled" @mouseover="startTooltipTimer('选择数据', '选择数据功能可以帮助您选择特定的数据。', $event)" @mouseleave="hideTooltip">
-          <img src="@/assets/image/gis_dev_zgw_img/select.png" alt="选择数据">
-        </div>
-      </div>
         <!-- 工作箱关闭 -->
         <span class="toolbox-close" @click="toggleToolbox">
           <img src="@/assets/image/map_icon/cancel_dark.png" alt="关闭">
@@ -49,33 +52,105 @@
         </div>
       </div>
       <div v-if="showKernelDensityPopup" class="modal-overlay">
-    <!-- 弹窗2，核密度参数 -->
-    <div class="modal-content">
-      <h2>核密度计算</h2>
-      <div>
-        <label for="kernelRadius">核半径：</label>
-        <input type="number" id="kernelRadius" v-model="kernelRadius" class="styled-select">
+        <!-- 弹窗2，核密度参数 -->
+        <div class="modal-content">
+          <h2>核密度计算</h2>
+          <div>
+            <label for="kernelRadius">核半径：</label>
+            <input type="number" id="kernelRadius" v-model="kernelRadius" class="styled-select">
+          </div>
+          <div>
+            <label for="weightField">权重字段：</label>
+            <select id="weightField" v-model="weightField" class="styled-select">
+              <option v-for="field in availableFields" :key="field" :value="field">{{ field }}</option>
+            </select>
+          </div>
+          <div>
+            <label for="maxValue">最大值：</label>
+            <input type="number" id="maxValue" v-model="maxValue" class="styled-select">
+          </div>
+          <div>
+            <label for="clearExistingLayers">清除现有核密度图层：</label>
+            <select id="clearExistingLayers" v-model="clearExistingLayers" class="styled-select">
+              <option value="true">清除</option>
+              <option value="false">保留</option>
+            </select>
+          </div>
+          <div class="modal-buttons">
+            <button @click="applyKernelDensity">确定</button>
+            <button @click="cancelKernelDensity">取消</button>
+          </div>
+        </div>
+        </div>
+      <!-- 弹窗3，过滤器参数 -->
+      <div v-if="showFilterPopup" class="modal-overlay">
+        <div class="modal-content">
+          <h2>过滤器</h2>
+          <div>
+            <label for="filterField">字段：</label>
+            <select id="filterField" v-model="filterField" class="styled-select">
+              <option v-for="field in availableFields" :key="field" :value="field">{{ field }}</option>
+            </select>
+          </div>
+          <div>
+            <label for="filterOperator">操作符：</label>
+            <select id="filterOperator" v-model="filterOperator" class="styled-select">
+              <option value="=">等于</option>
+              <option value="!=">不等于</option>
+              <option value=">">大于</option>
+              <option value="<">小于</option>
+              <option value=">=">大于等于</option>
+              <option value="<=">小于等于</option>
+              <option value="contains">包含</option>
+              <option value="not contains">不包含</option>
+              <option value="range">范围</option>
+            </select>
+          </div>
+          <div v-if="filterOperator !== 'range'">
+            <label for="filterValue">值：</label>
+            <input type="text" id="filterValue" v-model="filterValue" class="styled-select">
+          </div>
+          <div v-else>
+            <label for="filterValueMin">最小值：</label>
+            <input type="text" id="filterValueMin" v-model="filterValueMin" class="styled-select">
+            <label for="filterValueMax">最大值：</label>
+            <input type="text" id="filterValueMax" v-model="filterValueMax" class="styled-select">
+          </div>
+          <div class="modal-buttons">
+            <button @click="applyFilter">确定</button>
+            <button @click="cancelFilter">取消</button>
+          </div>
+        </div>
       </div>
-      <div>
-        <label for="weightField">权重字段：</label>
-        <select id="weightField" v-model="weightField" class="styled-select">
-          <option v-for="field in availableFields" :key="field" :value="field">{{ field }}</option>
-        </select>
-      </div>
-      <div>
-        <label for="maxValue">最大值：</label>
-        <input type="number" id="maxValue" v-model="maxValue" class="styled-select">
-      </div>
-      <!-- <div>
-        <label for="colorStops">颜色渐变：</label>
-        <input type="text" id="colorStops" v-model="colorStops" placeholder="" class="styled-select">
-      </div> -->
-      <div class="modal-buttons">
-        <button @click="applyKernelDensity">确定</button>
-        <button @click="cancelKernelDensity">取消</button>
+      <div v-if="showSelectDataPopup" class="modal-overlay">
+      <div class="modal-content">
+        <h2>选择数据</h2>
+        <div>
+          <label for="selectMethod">选择方法：</label>
+          <select id="selectMethod" v-model="selectMethod" class="styled-select">
+            <option value="click">点击选择</option>
+            <option value="circle">画圈选择</option>
+            <option value="polygon">多边形选择</option>
+            <option value="rectangle">矩形选择</option>
+          </select>
+        </div>
+        <div class="modal-buttons">
+          <button @click="confirmSelectData">确定</button>
+          <button @click="cancelSelectData">取消</button>
+        </div>
       </div>
     </div>
-    </div>
+      <!-- 错误提示弹窗 -->
+      <div v-if="showErrorPopup" class="modal-overlay">
+        <div class="modal-content">
+          <h2>错误</h2>
+          <p>{{ errorMessage }}</p>
+          <div class="modal-buttons">
+            <button @click="closeErrorPopup">关闭</button>
+          </div>
+        </div>
+      </div>
+      <!-- 提示框 -->
       <transition name="fade">
         <div v-if="tooltipVisible" :style="{ top: tooltipY + 'px', left: tooltipX + 'px' }" class="tooltip">
           <h3>{{ tooltipTitle }}</h3>
@@ -85,9 +160,13 @@
       <!-- 地图展示 -->
       <div id="viewDiv">
       </div>
+      <!-- 时间滑块 -->
       <div id="timeSliderDiv" class="time-slider" :style="{ maxHeight: showTimeSlider ? '30%' : '0%' }">
       </div>
-      <div v-if="showFeatureTable" id="featureTableDiv" class="feature-table"></div>
+      <!-- 数据表格 -->
+      <div v-if="showDataTable" id="dataTableDiv" class="data-table" ref="dataTable">
+        <div class="resize-handle" @mousedown="startResize"></div>
+      </div>
     </div>
 </template>
 
@@ -110,78 +189,360 @@ import axios from 'axios'
 
 const FEATURE_LAYER_URL_DEFAULT = 'https://www.geosceneonline.cn/server/rest/services/Hosted/result_2024_12_15_10min/FeatureServer'
 const WHHANVILLAGE = 'https://www.geosceneonline.cn/server/rest/services/Hosted/wuhan_village/FeatureServer'
+// 提取 classBreakInfos 到一个单独的变量
+const CLASSBREAKINFOS = [
+  {
+    minValue: 0,
+    maxValue: 10,
+    symbol: {
+      type: 'simple-marker',
+      style: 'circle',
+      color: '#00FF00', // 绿色
+      size: 6,
+      outline: {
+        color: 'white',
+        width: 1
+      }
+    },
+    label: '0 - 10'
+  },
+  {
+    minValue: 10,
+    maxValue: 50,
+    symbol: {
+      type: 'simple-marker',
+      style: 'circle',
+      color: '#FFFF00', // 黄色
+      size: 6,
+      outline: {
+        color: 'white',
+        width: 1
+      }
+    },
+    label: '10 - 50'
+  },
+  {
+    minValue: 50,
+    maxValue: 100,
+    symbol: {
+      type: 'simple-marker',
+      style: 'circle',
+      color: '#FFA500', // 橙色
+      size: 6,
+      outline: {
+        color: 'white',
+        width: 1
+      }
+    },
+    label: '50 - 100'
+  },
+  {
+    minValue: 100,
+    maxValue: Infinity,
+    symbol: {
+      type: 'simple-marker',
+      style: 'circle',
+      color: '#FF0000', // 红色
+      size: 6,
+      outline: {
+        color: 'white',
+        width: 1
+      }
+    },
+    label: '> 100'
+  }
+]
+
 export default {
   name: 'DatamanagerView',
   data () {
     return {
-      resultLayer: null,
-      toolboxIcon: require('@/assets/image/gis_dev_zgw_img/Toolbox_4868.png'), // 工具箱图标路径
+      availableDates: [],
+      availableFields: ['result', 't08:50:00'],
       BasemapName: '',
+      colorStops: '0,255,255,255,0; 0.1,0,0,255,0.8; 0.3,0,255,255,0.8; 0.5,0,255,0,0.8; 0.7,255,255,0,0.8; 0.9,255,0,0,0.8; 1,139,0,0,0.8',
+      clearExistingLayers: 'true',
+      dataTable: null,
+      dataTableVisible: false,
+      dataTableActive: false,
+      errorMessage: '',
+      filterField: '',
+      filterOperator: '=',
+      filterValue: '',
+      filterValueMin: '',
+      filterValueMax: '',
       ismaploading: true,
-
-      featureTable: null,
-      showFeatureTable: false,
-      showToolboxPopup: false, // 控制工具箱弹窗显示
+      initialWidth: 0,
+      initialHeight: 0,
+      initialMouseX: 0,
+      initialMouseY: 0,
+      kernelRadius: 2,
+      kernelDensityLayer: null,
+      maxValue: 100,
+      resultLayer: null,
+      resizing: false,
+      showDataTable: false,
+      showKernelDensityPopup: false,
+      showFilterPopup: false,
+      showToolboxPopup: false,
       showLoadDataPopup: false, // 控制加载数据弹窗显示
       showTimeSlider: false, // 添加控制时间滑块显示的状态
-      timeSliderDisabled: true, // 时间滑块是否禁用，默认禁用
-      timeSlider: null, // 保存 TimeSlider 实例
-
-      showKernelDensityPopup: false,
-      kernelRadius: 2,
-      weightField: '',
-      maxValue: 100,
-      colorStops: '0,255,255,255,0; 0.1,0,0,255,0.8; 0.3,0,255,255,0.8; 0.5,0,255,0,0.8; 0.7,255,255,0,0.8; 0.9,255,0,0,0.8; 1,139,0,0,0.8',
-      availableFields: ['result', 't08:50:00'],
-      kernelDensityLayer: null,
-
+      showSelectDataPopup: false,
+      selectMethod: 'click',
+      selectedDate: '',
+      showErrorPopup: false,
+      toolboxIcon: require('@/assets/image/gis_dev_zgw_img/Toolbox_4868.png'), // 工具箱图标路径
       tooltipVisible: false,
       tooltipTitle: '',
       tooltipText: '',
       tooltipX: 0,
       tooltipY: 0,
       tooltipTimer: null,
-
-      availableDates: [],
-      selectedDate: ''
+      toolboxVisible: false,
+      timeSliderDisabled: true, // 时间滑块是否禁用，默认禁用
+      timeSlider: null, // 保存 TimeSlider 实例
+      weightField: ''
+    }
+  },
+  computed: {
+    dataTableIconClass () {
+      return this.dataTableActive ? 'active' : ''
     }
   },
   watch: {
-    // watch
-    startTooltipTimer (title, text, event) {
-      this.tooltipTitle = title
-      this.tooltipText = text
-      this.tooltipX = event.clientX + 10
-      this.tooltipY = event.clientY + 10
-      this.tooltipTimer = setTimeout(() => {
-        this.tooltipVisible = true
-      }, 1000) // 悬停一秒后显示
-    },
-    hideTooltip () {
-      clearTimeout(this.tooltipTimer)
-      this.tooltipVisible = false
-    }
+    // 暂时为空
   },
   methods: {
+    /**
+     * Starts a timer to display a tooltip after a specified delay.
+     *
+     * @param {string} title - The title of the tooltip.
+     * @param {string} text - The text content of the tooltip.
+     * @param {Event} event - The event object containing the mouse position.
+     *
+     * This function sets the tooltip's title, text, and position based on the mouse event.
+     * It then starts a timer that will make the tooltip visible after 1 second (1000 milliseconds).
+     */
     startTooltipTimer (title, text, event) {
+      if (!this.toolboxVisible) {
+        return
+      }
       this.tooltipTitle = title
       this.tooltipText = text
       this.tooltipX = event.clientX + 10
       this.tooltipY = event.clientY + 10
       this.tooltipTimer = setTimeout(() => {
-        this.tooltipVisible = true
+        if (this.toolboxVisible) {
+          this.tooltipVisible = true
+        }
       }, 1000) // 悬停一秒后显示
     },
+    /**
+     * Hides the tooltip by clearing the tooltip timer and setting the tooltip visibility to false.
+     */
     hideTooltip () {
       clearTimeout(this.tooltipTimer)
       this.tooltipVisible = false
     },
     toggleToolbox () {
-      this.showToolboxPopup = !this.showToolboxPopup
+      this.toolboxVisible = !this.toolboxVisible
+      if (!this.toolboxVisible) {
+        this.hideTooltip()
+      }
+      this.$nextTick(() => {
+        const toolboxPopup = this.$refs.toolboxPopup
+        if (toolboxPopup) {
+          toolboxPopup.style.height = this.toolboxVisible ? '150px' : '0'
+          toolboxPopup.style.width = this.toolboxVisible ? '200px' : '0'
+        }
+      })
     },
-    openKernelDensityPopup () {
-      this.showKernelDensityPopup = true
+    /**
+     * Opens the select data popup.
+     *
+     * This function sets `showSelectDataPopup` to true, making the select data popup visible.
+     */
+    openSelectDataPopup () {
+      this.toolboxVisible = false
+      this.showSelectDataPopup = true
     },
+    /**
+     * Confirms the selection of data.
+     *
+     * This function sets up the map view for the selected method and hides the select data popup.
+     */
+    confirmSelectData () {
+      this.showSelectDataPopup = false
+      switch (this.selectMethod) {
+        case 'click':
+          this.enableClickSelection()
+          break
+        case 'circle':
+          this.enableCircleSelection()
+          break
+        case 'polygon':
+          this.enablePolygonSelection()
+          break
+        case 'rectangle':
+          this.enableRectangleSelection()
+          break
+      }
+    },
+    /**
+     * Cancels the selection of data.
+     *
+     * This function sets `showSelectDataPopup` to false, hiding the select data popup.
+     */
+    cancelSelectData () {
+      this.showSelectDataPopup = false
+    },
+    /**
+     * Enables click selection on the map view.
+     */
+    enableClickSelection () {
+      this.mapView.on('click', (event) => {
+        this.selectFeatures(event.mapPoint)
+      })
+    },
+    /**
+     * Enables circle selection on the map view.
+     */
+    enableCircleSelection () {
+      // Implement circle selection logic here
+      const draw = new this.mapView.Draw({
+        view: this.mapView
+      })
+      const action = draw.create('circle')
+      this.mapView.focus()
+      action.on('draw-complete', (event) => {
+        this.selectFeatures(event.geometry)
+      })
+    },
+    /**
+     * Enables polygon selection on the map view.
+     */
+    enablePolygonSelection () {
+      // Implement polygon selection logic here
+      const draw = new this.mapView.Draw({
+        view: this.mapView
+      })
+      const action = draw.create('polygon')
+      this.mapView.focus()
+      action.on('draw-complete', (event) => {
+        this.selectFeatures(event.geometry)
+      })
+    },
+    /**
+     * Enables rectangle selection on the map view.
+     */
+    enableRectangleSelection () {
+      // Implement rectangle selection logic here
+      const draw = new this.mapView.Draw({
+        view: this.mapView
+      })
+      const action = draw.create('rectangle')
+      this.mapView.focus()
+      action.on('draw-complete', (event) => {
+        this.selectFeatures(event.geometry)
+      })
+    },
+    /**
+     * Selects features based on the given geometry.
+     *
+     * @param {Object} geometry - The geometry to use for selection.
+     */
+    selectFeatures (geometry) {
+      const query = this.resultLayer.createQuery()
+      query.geometry = geometry
+      this.resultLayer.queryFeatures(query).then((result) => {
+        this.showDataTable = true
+        this.dataTable.layer = this.resultLayer
+        this.dataTable.features = result.features
+      })
+    },
+    /**
+     * Starts the resizing process.
+     *
+     * @param {MouseEvent} event - The mouse event.
+     */
+    startResize (event) {
+      event.preventDefault()
+      this.resizing = true
+      this.initialWidth = this.$refs.dataTable.offsetWidth
+      this.initialHeight = this.$refs.dataTable.offsetHeight
+      this.initialMouseX = event.clientX
+      this.initialMouseY = event.clientY
+      this.$refs.dataTable.style.transition = 'none' // 移除过渡效果
+      document.addEventListener('mousemove', this.resize)
+      document.addEventListener('mouseup', this.stopResize)
+    },
+    /**
+     * Resizes the data table based on mouse movement.
+     *
+     * @param {MouseEvent} event - The mouse event.
+     */
+    resize (event) {
+      if (this.resizing) {
+        const deltaX = this.initialMouseX - event.clientX
+        const deltaY = this.initialMouseY - event.clientY
+        this.$refs.dataTable.style.width = `${this.initialWidth + deltaX}px`
+        this.$refs.dataTable.style.height = `${this.initialHeight + deltaY}px`
+      }
+    },
+    /**
+     * Stops the resizing process.
+     */
+    stopResize () {
+      this.resizing = false
+      this.$refs.dataTable.style.transition = 'height 0.3s, width 0.3s' // 恢复过渡效果
+      document.removeEventListener('mousemove', this.resize)
+      document.removeEventListener('mouseup', this.stopResize)
+    },
+    /**
+     * Opens the data table and loads data from the current URL.
+     *
+     * This function sets `showDataTable` to true, making the data table visible,
+     * and initializes a new FeatureTable to load data from the current URL.
+     */
+    openDataTable () {
+      this.toolboxVisible = false
+      this.dataTableVisible = !this.dataTableVisible
+      this.dataTableActive = this.dataTableVisible // 更新状态变量
+      this.showDataTable = true
+      this.$nextTick(() => {
+        if (!this.dataTable) {
+          this.dataTable = new FeatureTable({
+            view: this.mapView,
+            layer: this.resultLayer,
+            container: 'dataTableDiv'
+          })
+        }
+        const dataTableDiv = document.querySelector('.data-table')
+        if (dataTableDiv) {
+          dataTableDiv.style.height = this.dataTableVisible ? '50%' : '0'
+          dataTableDiv.style.width = this.dataTableVisible ? '60%' : '0'
+        }
+      })
+    },
+    /**
+     * Applies kernel density analysis to the map view.
+     *
+     * This function performs the following steps:
+     * 1. Hides the kernel density popup.
+     * 2. Parses the color gradient string into an array of color stops.
+     * 3. Checks if the weight field is a time field.
+     * 4. Clears existing kernel density layers if specified.
+     * 5. Creates a new kernel density layer with the appropriate settings.
+     * 6. Adds the new kernel density layer to the map view.
+     *
+     * The kernel density layer is created using a global URL and is configured
+     * with a heatmap renderer. The renderer settings include color stops, blur
+     * radius, maximum pixel intensity, and the weight field.
+     *
+     * The title of the layer is determined based on whether the weight field is
+     * a time field. If it is, the title includes the weight field; otherwise, it
+     * includes the current time.
+     */
     applyKernelDensity () {
       this.showKernelDensityPopup = false
       // 解析颜色渐变字符串
@@ -193,10 +554,21 @@ export default {
       // 检查权重字段是否是时间字段
       const isTimeField = /^t\d{2}_\d{2}_\d{2}$/.test(this.weightField)
 
+      // 清除现有核密度图层
+      if (this.clearExistingLayers === 'true') {
+        this.mapView.map.layers.forEach(layer => {
+          if (layer.title && layer.title.startsWith('核密度图层')) {
+            this.mapView.map.remove(layer)
+          }
+        })
+      }
+
       // 创建核密度图层
+      const currentTime = new Date().toLocaleTimeString('zh-CN', { hour12: false })
+      const layerTitle = isTimeField ? `核密度图层 - ${this.weightField}` : `核密度图层 - ${currentTime}`
       this.kernelDensityLayer = markRaw(new FeatureLayer({
         url: FEATURE_LAYER_URL_DEFAULT, // 使用全局 URL
-        title: '核密度图层',
+        title: layerTitle,
         definitionExpression: isTimeField ? `${this.weightField} = 1` : '', // 过滤掉值为0的点
         renderer: {
           type: 'heatmap',
@@ -209,89 +581,134 @@ export default {
 
       this.mapView.map.add(this.kernelDensityLayer)
     },
+    /**
+     * Opens the kernel density popup.
+     *
+     * This function sets `showKernelDensityPopup` to true, making the kernel density popup visible.
+     */
+    openKernelDensityPopup () {
+      this.toolboxVisible = false
+      this.showKernelDensityPopup = true
+    },
+    /**
+     * Closes the kernel density popup.
+     *
+     * This function sets `showKernelDensityPopup` to false, hiding the kernel density popup.
+     */
     cancelKernelDensity () {
       this.showKernelDensityPopup = false
     },
-    toggleTimeSlider () {
-      this.timeSliderDisabled = !this.timeSliderDisabled
-      this.showTimeSlider = !this.showTimeSlider
-      if (this.timeSlider) {
-        this.timeSlider.disabled = this.timeSliderDisabled
-        this.timeSlider.renderNow() // 触发重渲染
-      }
-      if (this.timeSliderDisabled && this.resultLayer) {
-        this.resultLayer.definitionExpression = '' // 恢复地图要素的显示
-        this.resultLayer.renderer = {
-          type: 'class-breaks', // 使用分级渲染器
-          field: 'result', // 基于 'result' 字段进行渲染
-          classBreakInfos: [
-            {
-              minValue: 0,
-              maxValue: 10,
-              symbol: {
-                type: 'simple-marker',
-                style: 'circle',
-                color: '#00FF00', // 绿色
-                size: 6,
-                outline: {
-                  color: 'white',
-                  width: 1
-                }
-              },
-              label: '0 - 10'
-            },
-            {
-              minValue: 10,
-              maxValue: 50,
-              symbol: {
-                type: 'simple-marker',
-                style: 'circle',
-                color: '#FFFF00', // 黄色
-                size: 6,
-                outline: {
-                  color: 'white',
-                  width: 1
-                }
-              },
-              label: '10 - 50'
-            },
-            {
-              minValue: 50,
-              maxValue: 100,
-              symbol: {
-                type: 'simple-marker',
-                style: 'circle',
-                color: '#FFA500', // 橙色
-                size: 6,
-                outline: {
-                  color: 'white',
-                  width: 1
-                }
-              },
-              label: '50 - 100'
-            },
-            {
-              minValue: 100,
-              maxValue: Infinity,
-              symbol: {
-                type: 'simple-marker',
-                style: 'circle',
-                color: '#FF0000', // 红色
-                size: 6,
-                outline: {
-                  color: 'white',
-                  width: 1
-                }
-              },
-              label: '> 100'
-            }
-          ]
+    /**
+     * Closes the error popup.
+     *
+     * This function sets `showErrorPopup` to false, hiding the error popup.
+     */
+    closeErrorPopup () {
+      this.showErrorPopup = false
+    },
+    /**
+     * Applies a filter to the result layer based on the selected field, operator, and value.
+     *
+     * This function constructs a definition expression based on the selected field, operator, and value,
+     * and applies the filter to the result layer. It then refreshes the layer to reflect the changes.
+     */
+    openFilterPopup () {
+      this.showFilterPopup = true
+      this.toolboxVisible = false
+    },
+    /**
+     * Closes the filter popup.
+     *
+     * This function sets `showFilterPopup` to false, hiding the filter popup.
+     */
+    cancelFilter () {
+      this.showFilterPopup = false
+    },
+    /**
+     * Applies the filter to the feature layer.
+     *
+     * This function constructs a filter expression based on the selected field, operator, and value(s),
+     * and updates the feature layer's definition expression to apply the filter.
+     */
+    applyFilter () {
+      this.showFilterPopup = false
+      let expression = ''
+      try {
+        if (!this.filterField) {
+          throw new Error('请选择一个字段')
         }
-        this.resultLayer.refresh() // 刷新图层
+        if (!this.filterOperator) {
+          throw new Error('请选择一个操作符')
+        }
+        if (this.filterOperator === 'range') {
+          if (!this.filterValueMin || !this.filterValueMax) {
+            throw new Error('请填写范围的最小值和最大值')
+          }
+          if (isNaN(this.filterValueMin) || isNaN(this.filterValueMax)) {
+            throw new Error('范围过滤器的值必须是数字')
+          }
+          expression = `${this.filterField} >= ${this.filterValueMin} AND ${this.filterField} <= ${this.filterValueMax}`
+        } else if (this.filterOperator === 'contains' || this.filterOperator === 'not contains') {
+          if (!this.filterValue) {
+            throw new Error('请填写过滤值')
+          }
+          if (typeof this.filterValue !== 'string') {
+            throw new Error('包含过滤器的值必须是字符串')
+          }
+          expression = this.filterOperator === 'contains'
+            ? `${this.filterField} LIKE '%${this.filterValue}%'`
+            : `${this.filterField} NOT LIKE '%${this.filterValue}%'`
+        } else {
+          if (!this.filterValue) {
+            throw new Error('请填写过滤值')
+          }
+          if (isNaN(this.filterValue)) {
+            throw new Error('比较操作符的值必须是数字')
+          }
+          expression = `${this.filterField} ${this.filterOperator} ${this.filterValue}`
+        }
+        this.resultLayer.definitionExpression = expression
+        this.resultLayer.refresh()
+      } catch (error) {
+        this.errorMessage = error.message
+        this.showErrorPopup = true
       }
     },
+    /**
+     * Toggles the visibility and state of the time slider.
+     *
+     * This function switches the state of `timeSliderDisabled` and `showTimeSlider` between true and false,
+     * effectively enabling/disabling and showing/hiding the time slider. It also updates the result layer's
+     * renderer and definition expression based on the state of the time slider.
+     */
+    toggleTimeSlider () {
+      this.toolboxVisible = false
+      this.timeSliderDisabled = !this.timeSliderDisabled
+      this.showTimeSlider = !this.showTimeSlider
+      this.showToolboxPopup = !this.showToolboxPopup
+      if (this.timeSlider) {
+        this.timeSlider.disabled = this.timeSliderDisabled
+        this.timeSlider.renderNow() // Trigger re-render
+      }
+      if (this.timeSliderDisabled && this.resultLayer) {
+        this.resultLayer.definitionExpression = '' // Reset the definition expression
+        this.resultLayer.renderer = {
+          type: 'class-breaks', // Use class breaks renderer
+          field: 'result', // Render based on the 'result' field
+          classBreakInfos: CLASSBREAKINFOS
+        }
+        this.resultLayer.refresh() // Refresh the layer
+      }
+    },
+    /**
+     * Opens the load data popup.
+     *
+     * This function sets `showLoadDataPopup` to true, making the load data popup visible.
+     * It also fetches available dates for the feature layer from the API and updates the `availableDates` state.
+     */
     openLoadDataPopup () {
       this.showLoadDataPopup = true
+      this.toolboxVisible = false
       axios.get(`${process.env.VUE_APP_API_URL}/api/get_feature_layer_dates`)
         .then(response => {
           this.availableDates = response.data.dates
@@ -301,6 +718,12 @@ export default {
           console.error('Error fetching dates:', error)
         })
     },
+    /**
+     * Confirms the loading of data.
+     *
+     * This function fetches the feature layer URL for the selected date from the API,
+     * updates the feature layer with the new URL, and hides the load data popup.
+     */
     confirmLoadData () {
       axios.get(`${process.env.VUE_APP_API_URL}/api/get_feature_layer_url_by_date`, { params: { date: this.selectedDate } })
         .then(response => {
@@ -313,6 +736,15 @@ export default {
           console.error('Error fetching URL:', error)
         })
     },
+    /**
+     * Updates the feature layer with a new URL.
+     *
+     * This function removes the existing feature layer (if any), creates a new feature layer with the given URL,
+     * updates the renderer and popup template, and adds the new feature layer to the map view.
+     * It also loads the field information and updates the `availableFields` state.
+     *
+     * @param {string} url - The URL of the new feature layer.
+     */
     updateFeatureLayer (url) {
       if (this.resultLayer) {
         this.mapView.map.remove(this.resultLayer)
@@ -323,68 +755,7 @@ export default {
         renderer: {
           type: 'class-breaks',
           field: 'result',
-          classBreakInfos: [
-            {
-              minValue: 0,
-              maxValue: 10,
-              symbol: {
-                type: 'simple-marker',
-                style: 'circle',
-                color: '#00FF00', // 绿色
-                size: 6,
-                outline: {
-                  color: 'white',
-                  width: 1
-                }
-              },
-              label: '0 - 10'
-            },
-            {
-              minValue: 10,
-              maxValue: 50,
-              symbol: {
-                type: 'simple-marker',
-                style: 'circle',
-                color: '#FFFF00', // 黄色
-                size: 6,
-                outline: {
-                  color: 'white',
-                  width: 1
-                }
-              },
-              label: '10 - 50'
-            },
-            {
-              minValue: 50,
-              maxValue: 100,
-              symbol: {
-                type: 'simple-marker',
-                style: 'circle',
-                color: '#FFA500', // 橙色
-                size: 6,
-                outline: {
-                  color: 'white',
-                  width: 1
-                }
-              },
-              label: '50 - 100'
-            },
-            {
-              minValue: 100,
-              maxValue: Infinity,
-              symbol: {
-                type: 'simple-marker',
-                style: 'circle',
-                color: '#FF0000', // 红色
-                size: 6,
-                outline: {
-                  color: 'white',
-                  width: 1
-                }
-              },
-              label: '> 100'
-            }
-          ]
+          classBreakInfos: CLASSBREAKINFOS
         },
         popupTemplate: {
           title: '{road_name} - {result}',
@@ -394,12 +765,28 @@ export default {
           }]
         }
       }))
+      // 加载字段信息并更新 popupTemplate
+      this.resultLayer.load().then(() => {
+        const { fieldInfos, allFields } = this.generateFieldInfos(this.resultLayer.fields)
+        this.resultLayer.popupTemplate.content[0].fieldInfos = fieldInfos
+        this.availableFields = allFields // 更新 availableFields
+      })
       this.mapView.map.add(this.resultLayer)
     },
+    /**
+     * Cancels the loading of data.
+     *
+     * This function sets `showLoadDataPopup` to false, hiding the load data popup.
+     */
     cancelLoadData () {
       this.showLoadDataPopup = false
     },
-    // 初始化地图
+    /**
+     * Initializes the map.
+     *
+     * This function creates a new map with a specified basemap and spatial reference.
+     * It then creates a map view and a feature table, and sets up the initial state of the feature table.
+     */
     initMap () {
       const map = new Map({
         basemap: 'tianditu-vector'
@@ -427,43 +814,17 @@ export default {
         })
       })
     },
-    toggleFeatureTable () {
-      this.showFeatureTable = !this.showFeatureTable
-      this.$nextTick(() => {
-        const featureTableDiv = document.querySelector('.feature-table')
-        if (this.showFeatureTable) {
-          if (featureTableDiv) {
-            featureTableDiv.style.height = '100%'
-            featureTableDiv.style.width = '100%'
-          }
-          const layerList = document.querySelector('.geoscene-layer-list')
-          if (layerList) {
-            layerList.style.maxHeight = '0'
-          }
-          const basemapGallery = document.querySelector('.geoscene-basemap-gallery')
-          if (basemapGallery) {
-            basemapGallery.style.maxHeight = '0'
-          }
-        } else {
-          if (featureTableDiv) {
-            featureTableDiv.style.height = '0'
-            featureTableDiv.style.width = '0'
-          }
-          const layerList = document.querySelector('.geoscene-layer-list')
-          if (layerList) {
-            layerList.style.maxHeight = ''
-          }
-          const basemapGallery = document.querySelector('.geoscene-basemap-gallery')
-          if (basemapGallery) {
-            basemapGallery.style.maxHeight = ''
-          }
-        }
-      })
-    },
+    /**
+     * Generates field information for the result layer.
+     *
+     * This function extracts field names from the result layer, filters time fields,
+     * and creates an array of field information objects. It returns an object containing
+     * field information and all field names.
+     *
+     * @returns {Object} An object containing fieldInfos and allFields.
+     */
     generateFieldInfos () {
       const fields = this.resultLayer.fields.map(field => field.name)
-      // 测试输出字段
-      // console.log(fields)
       const timeFields = fields.filter(field => /^t\d{2}_\d{2}_\d{2}$/.test(field))
 
       const fixedFields = [
@@ -482,11 +843,21 @@ export default {
 
       // 返回所有字段
       return {
-        fieldInfos: [...timeFieldInfos, ...fixedFields],
+        fieldInfos: [...fixedFields, ...timeFieldInfos],
         allFields: fields
       }
     },
-    // 创建地图视图
+    /**
+     * Creates the map view.
+     *
+     * This function creates a new map view with specified map and tile information.
+     * It adds feature layers, initializes various widgets, and sets up event listeners
+     * for the map view.
+     *
+     * @param {Object} map - The map object.
+     * @param {Object} tileInfo - The tile information object.
+     * @returns {Object} The created map view.
+     */
     createMapView (map, tileInfo) {
       // 创建 FeatureLayer 实例
       const featureLayer = new FeatureLayer({
@@ -522,68 +893,7 @@ export default {
         renderer: {
           type: 'class-breaks', // 使用分级渲染器
           field: 'result', // 基于 'result' 字段进行渲染
-          classBreakInfos: [
-            {
-              minValue: 0,
-              maxValue: 10,
-              symbol: {
-                type: 'simple-marker',
-                style: 'circle',
-                color: '#00FF00', // 绿色
-                size: 6,
-                outline: {
-                  color: 'white',
-                  width: 1
-                }
-              },
-              label: '0 - 10'
-            },
-            {
-              minValue: 10,
-              maxValue: 50,
-              symbol: {
-                type: 'simple-marker',
-                style: 'circle',
-                color: '#FFFF00', // 黄色
-                size: 6,
-                outline: {
-                  color: 'white',
-                  width: 1
-                }
-              },
-              label: '10 - 50'
-            },
-            {
-              minValue: 50,
-              maxValue: 100,
-              symbol: {
-                type: 'simple-marker',
-                style: 'circle',
-                color: '#FFA500', // 橙色
-                size: 6,
-                outline: {
-                  color: 'white',
-                  width: 1
-                }
-              },
-              label: '50 - 100'
-            },
-            {
-              minValue: 100,
-              maxValue: Infinity,
-              symbol: {
-                type: 'simple-marker',
-                style: 'circle',
-                color: '#FF0000', // 红色
-                size: 6,
-                outline: {
-                  color: 'white',
-                  width: 1
-                }
-              },
-              label: '> 100'
-            }
-          ]
+          classBreakInfos: CLASSBREAKINFOS
         },
         popupTemplate: {
           title: '{road_name} - {result}', // 标题为 road_name 加上 result
@@ -822,7 +1132,14 @@ export default {
       this.BasemapName = basemapMapping[BasemapName] || BasemapName
       return mapView
     },
-    // 处理底图选择
+    /**
+     * Handles the basemap change event.
+     *
+     * This function maps the basemap title to a corresponding internal name,
+     * updates the `BasemapName` state, and modifies the URL parameters to reflect the new basemap.
+     *
+     * @param {Object} basemap - The basemap object containing the title of the selected basemap.
+     */
     handleBasemapChange (basemap) {
       const basemapMapping = {
         '天地图-矢量（球面墨卡托投影）': 'tianditu-vector',
@@ -879,20 +1196,6 @@ export default {
   margin: auto;
 }
 
-.feature-table {
-  position: fixed;
-  bottom: 0;
-  right: 0;
-  width: 60%;
-  height: 0;
-  z-index: 1000;
-  background-color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(222, 222, 222, 0.45);
-  border-radius: 10px;
-  overflow: hidden;
-  transition: height 0.3s, width 0.3s;
-}
-
 .toolbox {
   position: absolute;
   top: 1.4%;
@@ -944,17 +1247,18 @@ export default {
   position: absolute;
   top: 8vh; /* 弹窗显示在工具箱下方 */
   left: 10px;
-  width: flex; /* 弹窗宽度 */
+  width: 0; /* 初始宽度为0 */
+  height: 0; /* 初始高度为0 */
+  overflow: hidden;
+  transition: height 0.3s ease, width 0.3s ease; /* 添加过渡效果 */
   padding: 10px;
   border-radius: 5px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 阴影效果 */
   z-index: 1000; /* 确保弹窗在地图上方 */
-
   background-color: rgba(255, 255, 255, 0.5) !important; /* 应用深色毛玻璃效果 */
   -webkit-backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
   backdrop-filter: blur(25px) !important; /* 应用毛玻璃效果 */
   border: none !important;
-  /* box-shadow: none !important; */
   border: 1px solid rgba(222, 222, 222, 0.45); /* 添加边框 */
 }
 
@@ -1062,6 +1366,10 @@ export default {
   background-color: rgb(216, 180, 133);
 }
 
+.help-toolbox.active {
+  background-color: red; /* 激活状态背景为红色 */
+}
+
 .toolbox-close {
   display: flex;
   justify-content: center; /* 居中对齐 */
@@ -1130,6 +1438,31 @@ export default {
   background-position: right 10px center;
   background-size: 16px 16px;
   cursor: pointer;
+}
+
+.data-table {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 60%;
+  height: 50%;
+  z-index: 1000;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(222, 222, 222, 0.45);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: height 0.3s, width 0.3s;
+}
+
+.resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  background-color: rgba(0, 0, 0, 0.5);
+  cursor: nwse-resize;
+  z-index: 1001;
 }
 
 /* 鼠标悬停时只改变边框颜色，不改变宽度 */

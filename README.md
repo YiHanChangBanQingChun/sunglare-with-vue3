@@ -110,5 +110,3 @@
 - **贡献者**：[YiHanChangBanQingChun](https://github.com/YiHanChangBanQingChun) 👤、[5769812](https://github.com/5769812) 👤、[lxf-731](https://github.com/lxf-731) 👤
 [![GitHub contributors](https://img.shields.io/github/contributors/YiHanChangBanQingChun/sunglare-with-vue3)](https://github.com/YiHanChangBanQingChun/sunglare-with-vue3/graphs/contributors)
 - **邮箱**：<yihanchangbanqingchun@gmail.com> ✉️
-
-------
