@@ -104,43 +104,66 @@ export default {
     }
   },
   watch: {
+    /**
+     * Watches for changes in the selected district and initializes the compass with the district's name.
+     *
+     * @param {String} newVal - The new value of the selected district code.
+     */
     selectedDistrict (newVal) {
-      const district = this.districts.find(d => d.code === newVal)
+      const district = this.districts.find(d => d.code === newVal) // Find the district with the matching code
       if (district) {
-        this.inityibiaopan(district.name)
+        this.inityibiaopan(district.name) // Initialize the compass with the district's name
       }
     }
   },
+  /**
+   * Lifecycle hook called when the component is mounted.
+   * This function initializes various charts and fetches necessary data.
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
   async mounted () {
-    this.initzhuzhuangtu()
-    await this.fetchIframeUrl()
-    console.log('Echarts is mounted')
-    await this.fetchWeatherInfo(this.selectedDistrict) // 默认加载武汉市的天气信息
+    this.initzhuzhuangtu() // Initialize bar chart
+    await this.fetchIframeUrl() // Fetch the iframe URL
+    await this.fetchWeatherInfo(this.selectedDistrict) // Fetch weather information for the selected district (default: Wuhan)
     this.intervalid = setInterval(() => {
-      this.fetchWeatherInfo(this.selectedDistrict)
+      this.fetchWeatherInfo(this.selectedDistrict) // Fetch weather information for the selected district every 60 seconds
     }, 60000)
-    this.inityibiaopan(this.selectedDistrict) // 传入默认区域名称
-    this.initPolarChart() // 初始化极坐标图
-    const areaName = '武汉市' // 替换为实际的区域名称
-    await this.fetchSolarAngles(areaName)
-    await this.fetchSolarAnglesDay(areaName)
-    await this.fetchApiKey()
-    this.fetchAvailableDates()
+    this.inityibiaopan(this.selectedDistrict) // Initialize the compass with the selected district (default: Wuhan)
+    this.initPolarChart() // Initialize the polar chart
+    const areaName = '武汉市' // Replace with the actual area name
+    await this.fetchSolarAngles(areaName) // Fetch solar angles for the specified area
+    await this.fetchSolarAnglesDay(areaName) // Fetch daily solar angles for the specified area
+    await this.fetchApiKey() // Fetch the API key
+    this.fetchAvailableDates() // Fetch available dates
   },
   beforeUnmount () {
     if (this.intervalid) {
       clearInterval(this.intervalid)
-      console.log('清除定时器')
     }
   },
   methods: {
+    /**
+     * Fetches available dates from the API and updates the `availableDates` property.
+     *
+     * This function sends a GET request to the endpoint specified by the environment variable `VUE_APP_API_URL`
+     * to retrieve a list of available dates. If the request is successful and dates are found in the response,
+     * the `availableDates` property is updated with the retrieved dates. If no dates are found or an error occurs,
+     * appropriate error messages are logged to the console.
+     *
+     * @async
+     * @function fetchAvailableDates
+     * @returns {Promise<void>} A promise that resolves when the dates have been fetched and processed.
+     */
     // 获取可用日期
     async fetchAvailableDates () {
       try {
         const response = await fetch(`${process.env.VUE_APP_API_URL}/api/get_dates`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
           }
         })
         const data = await response.json()
@@ -153,79 +176,110 @@ export default {
         console.error('Error fetching available dates:', error)
       }
     },
+    /**
+     * Fetches the iframe URL based on the provided date.
+     *
+     * This function sends a GET request to the API endpoint to retrieve the URL associated with the given date.
+     * If the URL is found in the response, it updates the iframe source. If not, it logs an error message.
+     * In case of any error during the fetch operation, it logs the error message.
+     * The loading animation is controlled by the `isLoading` state.
+     *
+     * @param {string} date - The date for which the iframe URL is to be fetched.
+     */
     async fetchIframeUrlByDate (date) {
-      this.isLoading = true // 开始加载动画
+      this.isLoading = true // Start loading animation
       try {
         const response = await fetch(`${process.env.VUE_APP_API_URL}/api/get_url_by_date?date=${date}`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
           }
         })
         const data = await response.json()
         if (data.url) {
           this.iframeSrc = data.url
-          console.log('获取到的iframe URL:', this.iframeSrc)
         } else {
           console.error('URL not found in response')
-          this.isLoading = false // 如果没有找到 URL，停止加载动画
+          this.isLoading = false // Stop loading animation if URL is not found
         }
       } catch (error) {
         console.error('Error fetching iframe URL:', error)
-        this.isLoading = false // 如果发生错误，停止加载动画
+        this.isLoading = false // Stop loading animation if an error occurs
       }
     },
-    // 获取 默认的iframe URL
+    /**
+     * Fetches the default iframe URL from the API and sets it to the component's iframeSrc property.
+     * Displays a loading animation while fetching the data.
+     * If the URL is not found in the response or an error occurs, logs the error and stops the loading animation.
+     */
     async fetchIframeUrl () {
-      this.isLoading = true // 开始加载动画
+      this.isLoading = true // Start loading animation
       try {
         const response = await fetch(`${process.env.VUE_APP_API_URL}/api/getapp`, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
           }
         })
         const data = await response.json()
         if (data.url) {
-          this.iframeSrc = data.url
-          console.log('获取到的iframe URL:', this.iframeSrc)
+          this.iframeSrc = data.url // Set iframe source URL
         } else {
           console.error('URL not found in response')
-          this.isLoading = false // 如果没有找到 URL，停止加载动画
+          this.isLoading = false // Stop loading animation if URL is not found
         }
       } catch (error) {
         console.error('Error fetching iframe URL:', error)
-        this.isLoading = false // 如果发生错误，停止加载动画
+        this.isLoading = false // Stop loading animation if an error occurs
       }
     },
+    /**
+     * Handles the change event for the date input.
+     *
+     * @param {Event} event - The event object from the date input change.
+     */
     handleDateChange (event) {
-      const selectedDate = event.target.value
-      this.fetchIframeUrlByDate(selectedDate)
+      const selectedDate = event.target.value // Get the selected date from the event
+      this.fetchIframeUrlByDate(selectedDate) // Fetch the iframe URL based on the selected date
     },
-    // 检查 iframe 是否加载完成
+    /**
+     * This method is triggered when the iframe has finished loading.
+     * It sets the `isLoading` property to false, which stops the loading animation.
+     */
     onIframeLoad () {
-      this.isLoading = false // iframe 加载完成，停止加载动画
+      this.isLoading = false // iframe has finished loading, stop the loading animation
     },
-    // 处理区域选择变化事件
+    /**
+     * Handles the event when the selected district changes.
+     * Clears the existing interval, fetches weather information and statistics for the selected district,
+     * and sets a new interval to fetch weather information every 60 seconds.
+     */
     handleDistrictChange () {
-      clearInterval(this.intervalid)
-      console.log('选择的区域:', this.selectedDistrict)
-      this.fetchWeatherInfo(this.selectedDistrict)
-      this.fetchStatistics(this.selectedDistrict)
+      clearInterval(this.intervalid) // Clear the existing interval
+      this.fetchWeatherInfo(this.selectedDistrict) // Fetch weather information for the selected district
+      this.fetchStatistics(this.selectedDistrict) // Fetch statistics for the selected district
       this.intervalid = setInterval(() => {
-        this.fetchWeatherInfo(this.selectedDistrict)
+        this.fetchWeatherInfo(this.selectedDistrict) // Fetch weather information every 60 seconds
       }, 60000)
     },
-    // 处理右键点击事件
+    /**
+     * Initializes the bar chart using ECharts library and sets its options.
+     * The chart displays the proportion of street view glare.
+     * It also loads static data into the chart upon initialization.
+     */
     initzhuzhuangtu () {
+      // Initialize the bar chart with the reference element
       this.barChart = echarts.init(this.$refs.zhuzhuangtu)
       this.barChart.setOption({
         title: {
-          text: '街景眩光占比',
-          left: 'center'
+          text: '街景眩光占比', // Title of the chart
+          left: 'center' // Center the title
         },
         tooltip: {
           formatter: function (params) {
+            // Format the tooltip based on the series name
             if (params.seriesName === '百分比') {
               return `${params.name}: ${params.value} %`
             } else {
@@ -234,31 +288,41 @@ export default {
           }
         },
         grid: {
-          left: '15%', // 向右移动
-          top: '28%' // 向下移动
+          left: '15%', // Move grid to the right
+          top: '28%' // Move grid downwards
         },
         xAxis: {
           type: 'category',
-          data: [] // 默认设置为空
+          data: [] // Default set to empty
         },
         yAxis: {
           type: 'value',
           axisLabel: {
-            formatter: '{value}'
+            formatter: '{value}' // Format y-axis labels
           }
         },
         series: [{
-          name: '百分比',
-          type: 'bar',
-          data: []
+          name: '百分比', // Series name
+          type: 'bar', // Type of chart
+          data: [], // Default set to empty
+          itemStyle: {
+            color: '#3398DB' // Default color set to blue
+          }
         }]
       })
-      // 初始化时加载静态数据
+      // Load static data into the chart upon initialization
       this.updateStaticChart()
     },
-    // 更新柱状图
+    /**
+     * Updates the bar chart with the given data and highlights the month with the highest percentage.
+     *
+     * @param {Array} data - The data array where each item contains monthly counts and a total count.
+     * @param {number} currentMonth - The current month (not used in this function but kept for future use).
+     */
     updatezhuzhuangtu (data, currentMonth) {
       const xAxisData = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月']
+
+      // Calculate the percentage for each month and flatten the array
       const seriesData = data.map(item => {
         const total = item.count
         const monthData = [
@@ -266,13 +330,26 @@ export default {
           item.t07, item.t08, item.t09, item.t10, item.t11, item.t12
         ]
         return monthData.map((value, index) => ({
-          value: (value / total * 100).toFixed(2),
-          itemStyle: index === currentMonth - 1 ? { color: 'red' } : {}
+          value: (value / total * 100).toFixed(2), // Calculate percentage
+          month: index + 1 // Save month information
         }))
       }).flat()
+
+      // Find the bar with the highest percentage
+      const maxItem = seriesData.reduce((max, item) => item.value > max.value ? item : max, seriesData[0])
+
+      // Set colors for the bars
+      const formattedSeriesData = seriesData.map(item => ({
+        value: item.value,
+        itemStyle: {
+          color: item.month === maxItem.month ? 'red' : '#3398DB' // Highlight the highest percentage bar in red, others in blue
+        }
+      }))
+
+      // Update the bar chart options
       this.barChart.setOption({
         title: {
-          text: '眩光占比',
+          text: '眩光占比', // Glare percentage
           left: 'center'
         },
         tooltip: {
@@ -287,10 +364,13 @@ export default {
             formatter: '{value} %'
           }
         },
-        series: [{ data: seriesData }]
+        series: [{ data: formattedSeriesData }]
       })
     },
-    // 更新静态图表
+    /**
+     * Updates the static chart with predefined data.
+     * The chart displays the number of street view images for each district.
+     */
     updateStaticChart () {
       const staticData = [
         { name: '东西湖区', count: 11107 },
@@ -307,7 +387,7 @@ export default {
         { name: '青山区', count: 3176 },
         { name: '黄陂区', count: 5073 }
       ]
-      const xAxisData = staticData.map(item => item.name)
+      const xAxisData = staticData.map(item => item.name) // Extract district
       const seriesData = staticData.map(item => item.count)
       this.barChart.setOption({
         title: {
@@ -322,8 +402,8 @@ export default {
         xAxis: {
           data: xAxisData,
           axisLabel: {
-            rotate: 45, // 旋转45度
-            interval: 0 // 显示所有标签
+            rotate: 45,
+            interval: 0
           }
         },
         yAxis: {
@@ -335,7 +415,14 @@ export default {
         series: [{ data: seriesData, type: 'bar' }]
       })
     },
-    // 获取统计数据
+    /**
+     * Fetches statistical data based on the provided district.
+     * If no district is provided or the district is '420100', it updates the static chart.
+     * Otherwise, it fetches the data from the API and updates the chart with the fetched data.
+     *
+     * @param {string|null} district - The district code to fetch statistics for. Defaults to null.
+     * @returns {Promise<void>} - A promise that resolves when the data fetching and chart updating is complete.
+     */
     async fetchStatistics (district = null) {
       try {
         if (!district || district === '420100') {
@@ -349,7 +436,8 @@ export default {
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true' // 添加请求头
           }
         })
         const data = await response.json()
@@ -363,14 +451,23 @@ export default {
         console.error('请求统计数据发生错误:', error)
       }
     },
-    // 初始化仪表盘
+    /**
+     * Initialize the dashboard (仪表盘)
+     *
+     * @param {string} areaName - The name of the area to display on the gauge
+     *
+     * This function initializes an ECharts gauge to display real-time temperature.
+     * It sets up the gauge with various configurations such as title, tooltip, series, and styling.
+     * The gauge updates every 2 seconds with the current temperature and changes color based on the temperature range.
+     */
     inityibiaopan (areaName) {
+      // Get the DOM element for the gauge
       const chartDom = document.getElementById('yibiaopan')
+      // Initialize the ECharts instance
       const myChart = echarts.init(chartDom)
-      console.log('初始化仪表盘:', areaName)
       const option = {
         title: {
-          text: '实时温度',
+          text: '实时温度', // Real-time temperature
           left: 'center',
           top: 'top',
           textStyle: {
@@ -381,12 +478,12 @@ export default {
         },
         tooltip: {
           formatter: (params) => {
-            return `城市: ${areaName}<br/>${params.seriesName}: ${params.value}°C `
+            return `城市: ${areaName}<br/>${params.seriesName}: ${params.value}°C ` // Tooltip format
           }
         },
         series: [
           {
-            name: '温度',
+            name: '温度', // Temperature
             type: 'gauge',
             center: ['50%', '68%'],
             startAngle: 200,
@@ -408,7 +505,7 @@ export default {
               lineStyle: {
                 width: 30,
                 color: [
-                  [1, '#e0e0e0'] // 初始状态为灰色
+                  [1, '#e0e0e0'] // Initial state color
                 ]
               }
             },
@@ -444,7 +541,7 @@ export default {
               color: '#333',
               left: 'center',
               top: 'top',
-              formatter: () => `当前市的实时温度\n${areaName}`
+              formatter: () => `当前市的实时温度\n${areaName}` // Current city's real-time temperature
             },
             detail: {
               valueAnimation: true,
@@ -464,7 +561,7 @@ export default {
             ]
           },
           {
-            name: '温度',
+            name: '温度', // Temperature
             type: 'gauge',
             center: ['50%', '60%'],
             startAngle: 200,
@@ -504,12 +601,14 @@ export default {
           }
         ]
       }
+      // Set the initial option for the chart
       myChart.setOption(option)
+      // Update the gauge every 2 seconds with the current temperature
       setInterval(() => {
         if (this.currentTemperature !== null) {
           let color = 'green'
           if (this.currentTemperature < 10) {
-            color = 'blue'
+            color = '#3398DB'
           } else if (this.currentTemperature > 28) {
             color = 'orange'
           }
@@ -537,44 +636,70 @@ export default {
         }
       }, 2000)
     },
-    // 获取当前时间的太阳角度信息
+    /**
+     * Fetches the solar angles for the given area name at the current time.
+     *
+     * This function constructs a URL using the provided area name and the current time,
+     * then makes a GET request to fetch the solar angle information from the API.
+     * If the request is successful, it updates the solarData and calls updatePolarChart.
+     * If the request fails, it logs the error message.
+     *
+     * @param {string} areaName - The name of the area for which to fetch solar angles.
+     */
     async fetchSolarAngles (areaName) {
-      console.log('获取当前时间的太阳角度信息:', areaName)
+      // Get the current time in ISO format
       const time = new Date().toISOString()
+      // Construct the API URL with the area name and current time
       const url = `${process.env.VUE_APP_API_URL}/api/solar_angles?area_name=${encodeURIComponent(areaName)}&time=${time}`
-      console.log('请求太阳角度信息:', url)
       try {
+        // Make the GET request to fetch solar angles
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
           }
         })
         if (response.ok) {
+          // Parse the response JSON and update solarData
           const solarInfo = await response.json()
           this.solarData = [solarInfo]
-          console.log('Solar Data:', this.solarData) // 添加这行
+          // Update the polar chart with the new data
           this.updatePolarChart(areaName)
-          console.log('获取太阳角度信息成功:', solarInfo)
         } else {
+          // Log the error message if the request fails
           const errorData = await response.json()
           console.error('获取太阳角度信息失败:', errorData.message)
         }
       } catch (error) {
+        // Log any errors that occur during the request
         console.error('请求太阳角度信息发生错误:', error)
       }
     },
+    /**
+     * Fetches the solar angle trajectory information for a given area within a day.
+     *
+     * @param {string} areaName - The name of the area to fetch solar angles for.
+     * @returns {Promise<void>} - A promise that resolves when the solar angles have been fetched and processed.
+     *
+     * This function performs the following steps:
+     * 1. Constructs the API URL with the given area name and the current date.
+     * 2. Sends a GET request to the API to fetch the solar angle data.
+     * 3. If the request is successful, processes the response data and updates the solarTrajectoryData property.
+     * 4. Calls the updatePolarChart method with the area name.
+     * 5. If the request fails, logs an error message to the console.
+     * 6. If an error occurs during the request, logs the error to the console.
+     */
     // 获取一天内的太阳角度轨迹信息
     async fetchSolarAnglesDay (areaName) {
-      console.log('获取一天内的太阳角度轨迹信息:', areaName)
       const date = new Date().toISOString().split('T')[0]
       const url = `${process.env.VUE_APP_API_URL}/api/solar_angles_day?area_name=${encodeURIComponent(areaName)}&date=${date}`
-      console.log('请求太阳角度信息:', url)
       try {
         const response = await fetch(url, {
           method: 'GET',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true'
           }
         })
         if (response.ok) {
@@ -586,7 +711,6 @@ export default {
             isSunset: item.is_sunset
           }))
           this.updatePolarChart(areaName)
-          console.log('获取太阳角度信息成功:', solarInfo)
         } else {
           const errorData = await response.json()
           console.error('获取太阳角度信息失败:', errorData.message)
@@ -595,23 +719,39 @@ export default {
         console.error('请求太阳角度信息发生错误:', error)
       }
     },
-    // 初始化极坐标图
+    /**
+     * Initializes the polar chart using ECharts library.
+     * This function sets up the polar chart instance and updates it with the latest data.
+     */
     initPolarChart () {
+      // Initialize the polar chart instance with the reference to the DOM element
       this.polarChart = echarts.init(this.$refs.polarChart)
+      // Update the polar chart with the latest data
       this.updatePolarChart()
     },
-    // 更新极坐标图
+    /**
+     * Updates the polar chart with solar altitude and azimuth data.
+     *
+     * @param {string} areaName - The name of the area to be displayed in the chart title.
+     */
     updatePolarChart (areaName = '') {
+      // Filter solar data to include only items with solar altitude >= 0
       const rawData = toRaw(this.solarData).filter(item => item.solar_altitude >= 0)
+      // Filter solar trajectory data to include only items with solar altitude >= 0
+      const trajectoryData = toRaw(this.solarTrajectoryData).filter(item => item.solarAltitude >= 0)
+      // Calculate the maximum solar altitude from the trajectory data
+      const maxAltitude = Math.max(...trajectoryData.map(item => item.solarAltitude), 0)
+      // Adjust the maximum altitude by extending 10% but not exceeding 90 degrees
+      const adjustedMaxAltitude = Math.min(maxAltitude * 1.1, 90)
       const option = {
         title: {
-          text: `${areaName}太阳高度角和方位角`,
+          text: `${areaName}太阳高度角和方位角`, // Chart title with area name
           fontSize: 14,
           left: 'center',
           top: 'top'
         },
         legend: {
-          data: ['当前太阳角度', '太阳轨迹'],
+          data: ['太阳轨迹', '当前太阳角度'], // Legend for the chart
           left: 'center',
           bottom: '0%'
         },
@@ -622,10 +762,11 @@ export default {
         tooltip: {
           trigger: 'item',
           formatter: function (params) {
+            // Tooltip content formatting
             return `${params.seriesName}<br/>区名: ${areaName}<br/>高度角: ${params.value[0]} °<br/>方位角: ${params.value[1]} °`
           },
           position: function (point, params, dom, rect, size) {
-            // 固定在右侧
+            // Fix tooltip position to the right side
             return [point[0] + 10, '10%']
           }
         },
@@ -638,12 +779,12 @@ export default {
         },
         radiusAxis: {
           min: 0,
-          max: 90
+          max: adjustedMaxAltitude
         },
         series: [
           {
             coordinateSystem: 'polar',
-            name: '当前太阳角度',
+            name: '当前太阳角度', // Current solar angle series
             type: 'scatter',
             data: rawData.map(item => [item.solar_altitude, item.solar_azimuth]),
             itemStyle: {
@@ -663,11 +804,11 @@ export default {
           },
           {
             coordinateSystem: 'polar',
-            name: '太阳轨迹',
+            name: '太阳轨迹', // Solar trajectory series
             type: 'line',
             data: this.solarTrajectoryData.map(item => [item.solarAltitude, item.solarAzimuth]),
             itemStyle: {
-              color: 'blue'
+              color: '#3398DB'
             },
             markPoint: {
               data: this.solarTrajectoryData.filter(item => item.isSunrise || item.isSunset).map(item => ({
@@ -679,24 +820,41 @@ export default {
           }
         ]
       }
-      console.log('ECharts Option:', option) // 添加这行
       this.polarChart.setOption(option)
     },
-    // 获取 API 密钥
+    /**
+     * Fetches the API key from the server.
+     *
+     * This function sends a GET request to the API endpoint specified in the environment
+     * variable `VUE_APP_API_URL` to retrieve the API key. If the key is successfully retrieved,
+     * it is stored in the `apiKey` property. If the request fails or the key is not present
+     * in the response, an error message is logged to the console.
+     *
+     * @returns {Promise<void>} A promise that resolves when the API key is fetched and stored.
+     */
     async fetchApiKey () {
       try {
-        const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/get_api_key`)
+        const response = await axios.get(`${process.env.VUE_APP_API_URL}/api/get_api_key`) // Send GET request to fetch API key
         if (response.data && response.data.key) {
-          this.apiKey = response.data.key
-          console.log('获取 API 密钥成功:', this.apiKey)
+          this.apiKey = response.data.key // Store the API key
         } else {
-          console.error('获取 API 密钥失败')
+          console.error('Failed to fetch API key') // Log error if key is not present in response
         }
       } catch (error) {
-        console.error('请求 API 密钥发生错误:', error)
+        console.error('Error occurred while requesting API key:', error) // Log error if request fails
       }
     },
-    //  获取天气信息
+    /**
+     * Fetches weather information for a given district.
+     *
+     * This function retrieves weather information from the AMap API for a specified district.
+     * It first ensures that an API key is available, then constructs the API request URL.
+     * If the request is successful and returns valid weather data, the weather information
+     * is updated in the component's state and various UI elements are updated accordingly.
+     *
+     * @param {number} district - The district code for which to fetch weather information.
+     * @returns {Promise<void>} - A promise that resolves when the weather information has been fetched and processed.
+     */
     async fetchWeatherInfo (district) {
       const districtNames = {
         420100: '武汉市',
@@ -714,10 +872,9 @@ export default {
         420116: '黄陂区',
         420117: '新洲区'
       }
-      // console.log(`选择的区域: ${districtNames[district] || '未知区域'} (${district})`)
 
       if (!this.apiKey) {
-        await this.fetchApiKey() // 获取 API 密钥
+        await this.fetchApiKey() // Fetch API key if not available
       }
       const url = `https://restapi.amap.com/v3/weather/weatherInfo?city=${district}&key=${this.apiKey}&extensions=base`
 
@@ -727,25 +884,30 @@ export default {
           const weatherInfo = response.data.lives[0]
           const index = this.weatherInfos.findIndex(info => info.city === weatherInfo.city)
           if (index !== -1) {
-            this.weatherInfos[index] = weatherInfo
+            this.weatherInfos[index] = weatherInfo // Update existing weather info
           } else {
-            this.weatherInfos.push(weatherInfo)
+            this.weatherInfos.push(weatherInfo) // Add new weather info
           }
-          this.updateWeatherInfo(weatherInfo)
-          this.updatezhuzhuangtu()
-          console.log('获取天气信息成功:', weatherInfo)
-          this.inityibiaopan(districtNames[district]) // 更新仪表盘
-          await this.fetchSolarAngles(districtNames[district])
-          await this.fetchSolarAnglesDay(districtNames[district])
+          this.updateWeatherInfo(weatherInfo) // Update weather info in the component
+          this.updatezhuzhuangtu() // Update bar chart
+          this.inityibiaopan(districtNames[district]) // Update dashboard
+          await this.fetchSolarAngles(districtNames[district]) // Fetch solar angles
+          await this.fetchSolarAnglesDay(districtNames[district]) // Fetch daily solar angles
         } else {
-          console.error('获取天气信息失败:', response.data.info)
+          console.error('Failed to fetch weather information:', response.data.info)
         }
       } catch (error) {
-        console.error('请求天气信息发生错误:', error)
+        console.error('Error occurred while fetching weather information:', error)
       }
     },
-    // 更新天气信息
+    /**
+     * Updates the current weather information.
+     *
+     * @param {Object} weatherInfo - The weather information object.
+     * @param {string} weatherInfo.temperature - The temperature value as a string.
+     */
     updateWeatherInfo (weatherInfo) {
+      // Parse the temperature from the weatherInfo object and update the current temperature
       this.currentTemperature = parseFloat(weatherInfo.temperature)
     }
   }

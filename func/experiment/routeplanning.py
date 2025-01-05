@@ -11,6 +11,9 @@ from shapely.geometry import mapping, Point
 import copy
 from tqdm import tqdm
 from geopy.distance import geodesic
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import shutil
+
 
 # 数据库连接参数
 conn_params = {
@@ -21,54 +24,112 @@ conn_params = {
 }
 
 def runmore():
-    name_list = ['5_t18_10_00', '5_t18_20_00', '5_t18_30_00', '5_t18_40_00', '5_t18_50_00', '5_t19_00_00']
-    time_list = ['18:00:00', '18:20:00', '18:30:00', '18:40:00', '18:50:00', '19:00:00']
+    name_list = ['5_t5_30_00', '5_t5_40_00', 
+                '5_t5_50_00', '5_t6_00_00', '5_t6_10_00',
+                '5_t6_20_00', '5_t6_30_00', '5_t6_40_00', 
+                '5_t6_50_00', '5_t7_00_00', '5_t7_10_00', 
+                '5_t7_20_00', '5_t7_30_00', '5_t17_10_00',
+                '5_t17_20_00', '5_t17_30_00', '5_t17_40_00',
+                '5_t17_50_00', '5_t18_00_00', '5_t18_10_00',
+                '5_t18_20_00', '5_t18_30_00', '5_t18_40_00',
+                '5_t18_50_00', '5_t19_00_00']
+    
+    # 根据 name_list 生成 time_list
+    time_list = []
+    for name in name_list:
+        parts = name.split('_')
+        if len(parts) >= 3:
+            hour = parts[1][1:]  # 去掉 't' 前缀
+            minute = parts[2]
+            second = parts[3]
+            time_str = f"{hour}:{minute}:{second}"
+            time_list.append(time_str)
     
     count = len(name_list)
 
     date = '2024-05-15'
     runningtime = 1000
 
-    for i in range(count):
-        print(f"当前时间文件夹: {name_list[i]}")
-        name = name_list[i]
-        time = time_list[i]
-        main(name, time, date, runningtime)
+    # 公共 CSV 文件路径
+    common_csv_path = r'E:\webgislocation\analysis\v20241227\common_random_points.csv'
 
-def main(name, time, date, runningtime = 1000):
-    
+    # 检查公共 CSV 文件是否存在，如果不存在则生成并保存
+    if not os.path.exists(common_csv_path):
+        print("Generating random points...")
+        generate_and_save_random_points(common_csv_path, runningtime)
+
+    # 使用 ThreadPoolExecutor 并行处理多个时间
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        futures = []
+        for i in range(count):
+            print(f"Processing {name_list[i]}")
+            name = name_list[i]
+            time = time_list[i]
+            futures.append(executor.submit(singlerun, name, time, date, common_csv_path))
+
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                print(f"Error in thread: {e}")
+
+def generate_and_save_random_points(csv_path, runningtime):
+    shapefile_path = r"E:\webgislocation\三环\武汉市_三环线\武汉市三环面_wgs.shp"
+    gdf = gpd.read_file(shapefile_path)
+    bounds = gdf.total_bounds  # 获取范围 [minx, miny, maxx, maxy]
+
+    random_points = []
+    with tqdm(total=runningtime, desc="Generating random points") as pbar:
+        for _ in range(runningtime):
+            while True:
+                start = generate_random_point(bounds, gdf)
+                end = generate_random_point(bounds, gdf, (start[1], start[0]))
+                distance = geodesic((start[1], start[0]), (end[1], end[0])).km
+                if distance >= 1.5:
+                    random_points.append((start, end))
+                    break
+            pbar.update(1)
+
+    # 将1000对起点终点保存到公共csv文件
+    with open(csv_path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['start_lng', 'start_lat', 'end_lng', 'end_lat'])
+        for start, end in random_points:
+            writer.writerow([start[0], start[1], end[0], end[1]])
+
+def write_to_csv(file_path, row, header):
+    file_exists = os.path.isfile(file_path)
+    with open(file_path, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        if not file_exists:
+            writer.writerow(header)
+        writer.writerow(row)
+
+def singlerun(name, time, date, common_csv_path):
     # 时间参数
     date = date
     time = time
     name = name
 
     # 根据指定日期创建文件夹
-    route_with_time = os.path.join(r'E:\webgislocation\analysis\routelist', name)
-    shapefile_path = r'E:\webgislocation\analysis\data\randomregion.shp'
+    route_with_time = os.path.join(r'E:\webgislocation\analysis\v20241227\change0104\closest', name)
     csv_output_path = os.path.join(route_with_time, 'route_plans.csv')
 
-    route_no_time = os.path.join(r'E:\webgislocation\analysis\other_routelist', name)
+    route_no_time = os.path.join(r'E:\webgislocation\analysis\v20241227\change0104\low_glare', name)
     route_no_time_path = os.path.join(route_no_time, 'route_plans.csv')
 
     # 创建文件夹
     os.makedirs(route_with_time, exist_ok=True)
     os.makedirs(route_no_time, exist_ok=True)
-    # 读取面要素文件
-    gdf = gpd.read_file(shapefile_path)
-    bounds = gdf.total_bounds  # 获取范围 [minx, miny, maxx, maxy]
 
-    # 随机生成 1000 对起点和终点
+    # 读取公共csv文件中的起点终点
     random_points = []
-    for _ in range(runningtime):
-        start = generate_random_point(bounds, gdf)
-        end = generate_random_point(bounds, gdf, (start[1], start[0]))
-        random_points.append((start, end))
-    # 将1000对起点终点保存到csv文件
-    with open(os.path.join(route_with_time, 'random_points.csv'), mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(['start_lng', 'start_lat', 'end_lng', 'end_lat'])
-        for start, end in random_points:
-            writer.writerow([start[0], start[1], end[0], end[1]])
+    with open(common_csv_path, mode='r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            start = (float(row['start_lng']), float(row['start_lat']))
+            end = (float(row['end_lng']), float(row['end_lat']))
+            random_points.append((start, end))
 
     try:
         date_obj = datetime.strptime(date, '%Y-%m-%d')
@@ -82,66 +143,64 @@ def main(name, time, date, runningtime = 1000):
         print(f"Error parsing date/time: {e}")
         closest_table_name = "whrd7"
 
-    # 打开 CSV 文件以追加模式写入
-    with open(csv_output_path, mode='w', newline='') as file, open(route_no_time_path, mode='w', newline='') as other_file:
-        writer = csv.writer(file)
-        other_writer = csv.writer(other_file)
-        writer.writerow(['id', 'way', 'uuid', 'start_lng', 'start_lat', 'end_lng', 'end_lat', 'total_distance_km', 'total_time_minutes', 'sunglaretimes'])
-        other_writer.writerow(['id','way', 'uuid', 'start_lng', 'start_lat', 'end_lng', 'end_lat', 'total_distance_km', 'total_time_minutes', 'sunglaretimes'])
+    # 初始化进度条
+    count = 1
+    sum = 4 * len(random_points)
+    header = ['id', 'way', 'uuid', 'start_lng', 'start_lat', 'end_lng', 'end_lat', 'total_distance_km', 'total_time_minutes', 'sunglaretimes']
+    with tqdm(total=sum) as pbar:
+        # 定义临时文件夹路径
+        temp_folder = r'E:\webgislocation\analysis\v20241227\change0104\temp'
+        os.makedirs(temp_folder, exist_ok=True)
 
-        # 初始化进度条
-        count = 1
-        sum = 4 * len(random_points)
-        with tqdm(total=sum) as pbar:
-            for start, end in random_points:
-                # 正向路径规划
-                route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(start, end, closest_table_name, time_obj, route_with_time)
-                if route_plan_id:
-                    way = 1
-                    writer.writerow([count, way, route_plan_id, start[0], start[1], end[0], end[1], total_distance, total_time, sunglaretimes])
-                else:
-                    print("Failed to execute route plan")
-                pbar.update(1)
+        for start, end in random_points:
+            # 正向路径规划
+            route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(start, end, closest_table_name, False, temp_folder)
+            if route_plan_id:
+                way = 1
+                row = [count, way, route_plan_id, start[0], start[1], end[0], end[1], total_distance, total_time, sunglaretimes]
+                write_to_csv(csv_output_path, row, header)
+                final_path = os.path.join(route_with_time, f"route_plan_{route_plan_id}.geojson")
+                shutil.move(temp_file_path, final_path)
+            else:
+                print("Failed to execute route plan")
+            pbar.update(1)
 
-                # 反向路径规划
-                route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(end, start, closest_table_name, time_obj, route_with_time)
-                if route_plan_id:
-                    way = 0
-                    writer.writerow([count, way, route_plan_id, end[0], end[1], start[0], start[1], total_distance, total_time, sunglaretimes])
-                else:
-                    print("Failed to execute route plan")
-                pbar.update(1)
+            # 反向路径规划
+            route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(end, start, closest_table_name, False, temp_folder)
+            if route_plan_id:
+                way = 0
+                row = [count, way, route_plan_id, end[0], end[1], start[0], start[1], total_distance, total_time, sunglaretimes]
+                write_to_csv(csv_output_path, row, header)
+                final_path = os.path.join(route_with_time, f"route_plan_{route_plan_id}.geojson")
+                shutil.move(temp_file_path, final_path)
+            else:
+                print("Failed to execute route plan")
+            pbar.update(1)
 
-                # 使用 whrd7 表进行正向路径规划
-                route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(start, end, "whrd7", time_obj, route_with_time)
-                if route_plan_id:
-                    way = 1
-                    other_temp_file_path = os.path.join(route_no_time, f"route_plan_{route_plan_id}.geojson")
-                    os.makedirs(route_no_time, exist_ok=True)
-                    other_writer.writerow([count, way, route_plan_id, start[0], start[1], end[0], end[1], total_distance, total_time, sunglaretimes])
-                    with open(other_temp_file_path, "w") as tmp:
-                        with open(temp_file_path, "r") as src:
-                            tmp.write(src.read())
-                    os.remove(temp_file_path)  # 删除原始文件
-                else:
-                    print("Failed to execute route plan with whrd7")
-                pbar.update(1)
+            # 使用 whrd7 表进行正向路径规划
+            route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(start, end, closest_table_name, True, temp_folder)
+            if route_plan_id:
+                way = 1
+                row = [count, way, route_plan_id, start[0], start[1], end[0], end[1], total_distance, total_time, sunglaretimes]
+                write_to_csv(route_no_time_path, row, header)
+                final_path = os.path.join(route_no_time, f"route_plan_{route_plan_id}.geojson")
+                shutil.move(temp_file_path, final_path)
+            else:
+                print("Failed to execute route plan with whrd7")
+            pbar.update(1)
 
-                # 使用 whrd7 表进行反向路径规划
-                route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(end, start, "whrd7", time_obj, route_with_time)
-                if route_plan_id:
-                    way = 0
-                    other_temp_file_path = os.path.join(route_no_time, f"route_plan_{route_plan_id}.geojson")
-                    os.makedirs(route_no_time, exist_ok=True)
-                    other_writer.writerow([count, way, route_plan_id, end[0], end[1], start[0], start[1], total_distance, total_time, sunglaretimes])
-                    with open(other_temp_file_path, "w") as tmp:
-                        with open(temp_file_path, "r") as src:
-                            tmp.write(src.read())
-                    os.remove(temp_file_path)  # 删除原始文件
-                else:
-                    print("Failed to execute route plan with whrd7")
-                pbar.update(1)
-                count += 1
+            # 使用 whrd7 表进行反向路径规划
+            route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes = execute_route_plan(end, start, closest_table_name, True, temp_folder)
+            if route_plan_id:
+                way = 0
+                row = [count, way, route_plan_id, end[0], end[1], start[0], start[1], total_distance, total_time, sunglaretimes]
+                write_to_csv(route_no_time_path, row, header)
+                final_path = os.path.join(route_no_time, f"route_plan_{route_plan_id}.geojson")
+                shutil.move(temp_file_path, final_path)
+            else:
+                print("Failed to execute route plan with whrd7")
+            pbar.update(1)
+            count += 1
 
 def generate_random_point(bounds, gdf, other_point=None):
     minx, miny, maxx, maxy = bounds
@@ -170,7 +229,7 @@ def get_closest_table_name(month, day, hour, minute):
     except Exception as e:
         print(f"Error fetching tables: {e}")
         return None
-
+    # print("month: ", month, "day: ", day, "hour: ", hour, "minute: ", minute)
     closest_table = "whrd7"
     closest_time_diff = timedelta.max
 
@@ -209,11 +268,10 @@ def get_closest_table_name(month, day, hour, minute):
             print(f"Error parsing table name {table_name}: {e}")
         except Exception as e:
             print(f"Unexpected error parsing table name {table_name}: {e}")
-
+    
     if closest_time_diff.total_seconds() > 3600:
         closest_table = "whrd7"
-
-    print(f"Closest table: {closest_table}")
+    # print(f"Closest table: {closest_table}, time diff: {closest_time_diff}")
 
     return closest_table
 
@@ -243,6 +301,9 @@ def fix_segments(geojson):
     return geojson_copy
 
 def execute_route_plan(start, end, table_name, is_whrd7, route_with_time):
+    if is_whrd7:
+        date_table = table_name
+        table_name = "whrd7"
     try:
         conn = psycopg2.connect(**conn_params)
         cur = conn.cursor()
@@ -312,19 +373,15 @@ def execute_route_plan(start, end, table_name, is_whrd7, route_with_time):
                 except Exception as e:
                     print(f"Error processing row: {e}")
         
-        if table_name == "whrd7":
-            month = is_whrd7.month
-            day = is_whrd7.day
-            hour = is_whrd7.hour
-            minute = is_whrd7.minute
-            statis_table = get_closest_table_name(month, day, hour, minute)
-            for feature in features:
-                edge = feature["properties"]["edge"]
-                cur.execute(f"SELECT forward_time FROM {statis_table} WHERE gid = %s", (edge,))
-                forward_time = cur.fetchone()[0]
-                if forward_time == 99999:
-                    sunglaretimes += 1
-                    print(sunglaretimes)
+        # if is_whrd7:
+        #     print("date_table IS", date_table)
+        #     for feature in features:
+        #         edge = feature["properties"]["edge"]
+        #         cur.execute(f"SELECT forward_time FROM {date_table} WHERE gid = %s", (edge,))
+        #         forward_time = cur.fetchone()[0]
+        #         if forward_time == 99999:
+        #             sunglaretimes += 1
+        #             print(sunglaretimes)
 
         geojson = {
             "type": "FeatureCollection",
@@ -346,7 +403,11 @@ def execute_route_plan(start, end, table_name, is_whrd7, route_with_time):
         total_distance = round(total_distance / 1000, 2)  # 转换为公里
         total_time = round(total_time / 60, 2)  # 转换为分钟
 
-        print(f"Route plan executed successfully, route_plan_id: {route_plan_id})")
+        # if not is_whrd7:
+        #     print(f"Route plan executed successfully, table name: {table_name}, closest: {is_whrd7}, route plan ID: {route_plan_id}")
+        # else:
+        #     print(f"Route plan executed successfully, table name: {date_table}, closest: {is_whrd7}, route plan ID: {route_plan_id}")
+        print(f"Route plan executed successfully, table name: {table_name}, is_whrd7: {is_whrd7}, route plan ID: {route_plan_id}")
         return route_plan_id, temp_file_path, total_distance, total_time, sunglaretimes
     except Exception as e:
         print(f"Error executing route plan: {e}")

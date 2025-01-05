@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from adjustText import adjust_text
 import numpy as np
+import geopandas as gpd
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 def read_file():
     # 读取武汉市的面shp文件
@@ -131,3 +135,51 @@ def plot_pie_chart(csv_path, output_path):
     plt.show()
 
     print(f"饼图已保存到 {output_path}")
+
+def plot_date_distribution(shp_path, output_dir):
+    # 读取街景点分布的shp文件
+    region_gdf = gpd.read_file(shp_path)
+
+    # 提取日期列中的年份和月份
+    region_gdf['year'] = region_gdf['date'].astype(str).str[:4]
+    region_gdf['month'] = region_gdf['date'].astype(str).str[4:6]
+
+    # 计算每个年份和月份的分布
+    year_distribution = region_gdf['year'].value_counts().sort_index()
+    month_distribution = region_gdf['month'].value_counts().sort_index()
+
+    # 设置中文字体
+    plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用黑体
+    plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
+
+    # 绘制年份分布的柱状图
+    fig, ax = plt.subplots(figsize=(9.5, 6), dpi=600)  # 设置更高的分辨率
+    year_distribution.plot(kind='barh', ax=ax, color='skyblue')
+    # ax.set_title('年份分布', fontsize=16)
+    ax.set_xlabel('数量', fontsize=14)
+    ax.set_ylabel('年份', fontsize=14)
+    ax.tick_params(axis='both', which='major', labelsize=12)
+    ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
+    # 保存年份分布的柱状图
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/year_distribution.png", dpi=600)  # 保存图像
+    plt.close()
+
+    # 绘制月份分布的柱状图
+    fig, ax = plt.subplots(figsize=(9.5, 6), dpi=600)  # 设置更高的分辨率
+    month_distribution.plot(kind='barh', ax=ax, color='lightcoral')
+    # ax.set_title('月份分布', fontsize=16)
+    ax.set_xlabel('数量', fontsize=14)
+    ax.set_ylabel('月份', fontsize=14)
+    ax.tick_params(axis='both', which='major', labelsize=12)
+    ax.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
+
+    # 保存月份分布的柱状图
+    plt.tight_layout()
+    plt.savefig(f"{output_dir}/month_distribution.png", dpi=600)  # 保存图像
+    plt.close()
+
+if __name__ == '__main__':
+    # 绘制日期分布并保存图像
+    plot_date_distribution(r"E:\webgislocation\analysis\v20241227\region\region.shp", r"D:\大学资料\25.1\路径论文\sun-glare-route-planning-paper")
