@@ -112,15 +112,15 @@ def singlerun(name, time, date, common_csv_path):
     name = name
 
     # 根据指定日期创建文件夹
-    route_with_time = os.path.join(r'E:\webgislocation\analysis\v20241227\change0104\closest', name)
-    csv_output_path = os.path.join(route_with_time, 'route_plans.csv')
+    low_glare_lfile = os.path.join(r'E:\webgislocation\analysis\v20241227\change0104\closest', name)
+    low_glare_lcsv = os.path.join(low_glare_lfile, 'route_plans.csv')
 
-    route_no_time = os.path.join(r'E:\webgislocation\analysis\v20241227\change0104\low_glare', name)
-    route_no_time_path = os.path.join(route_no_time, 'route_plans.csv')
+    closest_lfile = os.path.join(r'E:\webgislocation\analysis\v20241227\change0104\low_glare', name)
+    closest_lcsv = os.path.join(closest_lfile, 'route_plans.csv')
 
     # 创建文件夹
-    os.makedirs(route_with_time, exist_ok=True)
-    os.makedirs(route_no_time, exist_ok=True)
+    os.makedirs(low_glare_lfile, exist_ok=True)
+    os.makedirs(closest_lfile, exist_ok=True)
 
     # 读取公共csv文件中的起点终点
     random_points = []
@@ -158,8 +158,8 @@ def singlerun(name, time, date, common_csv_path):
             if route_plan_id:
                 way = 1
                 row = [count, way, route_plan_id, start[0], start[1], end[0], end[1], total_distance, total_time, sunglaretimes]
-                write_to_csv(csv_output_path, row, header)
-                final_path = os.path.join(route_with_time, f"route_plan_{route_plan_id}.geojson")
+                write_to_csv(low_glare_lcsv, row, header)
+                final_path = os.path.join(low_glare_lfile, f"route_plan_{route_plan_id}.geojson")
                 shutil.move(temp_file_path, final_path)
             else:
                 print("Failed to execute route plan")
@@ -170,8 +170,8 @@ def singlerun(name, time, date, common_csv_path):
             if route_plan_id:
                 way = 0
                 row = [count, way, route_plan_id, end[0], end[1], start[0], start[1], total_distance, total_time, sunglaretimes]
-                write_to_csv(csv_output_path, row, header)
-                final_path = os.path.join(route_with_time, f"route_plan_{route_plan_id}.geojson")
+                write_to_csv(low_glare_lcsv, row, header)
+                final_path = os.path.join(low_glare_lfile, f"route_plan_{route_plan_id}.geojson")
                 shutil.move(temp_file_path, final_path)
             else:
                 print("Failed to execute route plan")
@@ -182,8 +182,8 @@ def singlerun(name, time, date, common_csv_path):
             if route_plan_id:
                 way = 1
                 row = [count, way, route_plan_id, start[0], start[1], end[0], end[1], total_distance, total_time, sunglaretimes]
-                write_to_csv(route_no_time_path, row, header)
-                final_path = os.path.join(route_no_time, f"route_plan_{route_plan_id}.geojson")
+                write_to_csv(closest_lcsv, row, header)
+                final_path = os.path.join(closest_lfile, f"route_plan_{route_plan_id}.geojson")
                 shutil.move(temp_file_path, final_path)
             else:
                 print("Failed to execute route plan with whrd7")
@@ -194,8 +194,8 @@ def singlerun(name, time, date, common_csv_path):
             if route_plan_id:
                 way = 0
                 row = [count, way, route_plan_id, end[0], end[1], start[0], start[1], total_distance, total_time, sunglaretimes]
-                write_to_csv(route_no_time_path, row, header)
-                final_path = os.path.join(route_no_time, f"route_plan_{route_plan_id}.geojson")
+                write_to_csv(closest_lcsv, row, header)
+                final_path = os.path.join(closest_lfile, f"route_plan_{route_plan_id}.geojson")
                 shutil.move(temp_file_path, final_path)
             else:
                 print("Failed to execute route plan with whrd7")
@@ -300,7 +300,7 @@ def fix_segments(geojson):
     
     return geojson_copy
 
-def execute_route_plan(start, end, table_name, is_whrd7, route_with_time):
+def execute_route_plan(start, end, table_name, is_whrd7, low_glare_lfile):
     if is_whrd7:
         date_table = table_name
         table_name = "whrd7"
@@ -392,7 +392,7 @@ def execute_route_plan(start, end, table_name, is_whrd7, route_with_time):
 
         route_plan_id = str(uuid.uuid4())
         temp_file_name = f"route_plan_{route_plan_id}.geojson"
-        temp_file_path = os.path.join(route_with_time, temp_file_name)
+        temp_file_path = os.path.join(low_glare_lfile, temp_file_name)
 
         with open(temp_file_path, "w") as tmp:
             json.dump(geojson, tmp)

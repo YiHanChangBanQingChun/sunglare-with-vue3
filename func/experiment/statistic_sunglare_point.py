@@ -31,12 +31,12 @@
 #     return False
 
 # def process_route(args):
-#     row, routelist_folder, other_routelist_folder, time_folder, sunglare_points = args
+#     row, low_glare_list, closest_list, time_folder, sunglare_points = args
 #     uuid_routelist = row['uuid_routelist']
 #     uuid_other = row['uuid_other']
 
-#     geojson_path_routelist = os.path.join(routelist_folder, time_folder, f'route_plan_{uuid_routelist}.geojson')
-#     geojson_path_other = os.path.join(other_routelist_folder, time_folder, f'route_plan_{uuid_other}.geojson')
+#     geojson_path_routelist = os.path.join(low_glare_list, time_folder, f'route_plan_{uuid_routelist}.geojson')
+#     geojson_path_other = os.path.join(closest_list, time_folder, f'route_plan_{uuid_other}.geojson')
 
 #     if os.path.exists(geojson_path_routelist) and os.path.exists(geojson_path_other):
 #         route_routelist = gpd.read_file(geojson_path_routelist)
@@ -55,10 +55,10 @@
 #         return sunglare_routelist, sunglare_other
 #     return None, None
 
-# def calculate_sunglare_reduction_percentage(routelist_folder, other_routelist_folder, time_folder, time_csv, time_column):
+# def calculate_sunglare_reduction_percentage(low_glare_list, closest_list, time_folder, time_csv, time_column):
 #     # 读取两个文件夹中对应时间的route_plans.csv文件
-#     routelist_df = read_route_plans(routelist_folder, time_folder)
-#     other_routelist_df = read_route_plans(other_routelist_folder, time_folder)
+#     routelist_df = read_route_plans(low_glare_list, time_folder)
+#     other_routelist_df = read_route_plans(closest_list, time_folder)
 
 #     if routelist_df.empty or other_routelist_df.empty:
 #         raise FileNotFoundError("One of the route_plans.csv files is missing or empty.")
@@ -75,7 +75,7 @@
 
 #     # 使用多进程并行处理
 #     with Pool() as pool:
-#         results = list(tqdm(pool.imap(process_route, [(row, routelist_folder, other_routelist_folder, time_folder, sunglare_points) for _, row in combined_df.iterrows()]), total=combined_df.shape[0], desc="Calculating sunglare reduction"))
+#         results = list(tqdm(pool.imap(process_route, [(row, low_glare_list, closest_list, time_folder, sunglare_points) for _, row in combined_df.iterrows()]), total=combined_df.shape[0], desc="Calculating sunglare reduction"))
 
 #     for sunglare_routelist, sunglare_other in results:
 #         if sunglare_routelist is not None and sunglare_other is not None:
@@ -94,8 +94,8 @@
 
 # def main():
 #     # 文件夹路径
-#     routelist_folder = r'E:\webgislocation\analysis\routelist'
-#     other_routelist_folder = r'E:\webgislocation\analysis\other_routelist'
+#     low_glare_list = r'E:\webgislocation\analysis\routelist'
+#     closest_list = r'E:\webgislocation\analysis\other_routelist'
 #     time_folder_list = ['5_t5_30_00', '5_t6_00_00', '5_t17_50_00']  # 替换为你选择的时间文件夹列表
 #     time_csv = r'E:\webgislocation\time_merge\result_2024_05_15_interval_10min.csv'
 
@@ -109,7 +109,7 @@
 #                 hour = f"0{hour}"
 #             time_column = f"t{hour}:{time_parts[1]}:{time_parts[2]}"
 #             print(f"时间列名: {time_column}")
-#             reduction_percentage = calculate_sunglare_reduction_percentage(routelist_folder, other_routelist_folder, time_folder, time_csv, time_column)
+#             reduction_percentage = calculate_sunglare_reduction_percentage(low_glare_list, closest_list, time_folder, time_csv, time_column)
 #             print(f"无眩光路径减少太阳眩光的百分比: {reduction_percentage:.2f}%")
 #         except Exception as e:
 #             print(f"Error processing folder {time_folder}: {e}")
@@ -155,12 +155,12 @@ def check_sunglare_on_route(route, sunglare_points, radius=0.2):
     return sunglare_count
 
 def process_route(args):
-    row, routelist_folder, other_routelist_folder, time_folder, sunglare_points = args
+    row, low_glare_list, closest_list, time_folder, sunglare_points = args
     uuid_routelist = row['uuid_routelist']
     uuid_other = row['uuid_other']
 
-    geojson_path_routelist = os.path.join(routelist_folder, time_folder, f'route_plan_{uuid_routelist}.geojson')
-    geojson_path_other = os.path.join(other_routelist_folder, time_folder, f'route_plan_{uuid_other}.geojson')
+    geojson_path_routelist = os.path.join(low_glare_list, time_folder, f'route_plan_{uuid_routelist}.geojson')
+    geojson_path_other = os.path.join(closest_list, time_folder, f'route_plan_{uuid_other}.geojson')
 
     if os.path.exists(geojson_path_routelist) and os.path.exists(geojson_path_other):
         route_routelist = gpd.read_file(geojson_path_routelist)
@@ -179,10 +179,10 @@ def process_route(args):
         return sunglare_routelist, sunglare_other
     return None, None
 
-def calculate_sunglare_reduction_percentage(routelist_folder, other_routelist_folder, time_folder, time_csv, time_column):
+def calculate_sunglare_reduction_percentage(low_glare_list, closest_list, time_folder, time_csv, time_column):
     # 读取两个文件夹中对应时间的route_plans.csv文件
-    routelist_df = read_route_plans(routelist_folder, time_folder)
-    other_routelist_df = read_route_plans(other_routelist_folder, time_folder)
+    routelist_df = read_route_plans(low_glare_list, time_folder)
+    other_routelist_df = read_route_plans(closest_list, time_folder)
 
     if routelist_df.empty or other_routelist_df.empty:
         raise FileNotFoundError("One of the route_plans.csv files is missing or empty.")
@@ -198,14 +198,14 @@ def calculate_sunglare_reduction_percentage(routelist_folder, other_routelist_fo
     count = 0
 
     # 打开 CSV 文件以追加模式写入
-    output_csv_path = os.path.join(routelist_folder, time_folder, 'sunglare_results.csv')
+    output_csv_path = os.path.join(low_glare_list, time_folder, 'sunglare_decrease.csv')
     with open(output_csv_path, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(combined_df.columns.tolist() + ['sunglare_routelist', 'sunglare_other', 'reduction_percentage'])
 
         # 使用多进程并行处理
         with Pool() as pool:
-            results = list(tqdm(pool.imap(process_route, [(row, routelist_folder, other_routelist_folder, time_folder, sunglare_points) for _, row in combined_df.iterrows()]), total=combined_df.shape[0], desc="Calculating sunglare reduction"))
+            results = list(tqdm(pool.imap(process_route, [(row, low_glare_list, closest_list, time_folder, sunglare_points) for _, row in combined_df.iterrows()]), total=combined_df.shape[0], desc="Calculating sunglare reduction"))
 
         for i, (sunglare_routelist, sunglare_other) in enumerate(results):
             if sunglare_routelist is not None and sunglare_other is not None:
@@ -221,17 +221,17 @@ def calculate_sunglare_reduction_percentage(routelist_folder, other_routelist_fo
 
 def main():
     # 文件夹路径
-    routelist_folder = r'E:\webgislocation\analysis\routelist'
-    other_routelist_folder = r'E:\webgislocation\analysis\other_routelist'
-    # time_folder_list = ['5_t5_30_00', '5_t5_40_00', 
-    #                     '5_t5_50_00', '5_t6_00_00', '5_t6_10_00',
-    #                     '5_t6_20_00', '5_t6_30_00', '5_t6_40_00', 
-    #                     '5_t6_50_00', '5_t7_00_00', '5_t7_10_00', 
-    #                     '5_t7_20_00', '5_t7_30_00', '5_t17_10_00',
-    #                     '5_t17_20_00', '5_t17_30_00', '5_t17_40_00',
-    #                     '5_t17_50_00', '5_t18_00_00', '5_t18_10_00',
-    #                     '5_t18_20_00', '5_t18_30_00', '5_t18_40_00',
-    #                     '5_t18_50_00', '5_t19_00_00']
+    low_glare_list = r"E:\webgislocation\analysis\v20241227\change0104\low_glare"
+    closest_list = r"E:\webgislocation\analysis\v20241227\change0104\closest"
+    time_folder_list = ['5_t5_30_00', '5_t5_40_00', 
+                        '5_t5_50_00', '5_t6_00_00', '5_t6_10_00',
+                        '5_t6_20_00', '5_t6_30_00', '5_t6_40_00', 
+                        '5_t6_50_00', '5_t7_00_00', '5_t7_10_00', 
+                        '5_t7_20_00', '5_t7_30_00', '5_t17_10_00',
+                        '5_t17_20_00', '5_t17_30_00', '5_t17_40_00',
+                        '5_t17_50_00', '5_t18_00_00', '5_t18_10_00',
+                        '5_t18_20_00', '5_t18_30_00', '5_t18_40_00',
+                        '5_t18_50_00', '5_t19_00_00']
 
     # time_folder_list = ['5_t5_30_00', '5_t5_40_00', 
     #                 '5_t5_50_00', '5_t6_00_00', '5_t6_10_00',
@@ -239,18 +239,11 @@ def main():
     #                 '5_t6_50_00', '5_t7_00_00', '5_t7_10_00', 
     #                 '5_t7_20_00', '5_t7_30_00']
 
-
-
     # time_folder_list = ['5_t17_10_00',
     #                     '5_t17_20_00', '5_t17_30_00', '5_t17_40_00',
     #                     '5_t17_50_00', '5_t18_00_00', '5_t18_10_00',
     #                     '5_t18_20_00', '5_t18_30_00', '5_t18_40_00',
     #                     '5_t18_50_00', '5_t19_00_00']
-
-    time_folder_list = [ '5_t17_40_00',
-                        '5_t17_50_00', '5_t18_00_00', '5_t18_10_00',
-                        '5_t18_20_00', '5_t18_30_00', '5_t18_40_00',
-                        '5_t18_50_00', '5_t19_00_00']
 
     time_csv = r'E:\webgislocation\time_merge\result_2024_05_15_interval_10min.csv'
 
@@ -264,7 +257,7 @@ def main():
                 hour = f"0{hour}"
             time_column = f"t{hour}:{time_parts[1]}:{time_parts[2]}"
             print(f"时间列名: {time_column}")
-            total_sunglare_routelist, total_sunglare_other, count = calculate_sunglare_reduction_percentage(routelist_folder, other_routelist_folder, time_folder, time_csv, time_column)
+            total_sunglare_routelist, total_sunglare_other, count = calculate_sunglare_reduction_percentage(low_glare_list, closest_list, time_folder, time_csv, time_column)
             if count > 0:
                 reduction_percentage = ((total_sunglare_other - total_sunglare_routelist) / total_sunglare_other) * 100
                 reduction_percentage = round(reduction_percentage,3)

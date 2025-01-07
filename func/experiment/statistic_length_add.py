@@ -57,7 +57,7 @@ def calculate_distance_increase_percentage(routelist_folder, other_routelist_fol
                 combined_df.at[i, 'distance_increase_percentage'] = round(distance_increase * 100,4)
 
     # 保存为新的 CSV 文件
-    output_csv_path = os.path.join(routelist_folder, time_folder, 'distance_increase_results.csv')
+    output_csv_path = os.path.join(routelist_folder, time_folder, 'distance_increase.csv')
     combined_df.to_csv(output_csv_path, index=False)
 
     if count > 0:
@@ -69,17 +69,17 @@ def calculate_distance_increase_percentage(routelist_folder, other_routelist_fol
 
 def main():
     # 文件夹路径
-    routelist_folder = r'E:\webgislocation\analysis\routelist'
-    other_routelist_folder = r'E:\webgislocation\analysis\other_routelist'
-    # time_folder_list = ['5_t5_30_00', '5_t5_40_00', 
-    #                     '5_t5_50_00', '5_t6_00_00', '5_t6_10_00',
-    #                     '5_t6_20_00', '5_t6_30_00', '5_t6_40_00', 
-    #                     '5_t6_50_00', '5_t7_00_00', '5_t7_10_00', 
-    #                     '5_t7_20_00', '5_t7_30_00', '5_t17_10_00',
-    #                     '5_t17_20_00', '5_t17_30_00', '5_t17_40_00',
-    #                     '5_t17_50_00', '5_t18_00_00', '5_t18_10_00',
-    #                     '5_t18_20_00', '5_t18_30_00', '5_t18_40_00',
-    #                     '5_t18_50_00', '5_t19_00_00']
+    routelist_folder = r"E:\webgislocation\analysis\v20241227\change0104\low_glare"
+    other_routelist_folder = r"E:\webgislocation\analysis\v20241227\change0104\closest"
+    time_folder_list = ['5_t5_30_00', '5_t5_40_00', 
+                        '5_t5_50_00', '5_t6_00_00', '5_t6_10_00',
+                        '5_t6_20_00', '5_t6_30_00', '5_t6_40_00', 
+                        '5_t6_50_00', '5_t7_00_00', '5_t7_10_00', 
+                        '5_t7_20_00', '5_t7_30_00', '5_t17_10_00',
+                        '5_t17_20_00', '5_t17_30_00', '5_t17_40_00',
+                        '5_t17_50_00', '5_t18_00_00', '5_t18_10_00',
+                        '5_t18_20_00', '5_t18_30_00', '5_t18_40_00',
+                        '5_t18_50_00', '5_t19_00_00']
 
     # time_folder_list = ['5_t5_30_00', '5_t5_40_00', 
     #                     '5_t5_50_00', '5_t6_00_00', '5_t6_10_00',
@@ -93,7 +93,6 @@ def main():
     #                     '5_t18_20_00', '5_t18_30_00', '5_t18_40_00',
     #                     '5_t18_50_00', '5_t19_00_00']
 
-    time_folder_list = ['5_t7_40_00']
 
     for time_folder in time_folder_list:
         try:
