@@ -593,7 +593,7 @@ def main():
 
     # draw_sunglare_heatmap(result_analyse_folder)
     # draw_sunglare_occurrence_rate(result_analyse_folder)
-    # draw_sunglare_occurrence_rate_full(result_analyse_folder)
+    draw_sunglare_occurrence_rate_full(result_analyse_folder)
     # draw_distance_increase_percentage(result_analyse_folder)
     draw_distance_increase_percentage_violinplot(result_analyse_folder)
     # draw_sunglare_decrease_percentage(result_analyse_folder)
