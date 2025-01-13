@@ -94,7 +94,7 @@ def set_ch():
     rcParams['font.size'] = 32  # 字体加大
     rcParams['font.weight'] = 'bold'  # 字体加粗
 
-def add_north(ax, labelsize=34, loc_x=0.5, loc_y=0.85, width=0.24, height=0.52, pad=0.14):
+def add_north(ax, labelsize=34, loc_x=0.5, loc_y=0.55, width=0.24, height=0.40, pad=0.14):
     """
     画一个比例尺带'N'文字注释
     主要参数如下
@@ -124,7 +124,7 @@ def add_north(ax, labelsize=34, loc_x=0.5, loc_y=0.85, width=0.24, height=0.52, 
             verticalalignment='bottom')
     ax.add_patch(triangle)
 
-def add_scale(ax, length=1000, location=(0.5, 0.05), linewidth=3, fontsize=18):
+def add_scale(ax, length=1000, location=(0.5, -0.3), linewidth=3, fontsize=18):
     """
     添加比例尺
     :param ax: 要画的坐标区域 Axes实例 plt.gca()获取即可
@@ -184,13 +184,17 @@ def plot_all_with_time_series(pano_dot_path, ring3rd_path, sanhuan_path, output_
         parts = field[1:].split('_')  # 去掉第一个字符 't'
         hour = int(parts[0])
         minute = int(parts[1])
-        return f"{hour}时{minute}分"
+        if hour < 10:
+            hour = f'0{hour}'
+        if minute == 0:
+            minute = '00'
+        return f"{hour}:{minute}"
 
     fig, axes = plt.subplots(4, 4, figsize=(24, 24))  # 增加画布大小
     plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.1, hspace=0.1)  # 调整边距和间距
 
     # 绘制所有点的图在左上角
-    create_plot(axes[0, 0], '(a)', '5月15日')
+    create_plot(axes[0, 0], '(a)', '全天')
     pano_dot.plot(ax=axes[0, 0], color='red', markersize=2, zorder=5)
 
     time_fields = [col for col in pano_dot.columns if col.startswith('t')]
@@ -227,7 +231,7 @@ def plot_all_with_time_series(pano_dot_path, ring3rd_path, sanhuan_path, output_
     sanhuan.boundary.plot(ax=ax, edgecolor='white', alpha=0)  # 绘制透明的三环线面
     plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.1, hspace=0.1)
     add_north(ax)
-    add_scale(ax, length=20000, location=(0.15, 0.5), linewidth=6, fontsize=34)
+    add_scale(ax, length=20000, location=(0.17, 0.3), linewidth=6, fontsize=34)
 
     if output_dir:
         plt.savefig(output_dir / 'plot_all_with_time_series.png')

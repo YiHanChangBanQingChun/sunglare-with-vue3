@@ -299,7 +299,7 @@ def draw_sunglare_occurrence_rate_full(result_analyse_folder, draw_regression=Tr
             right_r2 = 1 - (np.sum((right_y - right_poly_y) ** 2) / np.sum((right_y - np.mean(right_y)) ** 2))
             plt.plot([full_dates[i] for i in right_x], right_poly_y, 'b--', label=f'R²={right_r2:.3f}')
 
-    plt.title("2024年5月15日武汉市全景影像覆盖主要地区的太阳眩光发生率")
+    plt.title("2024年5月15日武汉市三环内所有路径的太阳眩光发生率")
     plt.xlabel("时间")
     plt.ylabel("发生率 (%)")
     plt.xticks(rotation=45)
@@ -595,9 +595,9 @@ def main():
     # draw_sunglare_occurrence_rate(result_analyse_folder)
     draw_sunglare_occurrence_rate_full(result_analyse_folder)
     # draw_distance_increase_percentage(result_analyse_folder)
-    draw_distance_increase_percentage_violinplot(result_analyse_folder)
+    # draw_distance_increase_percentage_violinplot(result_analyse_folder)
     # draw_sunglare_decrease_percentage(result_analyse_folder)
-    draw_sunglare_decrease_percentage_violinplot(result_analyse_folder)
+    # draw_sunglare_decrease_percentage_violinplot(result_analyse_folder)
 
 if __name__ == '__main__':
     main()
